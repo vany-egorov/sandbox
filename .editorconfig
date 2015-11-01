@@ -1,0 +1,27 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.py]
+indent_size = 4
+
+[*.{c,h}]
+indent_style = space
+indent_size = 2
+
+[*.{cpp,hpp,hxx,hh}]
+indent_style = space
+indent_size = 2
+
+[*.{plantuml,planuml}]
+indent_style = tab
+indent_size = 2
+
+[Makefile]
+indent_style = tab
