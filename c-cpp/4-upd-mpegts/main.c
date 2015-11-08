@@ -12,13 +12,15 @@
 
 #define EXAMPLE_PORT 5500
 #define EXAMPLE_GROUP "239.1.1.1"
+#define SYNC_BYTE 0x47
+#define MESSAGE_SIZE 2000
 
 
 int main (int argc, char *argv[]) {
   struct sockaddr_in addr;
-  int addrlen, sock, cnt;
+  int addrlen, sock, cnt, i;
   struct ip_mreq mreq;
-  char message[50];
+  char message[MESSAGE_SIZE];
 
   /* set up socket */
   sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -51,6 +53,13 @@ int main (int argc, char *argv[]) {
     } else if (cnt == 0) {
       break;
     }
-    printf("%s: message = \"%s\"\n", inet_ntoa(addr.sin_addr), message);
+
+    for (i = 0; i < MESSAGE_SIZE; i++) {
+      if (message[i] == SYNC_BYTE) {
+        printf("SYNC_BYTE got\n");
+      }
+    }
+
+    printf("%s: cnt=%d message = \"%s\"\n", inet_ntoa(addr.sin_addr), cnt, message);
   }
 }
