@@ -22,4 +22,5 @@ bin-dir:
 build: bin-dir main
 
 run:
+	# $(OBJECTS_DIRS)/main 2>&1 >out.log
 	$(OBJECTS_DIRS)/main

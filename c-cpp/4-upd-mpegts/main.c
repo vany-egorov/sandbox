@@ -15,8 +15,54 @@
 #define EXAMPLE_GROUP "239.1.1.1"
 #define MSG_SIZE 1504
 
-#define MPEGTS_SYNC_BYTE 0x47
-#define MPEGTS_PACKET_SIZE 188
+#define MPEGTS_SYNC_BYTE    0x47
+#define MPEGTS_PACKET_SIZE  188
+
+#define MPEGTS_PID_PAT      0x0000
+#define MPEGTS_PID_CAT      0x0001
+#define MPEGTS_PID_TSDT     0x0002
+#define MPEGTS_PID_CIT      0x0003
+#define MPEGTS_PID_NULL     0x1FFF
+
+// ETSI EN 300 468 V1.3.1 (1998-02)
+// ETSI EN 300 468 V1.11.1 (2010-04)
+#define MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION                          0x00
+#define MPEGTS_TABLE_ID_CONDITIONAL_ACCESS_SECTION                           0x01
+#define MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION                                  0x02
+#define MPEGTS_TABLE_ID_TRANSPORT_STREAM_DESCRIPTION_SECTION                 0x03
+#define MPEGTS_TABLE_ID_NETWORK_INFORMATION_SECTION_ACTUAL_NETWORK           0x40
+#define MPEGTS_TABLE_ID_NETWORK_INFORMATION_SECTION_OTHER_NETWORK            0x41
+#define MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_ACTUAL_TRANSPORT_STREAM  0x42
+#define MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_OTHER_TRANSPORT_STREAM   0x46
+#define MPEGTS_TABLE_ID_BOUQUET_ASSOCIATION_SECTION                          0x4A
+#define MPEGTS_TABLE_ID_EVENT_INFORMATION_SECTION_ACTUAL_TRANSPORT_STREAM    0x4E
+#define MPEGTS_TABLE_ID_EVENT_INFORMATION_SECTION_OTHER_TRANSPORT_STREAM     0x4F
+#define MPEGTS_TABLE_ID_TIME_DATE_SECTION                                    0x70
+#define MPEGTS_TABLE_ID_RUNNING_STATUS_SECTION                               0x71
+#define MPEGTS_TABLE_ID_STUFFING_SECTION                                     0x72
+#define MPEGTS_TABLE_ID_TIME_OFFSET_SECTION                                  0x73
+#define MPEGTS_TABLE_ID_APPLICATION_INFORMATION_SECTION                      0x74
+#define MPEGTS_TABLE_ID_CONTAINER_SECTION                                    0x75
+#define MPEGTS_TABLE_ID_RELATED_CONTENT_SECTION                              0x76
+#define MPEGTS_TABLE_ID_CONTENT_IDENTIFIER_SECTION                           0x77
+#define MPEGTS_TABLE_ID_MPE_FEC_SECTION                                      0x78
+#define MPEGTS_TABLE_ID_RESOLUTION_NOTIFICATION_SECTION                      0x79
+#define MPEGTS_TABLE_ID_MPE_IFEC_SECTION                                     0x7A
+#define MPEGTS_TABLE_ID_DISCONTINUITY_INFORMATION_SECTION                    0x7E
+#define MPEGTS_TABLE_ID_SELECTION_INFORMATION_SECTION                        0x7F
+
+#define MPEGTS_STREAM_TYPE_VIDEO_MPEG1         0x01
+#define MPEGTS_STREAM_TYPE_VIDEO_MPEG2         0x02
+#define MPEGTS_STREAM_TYPE_AUDIO_MPEG1         0x03
+#define MPEGTS_STREAM_TYPE_AUDIO_MPEG2         0x04
+#define MPEGTS_STREAM_TYPE_PRIVATE_SECTIONS    0x05
+#define MPEGTS_STREAM_TYPE_PRIVATE_PES_PACKETS 0x06
+#define MPEGTS_STREAM_TYPE_MHEG                0x07
+#define MPEGTS_STREAM_TYPE_AUDIO_AAC_ADTS      0x0F
+#define MPEGTS_STREAM_TYPE_VIDEO_MPEG4         0x10
+#define MPEGTS_STREAM_TYPE_VIDEO_AAC_LATM      0x11
+#define MPEGTS_STREAM_TYPE_VIDEO_H264          0x1B
+#define MPEGTS_STREAM_TYPE_VIDEO_H265          0x42
 
 
 typedef struct Header {
@@ -206,6 +252,8 @@ int main (int argc, char *argv[]) {
 		exit(1);
 	}
 
+	uint16_t program_map_PID = 0;
+
 	while (1) {
 		memset(msg, 0, sizeof msg);
 		msg_len = 0;
@@ -231,9 +279,104 @@ int main (int argc, char *argv[]) {
 						PCR pcr = { 0	};
 						pcr_parse(&pcr, &msg[i+6]);
 
-						header_print(&header);
-						adaption_print(&adaption);
-						pcr_print(&pcr);
+						// header_print(&header);
+						// adaption_print(&adaption);
+						// pcr_print(&pcr);
+					}
+				}
+
+				if (header.PID == MPEGTS_PID_PAT) {
+					// PSI - hader
+					uint8_t table_id = (uint8_t)msg[i+5];
+					uint8_t section_syntax_indicator = !!( (uint8_t)msg[i+6] & 0x80 );
+					uint8_t private_bit = !!( (uint8_t)msg[i+6] & 0x40 );
+					uint8_t reserved_bits = (uint8_t)msg[i+6] & 0x30;
+					uint8_t section_length_unused_bits = (uint8_t)msg[i+6] & 0x0C;
+					uint16_t section_length = (((uint16_t)msg[i+6] & 0x03 ) << 8) | ((uint16_t)msg[i+7] & 0xFF);
+
+					// PSI - table syntax section
+					uint16_t transport_stream_id = (
+						(((uint16_t)msg[i+8] & 0xFF) << 8) |
+						((uint16_t)msg[i+9] & 0xFF)
+					);
+					uint8_t version_number = (uint8_t)msg[i+10] & 0x3E;
+					uint8_t curent_next_indicator = (uint8_t)msg[i+10] & 0x01;
+					uint8_t section_number = (uint8_t)msg[i+11];
+					uint8_t last_section_number = (uint8_t)msg[i+12];
+					uint16_t CRC32_i = (uint16_t)i + 7 + section_length;
+					uint32_t CRC32 = (
+						(((uint32_t)msg[CRC32_i-3] & 0xFF) << 24) |
+						(((uint32_t)msg[CRC32_i-2] & 0xFF) << 16) |
+						(((uint32_t)msg[CRC32_i-1] & 0xFF) << 8) |
+						((uint32_t)msg[CRC32_i] & 0xFF)
+					);
+					// printf("0x%02X | %d | %d | %d | %d | %d | %d | %d | %d | 0x%04x\n", table_id, section_syntax_indicator, private_bit, section_length, transport_stream_id, version_number, curent_next_indicator, section_number, last_section_number, CRC32);
+
+					if (table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
+						// PAT (Program association specific data)
+						uint16_t program_number = (((uint16_t)msg[i+13] & 0xFF) << 8) | ((uint16_t)msg[i+14] & 0xFF);
+						program_map_PID = (((uint16_t)msg[i+15] & 0x1F) << 8) | ((uint16_t)msg[i+16] & 0xFF);
+						// printf("%d 0x%04x %d\n", program_number, program_map_PID, program_map_PID);
+					}
+				}
+				if ((program_map_PID) && (header.PID == program_map_PID)) {
+					// PSI - hader
+					uint8_t table_id = (uint8_t)msg[i+5];
+					uint8_t section_syntax_indicator = !!( (uint8_t)msg[i+6] & 0x80 );
+					uint8_t private_bit = !!( (uint8_t)msg[i+6] & 0x40 );
+					uint8_t reserved_bits = (uint8_t)msg[i+6] & 0x30;
+					uint8_t section_length_unused_bits = (uint8_t)msg[i+6] & 0x0C;
+					uint16_t section_length = (((uint16_t)msg[i+6] & 0x03 ) << 8) | ((uint16_t)msg[i+7] & 0xFF);
+
+					// PSI - table syntax section
+					uint16_t transport_stream_id = (
+						(((uint16_t)msg[i+8] & 0xFF) << 8) |
+						((uint16_t)msg[i+9] & 0xFF)
+					);
+					uint8_t version_number = (uint8_t)msg[i+10] & 0x3E;
+					uint8_t curent_next_indicator = (uint8_t)msg[i+10] & 0x01;
+					uint8_t section_number = (uint8_t)msg[i+11];
+					uint8_t last_section_number = (uint8_t)msg[i+12];
+					uint16_t CRC32_i = (uint16_t)i + 7 + section_length;
+					uint32_t CRC32 = (
+						(((uint32_t)msg[CRC32_i-3] & 0xFF) << 24) |
+						(((uint32_t)msg[CRC32_i-2] & 0xFF) << 16) |
+						(((uint32_t)msg[CRC32_i-1] & 0xFF) << 8) |
+						((uint32_t)msg[CRC32_i] & 0xFF)
+					);
+					// printf("0x%02X | %d | %d | %d | %d | %d | %d | %d | %d | 0x%04x\n", table_id, section_syntax_indicator, private_bit, section_length, transport_stream_id, version_number, curent_next_indicator, section_number, last_section_number, CRC32);
+
+					if (table_id == MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
+						int16_t section_length_unreaded = (int16_t)section_length;
+						section_length_unreaded -= 9;
+						uint16_t PCR_PID = (
+							(((uint16_t)msg[i+13] & 0x1F) << 8) |
+							((uint16_t)msg[i+14] & 0xFF)
+						);
+						section_length_unreaded -= 2;
+						uint16_t program_info_length = (
+							(((uint16_t)msg[i+15] & 0x03) << 8) |
+							((uint16_t)msg[i+16] & 0xFF)
+						);
+						section_length_unreaded -= 2;
+						printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
+
+						int pmt_start = i + 17;
+						int pmt_offset = 0;
+						while (section_length_unreaded > 0) {
+							uint8_t stream_type = (uint8_t)msg[pmt_start+pmt_offset];
+							uint16_t elementary_PID = (
+								(((uint16_t)msg[pmt_start+1+pmt_offset] & 0x1F) << 8) |
+								((uint16_t)msg[pmt_start+2+pmt_offset] & 0xFF)
+							);
+							uint16_t ES_info_length = (
+								(((uint16_t)msg[pmt_start+3+pmt_offset] & 0x03) << 8) |
+								((uint16_t)msg[pmt_start+4+pmt_offset] & 0xFF)
+							);
+							section_length_unreaded -= (5 + ES_info_length);
+							pmt_offset += (5 + ES_info_length);
+							printf("- 0x%02x | 0x%02x | %d | %d\n", stream_type, elementary_PID, ES_info_length, section_length);
+						}
 					}
 				}
 
@@ -249,12 +392,13 @@ int main (int argc, char *argv[]) {
 					uint8_t *payload = &msg[payload_offset];
 					uint8_t payload_length = 0;
 					payload_length = MPEGTS_PACKET_SIZE - payload_offset;
+
 					// printf("payload_offset - %d\n", payload_offset);
 					// printf("payload_length - %d\n", payload_length);
 
-					fwrite(payload, payload_length, 1, f_h264);
-					fflush(f_h264);
-					h264_len += payload_length;
+					// fwrite(payload, payload_length, 1, f_h264);
+					// fflush(f_h264);
+					// h264_len += payload_length;
 				}
 
 				// if (header.contains_payload) {
@@ -268,11 +412,11 @@ int main (int argc, char *argv[]) {
 			}
 		}
 
-		fwrite(msg, msg_len, 1, f_ts);
-		fflush(f_ts);
+		// fwrite(msg, msg_len, 1, f_ts);
+		// fflush(f_ts);
 
-		printf("ts   written %d\n", msg_len);
-		printf("h264 written %d\n", h264_len);
+		// printf("ts   written %d\n", msg_len);
+		// printf("h264 written %d\n", h264_len);
 	}
 
 	fclose(f_h264);
