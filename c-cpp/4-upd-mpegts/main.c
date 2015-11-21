@@ -27,6 +27,11 @@
 
 #define PES_START_CODE 0x000001
 
+#define PES_PTS_DTS_INDICATOR_NO        0b00
+#define PES_PTS_DTS_INDICATOR_FORBIDDEN 0b01
+#define PES_PTS_DTS_INDICATOR_PTS       0b10
+#define PES_PTS_DTS_INDICATOR_PTS_DTS   0b11
+
 // ETSI EN 300 468 V1.3.1 (1998-02)
 // ETSI EN 300 468 V1.11.1 (2010-04)
 #define MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION                          0x00
@@ -513,13 +518,70 @@ int main (int argc, char *argv[]) {
 						(uint32_t)pes[1] & 0xFF << 8 |
 						(uint32_t)pes[2] & 0xFF
 					);
+					// http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
 					if (start_code == PES_START_CODE) {
 						uint8_t stream_id = (uint8_t)pes[3];
 						uint16_t pes_packet_length = (
 							(uint16_t)pes[4] & 0xFF << 8 |
 							(uint16_t)pes[5] & 0xFF
 						);
-						printf("%x | %d\n", stream_id, pes_packet_length);
+
+						// PES header
+						// 10 binary or 0x2 hex
+						uint8_t marker_bits = (((uint8_t)pes[6] & 0xC0) >> 6);
+						// 00 - not scrambled
+						uint8_t scrambling_control = (uint8_t)pes[6] & 0x30;
+						uint8_t priority = !!( (uint8_t)pes[6] & 0x08 );
+						// 1 indicates that the PES packet
+						// header is immediately followed by
+						// the video start code or audio syncword
+						uint8_t data_alignment_indicator = !!( (uint8_t)pes[6] & 0x04 );
+						uint8_t copyright = !!( (uint8_t)pes[6] & 0x02 );
+						uint8_t original_or_copy = !!( (uint8_t)pes[6] & 0x01 );
+						// 11 = both present;
+						// 01 is forbidden;
+						// 10 = only PTS;
+						// 00 = no PTS or DTS
+						uint8_t PTS_DTS_indicator = (((uint8_t)pes[7] & 0xC0) >> 6);
+						// This is the Elementary Stream Clock Reference,
+						// used if the stream and system levels are not synchronized'
+						// (i.e. ESCR differs from SCR in the PACK header).
+						uint8_t ESCR_flag = (uint8_t)pes[7] & 0x20;
+						// The rate at which data is delivered for this stream,
+						// in units of 50 bytes/second.
+						uint8_t ES_rate_flag = (uint8_t)pes[7] & 0x10;
+						uint8_t DSM_trick_mode_flag = (uint8_t)pes[7] & 0x08;
+						uint8_t additional_copy_info_flag = (uint8_t)pes[7] & 0x04;
+						uint8_t CRC_flag = (uint8_t)pes[7] & 0x02;
+						uint8_t extension_flag = (uint8_t)pes[7] & 0x01;
+						uint8_t PES_header_length = (uint8_t)pes[8];
+						// printf("%d | %d | 0x%02x\n", data_alignment_indicator, PES_header_length, PTS_DTS_indicator);
+						if ((PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS) ||
+							  (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS)) {
+							uint64_t PTS = (
+								(((uint64_t)pes[9]  & 0x0E) << 32) |
+								(((uint64_t)pes[10] & 0xFF) << 24) |
+								(((uint64_t)pes[11] & 0xFE) << 16) |
+								(((uint64_t)pes[12] & 0xFF) << 8) |
+								 ((uint64_t)pes[13] & 0xFE)
+							);
+							uint64_t DTS = 0;
+							if (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS) {
+								DTS = (
+									(((uint64_t)pes[14]  & 0x0E) << 32) |
+									(((uint64_t)pes[15] & 0xFF) << 24) |
+									(((uint64_t)pes[16] & 0xFE) << 16) |
+									(((uint64_t)pes[17] & 0xFF) << 8) |
+									 ((uint64_t)pes[18] & 0xFE)
+								);
+							}
+
+							printf("PTS: %d DTS: %d\n", PTS, DTS);
+						}
+
+						// ES
+						uint8_t *es = &pes[9+PES_header_length];
+						printf("0x%02x 0x%02x 0x%02x 0x%02x\n", es[0], es[1], es[2], es[3]);
 					}
 
 					// fwrite(payload, payload_length, 1, f_h264);
