@@ -10,6 +10,8 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
+#include "color.h"
+
 
 #define EXAMPLE_PORT 5500
 #define EXAMPLE_GROUP "239.1.1.1"
@@ -31,6 +33,9 @@
 #define PES_PTS_DTS_INDICATOR_FORBIDDEN 0b01
 #define PES_PTS_DTS_INDICATOR_PTS       0b10
 #define PES_PTS_DTS_INDICATOR_PTS_DTS   0b11
+
+#define ES_START_CODE_SHORT 0x000001
+#define ES_START_CODE_LONG  0x00000001
 
 // ETSI EN 300 468 V1.3.1 (1998-02)
 // ETSI EN 300 468 V1.11.1 (2010-04)
@@ -113,6 +118,125 @@ static void mpegts_stream_type_str(uint8_t v, char *out) {
 	}
 }
 
+// ITU-T H.264 (V9) (02/2014) - p63
+typedef enum {
+	NAL_TYPE_UNSPECIFIED = 0,
+	NAL_TYPE_SLICE       = 1,
+	NAL_TYPE_DPA         = 2,
+	NAL_TYPE_DPB         = 3,
+	NAL_TYPE_DPC         = 4,
+	NAL_TYPE_IDR         = 5,
+	NAL_TYPE_SEI         = 6,
+	NAL_TYPE_SPS         = 7,
+	NAL_TYPE_PPS         = 8,
+	NAL_TYPE_AUD         = 9,
+	NAL_TYPE_EOSEQ       = 10,
+	NAL_TYPE_EOSTREAM    = 11,
+	NAL_TYPE_FILL        = 12,
+	NAL_TYPE_SPS_EXT     = 13,
+	NAL_TYPE_PREFIX      = 14,
+	NAL_TYPE_SSPS        = 15,
+	NAL_TYPE_DPS         = 16,
+	NAL_TYPE_CSOACPWP    = 19,
+	NAL_TYPE_CSE         = 20,
+	NAL_TYPE_CSE3D       = 21,
+} NALType;
+
+static void nal_type_str(NALType v, char *out) {
+	switch(v) {
+	case NAL_TYPE_SLICE:
+		strcpy(out, "H264 slice");
+		break;
+	case NAL_TYPE_DPA:
+		strcpy(out, "H264 DPA - Coded slice data partition A");
+		break;
+	case NAL_TYPE_DPB:
+		strcpy(out, "H264 DPB - Coded slice data partition B");
+		break;
+	case NAL_TYPE_DPC:
+		strcpy(out, "H264 DPC - Coded slice data partition C");
+		break;
+	case NAL_TYPE_IDR:
+		strcpy(out, "H264 IDR - instantaneous decoding refresh access-unit/picture");
+		break;
+	case NAL_TYPE_SEI:
+		strcpy(out, "H264 SEI - Supplemental enhancement information");
+		break;
+	case NAL_TYPE_SPS:
+		strcpy(out, "H264 SPS - Sequence parameter set");
+		break;
+	case NAL_TYPE_PPS:
+		strcpy(out, "H264 PPS - Picture parameter set");
+		break;
+	case NAL_TYPE_AUD:
+		strcpy(out, "H264 AUD - Access unit delimiter");
+		break;
+	case NAL_TYPE_EOSEQ:
+		strcpy(out, "H264 EOSEQ - end of sequence");
+		break;
+	case NAL_TYPE_EOSTREAM:
+		strcpy(out, "H264 EOSTREAM - End of stream");
+		break;
+	case NAL_TYPE_FILL:
+		strcpy(out, "H264 FILL - Filler data");
+		break;
+	case NAL_TYPE_SPS_EXT:
+		strcpy(out, "H264 SPS EXT - Sequence parameter set extension");
+		break;
+	case NAL_TYPE_PREFIX:
+		strcpy(out, "H264 PREFIX - Prefix NAL unit");
+		break;
+	case NAL_TYPE_SSPS:
+		strcpy(out, "H264 SSPS - Subset sequence parameter set");
+		break;
+	case NAL_TYPE_DPS:
+		strcpy(out, "H264 DPS - Depth parameter set");
+		break;
+	case NAL_TYPE_CSOACPWP:
+		strcpy(out, "H264 CSOACPWP - Coded slice of an auxiliary "
+								"coded picture without partitioning");
+		break;
+	case NAL_TYPE_CSE:
+		strcpy(out, "H264 CSE - Coded slice extension");
+		break;
+	case NAL_TYPE_CSE3D:
+		strcpy(out, "H264 CSE3D - Coded slice extension for a depth view "
+								"component or a 3D-AVC texture view component");
+		break;
+	}
+}
+
+inline uint32_t get_bit(const uint8_t * const base, uint32_t offset) {
+	return ((*(base + (offset >> 0x3))) >> (0x7 - (offset & 0x7))) & 0x1;
+}
+
+inline uint32_t get_bits(const uint8_t * const base, uint32_t * const offset, uint8_t bits) {
+	int i = 0;
+	uint32_t value = 0;
+	for (i = 0; i < bits; i++) {
+		value = (value << 1) | (get_bit(base, (*offset)++) ? 1 : 0);
+	}
+	return value;
+}
+
+// This function implement decoding of exp-Golomb codes of zero range (used in H.264).
+
+uint32_t decode_u_golomb(const uint8_t * const base, uint32_t * const offset) {
+	uint32_t zeros = 0;
+
+	// calculate zero bits. Will be optimized.
+	while (0 == get_bit(base, (*offset)++)) zeros++;
+
+	// insert first 1 bit
+	uint32_t info = 1 << zeros;
+
+	int32_t i = 0;
+	for (i = zeros - 1; i >= 0; i--) {
+		info |= get_bit(base, (*offset)++) << i;
+	}
+
+	return (info - 1);
+}
 
 typedef struct Header {
 	uint8_t
@@ -581,7 +705,91 @@ int main (int argc, char *argv[]) {
 
 						// ES
 						uint8_t *es = &pes[9+PES_header_length];
-						printf("0x%02x 0x%02x 0x%02x 0x%02x\n", es[0], es[1], es[2], es[3]);
+						int es_offset = pes_offset + PES_header_length + 9;
+						int es_length = MPEGTS_PACKET_SIZE - (es_offset - i);
+						int es_i = 0;
+
+						for (es_i = 0; es_i < es_length; es_i++) {
+							uint32_t es_start_code = 0;
+							uint8_t got_es_start_code = 0;
+
+							es_start_code = (
+								(uint32_t)es[es_i] & 0xFF << 24 |
+								(uint32_t)es[es_i+1] & 0xFF << 16 |
+								(uint32_t)es[es_i+2] & 0xFF << 8  |
+								(uint32_t)es[es_i+3] & 0xFF
+							);
+							if (es_start_code == ES_START_CODE_LONG) {
+								es_i += 4;
+								got_es_start_code = 1;
+							} else {
+								es_start_code = (
+									(uint32_t)es[es_i] & 0xFF << 16 |
+									(uint32_t)es[es_i+1] & 0xFF << 8 |
+									(uint32_t)es[es_i+2] & 0xFF
+								);
+								if (es_start_code == ES_START_CODE_SHORT) {
+									es_i += 3;
+									got_es_start_code = 1;
+								}
+							}
+
+							if (got_es_start_code) {
+								uint8_t forbidden_zero_bit = es[es_i] & 0x80;
+								if (forbidden_zero_bit != 0) continue;
+
+								uint8_t nal_ref_idc = es[es_i] & 0x60;
+								uint8_t nal_type = es[es_i] & 0x1F;
+
+								char nal_type_name[255] = { 0 };
+								nal_type_str(nal_type, nal_type_name);
+
+								if (
+									(nal_type == NAL_TYPE_AUD) ||
+									(nal_type == NAL_TYPE_SEI) ||
+									(nal_type == NAL_TYPE_SLICE) ||
+									(nal_type == NAL_TYPE_SPS) ||
+									(nal_type == NAL_TYPE_PPS)
+								) {
+									switch (nal_type) {
+									// case NAL_TYPE_AUD:
+									// 	printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
+									// 	break;
+									case NAL_TYPE_SPS:
+										printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
+										break;
+									case NAL_TYPE_PPS:
+										printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
+										break;
+									}
+
+									// slice hader
+									if (nal_type == NAL_TYPE_SLICE) {
+										uint32_t offset = 0;
+										uint32_t first_mb_in_slice = decode_u_golomb(&es[es_i+1], &offset);
+										uint32_t slice_type = decode_u_golomb(&es[es_i+1], &offset);
+										uint32_t pic_parameter_set_id = decode_u_golomb(&es[es_i+1], &offset);
+										uint32_t frame_num = decode_u_golomb(&es[es_i+1], &offset);
+										uint32_t pic_order_cnt_lsb = decode_u_golomb(&es[es_i+1], &offset);
+
+										switch (slice_type) {
+										case 0:
+										case 5:
+											printf(COLOR_BRIGHT_BLUE "H264 P slice #%d" COLOR_RESET "\n", frame_num);
+											break;
+										case 1:
+										case 6:
+											printf(COLOR_BRIGHT_GREEN "H264 B slice #%d" COLOR_RESET "\n", frame_num);
+											break;
+										case 2:
+										case 7:
+											printf(COLOR_BRIGHT_RED "H264 I slice #%d" COLOR_RESET "\n", frame_num);
+											break;
+										}
+									}
+								}
+							}
+						}
 					}
 
 					// fwrite(payload, payload_length, 1, f_h264);
