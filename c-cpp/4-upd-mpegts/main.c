@@ -1,15 +1,16 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>     // EXIT_SUCCESS, EXIT_FAILURE
 #include <inttypes.h>
 #include <unistd.h>     // close
 #include <fcntl.h>      // open
-#include <string.h>     // memset
+#include <string.h>     // memcpy, memset, size_t
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
+#include "fifo.h"
 #include "color.h"
 
 
@@ -487,7 +488,75 @@ static void psi_print(PSI *it) {
 	);
 }
 
+void udp_handler(void *args) {
+	struct ip_mreq mreq;
+	struct sockaddr_in addr;
+	int addrlen, sock, msg_len;
+	uint8_t msg[MSG_SIZE];
+
+	FIFO *fifo = (FIFO*)args;
+
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
+		perror("socket");
+		exit(EXIT_FAILURE);
+	}
+	bzero((char *)&addr, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(EXAMPLE_PORT);
+	addrlen = sizeof(addr);
+
+	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+		perror("bind");
+		exit(EXIT_FAILURE);
+	}
+	mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);
+	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+		perror("setsockopt mreq");
+		exit(EXIT_FAILURE);
+	}
+
+	while (1) {
+		memset(msg, 0, sizeof msg);
+		msg_len = recvfrom(sock, msg, sizeof(msg), 0, (struct sockaddr *) &addr, &addrlen);
+		if (msg_len < 0) {
+			perror("recvfrom");
+			exit(EXIT_FAILURE);
+		} else if (msg_len == 0) {
+			break;
+		}
+
+		fifo_write(fifo, msg, msg_len);
+		fifo_print(fifo);
+	}
+}
+
+void mpegts_handler(void *args) {
+	FIFO *fifo = (FIFO*)args;
+
+	// while (1) {
+	// }
+}
+
 int main (int argc, char *argv[]) {
+	FIFO *fifo = fifo_new(100*7*188);
+
+	pthread_t udp_thread;
+	pthread_create(&udp_thread, NULL, udp_handler, (void*)fifo);
+
+	pthread_t mpegts_thread;
+	pthread_create(&mpegts_thread, NULL, mpegts_handler, (void*)fifo);
+
+	void *udp_thread_status;
+	pthread_join(udp_thread, &udp_thread_status);
+
+	void *mpegts_thread_status;
+	pthread_join(mpegts_thread, &mpegts_thread_status);
+
+	exit(EXIT_SUCCESS);
+
 	struct sockaddr_in addr;
 	int addrlen, sock, msg_len, i, j, h264_len;
 	struct ip_mreq mreq;
@@ -499,7 +568,7 @@ int main (int argc, char *argv[]) {
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
 	 perror("socket");
-	 exit(1);
+	 exit(EXIT_FAILURE);
 	}
 	bzero((char *)&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -528,7 +597,7 @@ int main (int argc, char *argv[]) {
 		msg_len = recvfrom(sock, msg, sizeof(msg), 0, (struct sockaddr *) &addr, &addrlen);
 		if (msg_len < 0) {
 			perror("recvfrom");
-			exit(1);
+			exit(EXIT_FAILURE);
 		} else if (msg_len == 0) {
 			break;
 		}

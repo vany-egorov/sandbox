@@ -4,16 +4,14 @@
 #include <stdint.h> // uint8_t, uint16_t
 
 
-#define FIFO_CAP 4
+#define FIFO_CAP 8
 #define DST_LEN 4
 
 
 typedef struct _FIFO {
 	uint8_t *data;
-	size_t len;
-	size_t cap;
-	size_t start;
-	size_t finish;
+	size_t len, cap,
+	       start, finish;
 } FIFO;
 
 FIFO *fifo_new(size_t cap) {

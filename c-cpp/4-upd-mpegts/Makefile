@@ -13,7 +13,10 @@ OBJECTS_DIRS := ./bin
 $(OBJECTS_DIRS)/main.o: ./main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-main: $(OBJECTS_DIRS)/main.o
+$(OBJECTS_DIRS)/fifo.o: ./fifo.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+main: $(OBJECTS_DIRS)/main.o $(OBJECTS_DIRS)/fifo.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
 bin-dir:
