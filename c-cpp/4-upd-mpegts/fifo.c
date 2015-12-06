@@ -90,6 +90,7 @@ size_t fifo_write(FIFO *it, uint8_t *src, size_t src_len) {
 	if (it->len > it->cap) {
 		it->len = it->cap;
 		it->start = it->finish;
+		printf("fifo overflow\n");
 	}
 
 	sem_post(&it->sem);
@@ -107,8 +108,8 @@ void fifo_read(FIFO *it, uint8_t *dst, size_t dst_len, size_t *readed_len) {
 		return;
 	}
 
-	void *result = memcpy(dst, it->data, dst_len);
-	memset(it->data, 0, dst_len);
+	void *result = memcpy(dst, it->data + it->start, dst_len);
+	memset(it->data + it->start, 0, dst_len);
 
 	it->start = (it->start + (size_t)dst_len) % it->cap;
 	it->len -= dst_len;

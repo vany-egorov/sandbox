@@ -239,6 +239,18 @@ uint32_t decode_u_golomb(const uint8_t * const base, uint32_t * const offset) {
 	return (info - 1);
 }
 
+typedef struct App {
+	FIFO *fifo;
+	uint16_t program_map_PID;
+	uint16_t video_PID_H264;
+} App;
+
+static App *app_new(void) {
+	App *it = (App*)calloc(1, sizeof(App));
+	it->program_map_PID = 0;
+	it->video_PID_H264 = 0;
+}
+
 typedef struct Header {
 	uint8_t
 		transcport_error_indicator:1,
@@ -488,13 +500,292 @@ static void psi_print(PSI *it) {
 	);
 }
 
+void on_msg(App *app, uint8_t *msg) {
+	if (msg[0] != MPEGTS_SYNC_BYTE) return;
+
+	int i = 0;
+	Header header = { 0 };
+	header_parse(&header, &msg[i+1]);
+
+	Adaption adaption = { 0 };
+	if (header.adaption_field_control) {
+		adaption_parse(&adaption, &msg[i+4]);
+
+		if (adaption.PCR_flag) {
+			PCR pcr = { 0	};
+			pcr_parse(&pcr, &msg[i+6]);
+
+			// header_print(&header);
+			// adaption_print(&adaption);
+			// pcr_print(&pcr);
+		}
+	}
+
+	if (header.PID == MPEGTS_PID_PAT) {
+		PSI psi = { 0 };
+		psi_parse(&psi, &msg[i+5]);
+		// printf("PAT: "); psi_print(&psi);
+
+		if (psi.table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
+			// PAT (Program association specific data)
+			uint16_t program_number = (((uint16_t)msg[i+13] & 0xFF) << 8) | ((uint16_t)msg[i+14] & 0xFF);
+			app->program_map_PID = (((uint16_t)msg[i+15] & 0x1F) << 8) | ((uint16_t)msg[i+16] & 0xFF);
+			// printf("%d 0x%04x %d\n", program_number, app->program_map_PID, app->program_map_PID);
+		}
+	} else if ((app->program_map_PID) && (header.PID == app->program_map_PID)) {
+		PSI psi = { 0 };
+		psi_parse(&psi, &msg[i+5]);
+		// printf("PMT: "); psi_print(&psi);
+
+		if (psi.table_id == MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
+			int16_t section_length_unreaded = (int16_t)psi.section_length;
+			section_length_unreaded -= 9;
+			uint16_t PCR_PID = (
+				(((uint16_t)msg[i+13] & 0x1F) << 8) |
+				((uint16_t)msg[i+14] & 0xFF)
+			);
+			section_length_unreaded -= 2;
+			uint16_t program_info_length = (
+				(((uint16_t)msg[i+15] & 0x03) << 8) |
+				((uint16_t)msg[i+16] & 0xFF)
+			);
+			section_length_unreaded -= 2;
+			// printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
+
+			int pmt_start = i + 17;
+			int pmt_offset = 0;
+			while (section_length_unreaded > 0) {
+				uint8_t stream_type = (uint8_t)msg[pmt_start+pmt_offset];
+				uint16_t elementary_PID = (
+					(((uint16_t)msg[pmt_start+pmt_offset+1] & 0x1F) << 8) |
+					((uint16_t)msg[pmt_start+pmt_offset+2] & 0xFF)
+				);
+				uint16_t ES_info_length = (
+					(((uint16_t)msg[pmt_start+pmt_offset+3] & 0x03) << 8) |
+					((uint16_t)msg[pmt_start+pmt_offset+4] & 0xFF)
+				);
+
+				char stream_type_name[255] = { 0 };
+				mpegts_stream_type_str(stream_type, stream_type_name);
+				// printf("\t - 0x%02x | 0x%02x | %d | %d | %s\n", stream_type, elementary_PID, ES_info_length, psi.section_length, stream_type_name);
+
+				int ES_info_start = pmt_start+pmt_offset+5;
+				int ES_info_offset = 0;
+				int16_t ES_info_length_unreaded = ES_info_length;
+				while (ES_info_length_unreaded > 0) {
+					uint8_t descriptor_tag = (uint8_t)msg[ES_info_start+ES_info_offset];
+					uint8_t descriptor_length = (uint8_t)msg[ES_info_start+ES_info_offset+1];
+					// printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
+					ES_info_length_unreaded -= (2 + descriptor_length);
+					descriptor_length += (2 + descriptor_length);
+				}
+
+				section_length_unreaded -= (5 + ES_info_length);
+				pmt_offset +=	(5 + ES_info_length);
+
+				if (stream_type == MPEGTS_STREAM_TYPE_VIDEO_H264)
+					app->video_PID_H264 = elementary_PID;
+			}
+		}
+	} else if (header.PID == MPEGTS_PID_SDT) {
+		PSI psi = { 0 };
+		psi_parse(&psi, &msg[i+5]);
+		// printf("SDT: "); psi_print(&psi);
+	}
+
+	if ((header.contains_payload) && (header.payload_unit_start_indicator)) {
+		if (header.PID != app->video_PID_H264)
+			return;
+
+		int pes_offset = i + 4;
+		if (header.adaption_field_control) {
+			pes_offset = pes_offset + adaption.adaptation_field_length + 1;
+		}
+
+		uint8_t *pes = &msg[pes_offset];
+		int pes_length = 0;
+		pes_length = MPEGTS_PACKET_SIZE - pes_offset;
+
+		uint32_t start_code = (
+			(uint32_t)pes[0] & 0xFF << 16 |
+			(uint32_t)pes[1] & 0xFF << 8 |
+			(uint32_t)pes[2] & 0xFF
+		);
+		// http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
+		if (start_code == PES_START_CODE) {
+			uint8_t stream_id = (uint8_t)pes[3];
+			uint16_t pes_packet_length = (
+				(uint16_t)pes[4] & 0xFF << 8 |
+				(uint16_t)pes[5] & 0xFF
+			);
+
+			// PES header
+			// 10 binary or 0x2 hex
+			uint8_t marker_bits = (((uint8_t)pes[6] & 0xC0) >> 6);
+			// 00 - not scrambled
+			uint8_t scrambling_control = (uint8_t)pes[6] & 0x30;
+			uint8_t priority = !!( (uint8_t)pes[6] & 0x08 );
+			// 1 indicates that the PES packet
+			// header is immediately followed by
+			// the video start code or audio syncword
+			uint8_t data_alignment_indicator = !!( (uint8_t)pes[6] & 0x04 );
+			uint8_t copyright = !!( (uint8_t)pes[6] & 0x02 );
+			uint8_t original_or_copy = !!( (uint8_t)pes[6] & 0x01 );
+			// 11 = both present;
+			// 01 is forbidden;
+			// 10 = only PTS;
+			// 00 = no PTS or DTS
+			uint8_t PTS_DTS_indicator = (((uint8_t)pes[7] & 0xC0) >> 6);
+			// This is the Elementary Stream Clock Reference,
+			// used if the stream and system levels are not synchronized'
+			// (i.e. ESCR differs from SCR in the PACK header).
+			uint8_t ESCR_flag = (uint8_t)pes[7] & 0x20;
+			// The rate at which data is delivered for this stream,
+			// in units of 50 bytes/second.
+			uint8_t ES_rate_flag = (uint8_t)pes[7] & 0x10;
+			uint8_t DSM_trick_mode_flag = (uint8_t)pes[7] & 0x08;
+			uint8_t additional_copy_info_flag = (uint8_t)pes[7] & 0x04;
+			uint8_t CRC_flag = (uint8_t)pes[7] & 0x02;
+			uint8_t extension_flag = (uint8_t)pes[7] & 0x01;
+			uint8_t PES_header_length = (uint8_t)pes[8];
+			// printf("%d | %d | 0x%02x\n", data_alignment_indicator, PES_header_length, PTS_DTS_indicator);
+			if ((PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS) ||
+				  (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS)) {
+				uint64_t PTS = (
+					(((uint64_t)pes[9]  & 0x0E) << 32) |
+					(((uint64_t)pes[10] & 0xFF) << 24) |
+					(((uint64_t)pes[11] & 0xFE) << 16) |
+					(((uint64_t)pes[12] & 0xFF) << 8) |
+					 ((uint64_t)pes[13] & 0xFE)
+				);
+				uint64_t DTS = 0;
+				if (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS) {
+					DTS = (
+						(((uint64_t)pes[14]  & 0x0E) << 32) |
+						(((uint64_t)pes[15] & 0xFF) << 24) |
+						(((uint64_t)pes[16] & 0xFE) << 16) |
+						(((uint64_t)pes[17] & 0xFF) << 8) |
+						 ((uint64_t)pes[18] & 0xFE)
+					);
+				}
+
+				printf("PTS: %d DTS: %d\n", PTS, DTS);
+			}
+
+			// ES
+			uint8_t *es = &pes[9+PES_header_length];
+			int es_offset = pes_offset + PES_header_length + 9;
+			int es_length = MPEGTS_PACKET_SIZE - (es_offset - i);
+			int es_i = 0;
+
+			for (es_i = 0; es_i < es_length; es_i++) {
+				uint32_t es_start_code = 0;
+				uint8_t got_es_start_code = 0;
+
+				es_start_code = (
+					(uint32_t)es[es_i] & 0xFF << 24 |
+					(uint32_t)es[es_i+1] & 0xFF << 16 |
+					(uint32_t)es[es_i+2] & 0xFF << 8  |
+					(uint32_t)es[es_i+3] & 0xFF
+				);
+				if (es_start_code == ES_START_CODE_LONG) {
+					es_i += 4;
+					got_es_start_code = 1;
+				} else {
+					es_start_code = (
+						(uint32_t)es[es_i] & 0xFF << 16 |
+						(uint32_t)es[es_i+1] & 0xFF << 8 |
+						(uint32_t)es[es_i+2] & 0xFF
+					);
+					if (es_start_code == ES_START_CODE_SHORT) {
+						es_i += 3;
+						got_es_start_code = 1;
+					}
+				}
+
+				if (got_es_start_code) {
+					uint8_t forbidden_zero_bit = es[es_i] & 0x80;
+					if (forbidden_zero_bit != 0) continue;
+
+					uint8_t nal_ref_idc = es[es_i] & 0x60;
+					uint8_t nal_type = es[es_i] & 0x1F;
+
+					char nal_type_name[255] = { 0 };
+					nal_type_str(nal_type, nal_type_name);
+
+					if (
+						(nal_type == NAL_TYPE_AUD) ||
+						(nal_type == NAL_TYPE_SEI) ||
+						(nal_type == NAL_TYPE_SLICE) ||
+						(nal_type == NAL_TYPE_SPS) ||
+						(nal_type == NAL_TYPE_PPS)
+					) {
+						switch (nal_type) {
+						case NAL_TYPE_AUD:
+							printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
+							break;
+						case NAL_TYPE_SEI:
+							printf(COLOR_BRIGHT_BLUE "%s" COLOR_RESET "\n", nal_type_name);
+							break;
+						case NAL_TYPE_SPS:
+							printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
+							break;
+						case NAL_TYPE_PPS:
+							printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
+							break;
+						}
+
+						// slice hader
+						if (nal_type == NAL_TYPE_SLICE) {
+							uint32_t offset = 0;
+							uint32_t first_mb_in_slice = decode_u_golomb(&es[es_i+1], &offset);
+							uint32_t slice_type = decode_u_golomb(&es[es_i+1], &offset);
+							uint32_t pic_parameter_set_id = decode_u_golomb(&es[es_i+1], &offset);
+							uint32_t frame_num = decode_u_golomb(&es[es_i+1], &offset);
+							uint32_t pic_order_cnt_lsb = decode_u_golomb(&es[es_i+1], &offset);
+
+							switch (slice_type) {
+							case 0:
+							case 5:
+								printf(COLOR_BRIGHT_CYAN "H264 P slice #%d" COLOR_RESET "\n", frame_num);
+								break;
+							case 1:
+							case 6:
+								printf(COLOR_BRIGHT_GREEN "H264 B slice #%d" COLOR_RESET "\n", frame_num);
+								break;
+							case 2:
+							case 7:
+								printf(COLOR_BRIGHT_RED "H264 I slice #%d" COLOR_RESET "\n", frame_num);
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// fwrite(payload, payload_length, 1, f_h264);
+		// fflush(f_h264);
+		// h264_len += payload_length;
+	}
+
+	// if (header.contains_payload) {
+	// 	printf("PAYLOAD\n");
+	// 	header_print(&header);
+	// }
+	// if (header.payload_unit_start_indicator) {
+	// 	printf("PAYLOAD START\n");
+	// 	header_print(&header);
+	// }
+}
+
 void udp_handler(void *args) {
 	struct ip_mreq mreq;
 	struct sockaddr_in addr;
 	int i, addrlen, sock, msg_len;
 	uint8_t msg[MSG_SIZE];
 
-	FIFO *fifo = (FIFO*)args;
+	App *app = (App*)args;
 
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
@@ -529,7 +820,7 @@ void udp_handler(void *args) {
 		}
 
 		for (i = 0; i < msg_len; i += MPEGTS_PACKET_SIZE) {
-			fifo_write(fifo, &msg[i], MPEGTS_PACKET_SIZE);
+			fifo_write(app->fifo, &msg[i], MPEGTS_PACKET_SIZE);
 		}
 	}
 }
@@ -537,308 +828,42 @@ void udp_handler(void *args) {
 void mpegts_handler(void *args) {
 	int i = 0;
 	size_t readed_len = 0;
-	uint16_t program_map_PID = 0;
-	uint16_t video_PID_H264 = 0;
-	FIFO *fifo = (FIFO*)args;
+	App *app = (App*)args;
+
+	FILE *f_ts = fopen("./tmp/out.ts", "ab");
 
 	for(;;) {
-		fifo_wait_data(fifo);
+		fifo_wait_data(app->fifo);
 
 		uint8_t msg[MPEGTS_PACKET_SIZE] = { 0 };
-		fifo_read(fifo, msg, MPEGTS_PACKET_SIZE, &readed_len);
+		fifo_read(app->fifo, msg, MPEGTS_PACKET_SIZE, &readed_len);
 
-		if (!readed_len) continue;
+		// if (!readed_len) continue;
 
+		// printf("readed_len %d\n", readed_len);
 		// for (i = 0; i < MPEGTS_PACKET_SIZE; i++) {
 		// 	printf("0x%02X ", msg[i]);
 		// }
 		// printf("\n");
 
-		for (i = 0; i < MPEGTS_PACKET_SIZE; i++) {
-			if (msg[0] == MPEGTS_SYNC_BYTE) {
-				Header header = { 0 };
-				header_parse(&header, &msg[i+1]);
+		if (msg[0] == MPEGTS_SYNC_BYTE) {
+			on_msg(app, msg);
 
-				Adaption adaption = { 0 };
-				if (header.adaption_field_control) {
-					adaption_parse(&adaption, &msg[i+4]);
-
-					if (adaption.PCR_flag) {
-						PCR pcr = { 0	};
-						pcr_parse(&pcr, &msg[i+6]);
-
-						header_print(&header);
-						adaption_print(&adaption);
-						pcr_print(&pcr);
-					}
-				}
-
-				if (header.PID == MPEGTS_PID_PAT) {
-					PSI psi = { 0 };
-					psi_parse(&psi, &msg[i+5]);
-					// printf("PAT: "); psi_print(&psi);
-
-					if (psi.table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
-						// PAT (Program association specific data)
-						uint16_t program_number = (((uint16_t)msg[i+13] & 0xFF) << 8) | ((uint16_t)msg[i+14] & 0xFF);
-						program_map_PID = (((uint16_t)msg[i+15] & 0x1F) << 8) | ((uint16_t)msg[i+16] & 0xFF);
-						// printf("%d 0x%04x %d\n", program_number, program_map_PID, program_map_PID);
-					}
-				} else if ((program_map_PID) && (header.PID == program_map_PID)) {
-					PSI psi = { 0 };
-					psi_parse(&psi, &msg[i+5]);
-					// printf("PMT: "); psi_print(&psi);
-
-					if (psi.table_id == MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
-						int16_t section_length_unreaded = (int16_t)psi.section_length;
-						section_length_unreaded -= 9;
-						uint16_t PCR_PID = (
-							(((uint16_t)msg[i+13] & 0x1F) << 8) |
-							((uint16_t)msg[i+14] & 0xFF)
-						);
-						section_length_unreaded -= 2;
-						uint16_t program_info_length = (
-							(((uint16_t)msg[i+15] & 0x03) << 8) |
-							((uint16_t)msg[i+16] & 0xFF)
-						);
-						section_length_unreaded -= 2;
-						// printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
-
-						int pmt_start = i + 17;
-						int pmt_offset = 0;
-						while (section_length_unreaded > 0) {
-							uint8_t stream_type = (uint8_t)msg[pmt_start+pmt_offset];
-							uint16_t elementary_PID = (
-								(((uint16_t)msg[pmt_start+pmt_offset+1] & 0x1F) << 8) |
-								((uint16_t)msg[pmt_start+pmt_offset+2] & 0xFF)
-							);
-							uint16_t ES_info_length = (
-								(((uint16_t)msg[pmt_start+pmt_offset+3] & 0x03) << 8) |
-								((uint16_t)msg[pmt_start+pmt_offset+4] & 0xFF)
-							);
-
-							char stream_type_name[255] = { 0 };
-							mpegts_stream_type_str(stream_type, stream_type_name);
-							// printf("\t - 0x%02x | 0x%02x | %d | %d | %s\n", stream_type, elementary_PID, ES_info_length, psi.section_length, stream_type_name);
-
-							int ES_info_start = pmt_start+pmt_offset+5;
-							int ES_info_offset = 0;
-							int16_t ES_info_length_unreaded = ES_info_length;
-							while (ES_info_length_unreaded > 0) {
-								uint8_t descriptor_tag = (uint8_t)msg[ES_info_start+ES_info_offset];
-								uint8_t descriptor_length = (uint8_t)msg[ES_info_start+ES_info_offset+1];
-								// printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
-								ES_info_length_unreaded -= (2 + descriptor_length);
-								descriptor_length += (2 + descriptor_length);
-							}
-
-							section_length_unreaded -= (5 + ES_info_length);
-							pmt_offset +=	(5 + ES_info_length);
-
-							if (stream_type == MPEGTS_STREAM_TYPE_VIDEO_H264)
-								video_PID_H264 = elementary_PID;
-						}
-					}
-				} else if (header.PID == MPEGTS_PID_SDT) {
-					PSI psi = { 0 };
-					psi_parse(&psi, &msg[i+5]);
-					// printf("SDT: "); psi_print(&psi);
-				}
-
-				if ((header.contains_payload) && (header.payload_unit_start_indicator)) {
-					if (header.PID != video_PID_H264)
-						continue;
-
-					int pes_offset = i + 4;
-					if (header.adaption_field_control) {
-						pes_offset = pes_offset + adaption.adaptation_field_length + 1;
-					}
-
-					uint8_t *pes = &msg[pes_offset];
-					int pes_length = 0;
-					pes_length = MPEGTS_PACKET_SIZE - pes_offset;
-
-					uint32_t start_code = (
-						(uint32_t)pes[0] & 0xFF << 16 |
-						(uint32_t)pes[1] & 0xFF << 8 |
-						(uint32_t)pes[2] & 0xFF
-					);
-					// http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
-					if (start_code == PES_START_CODE) {
-						uint8_t stream_id = (uint8_t)pes[3];
-						uint16_t pes_packet_length = (
-							(uint16_t)pes[4] & 0xFF << 8 |
-							(uint16_t)pes[5] & 0xFF
-						);
-
-						// PES header
-						// 10 binary or 0x2 hex
-						uint8_t marker_bits = (((uint8_t)pes[6] & 0xC0) >> 6);
-						// 00 - not scrambled
-						uint8_t scrambling_control = (uint8_t)pes[6] & 0x30;
-						uint8_t priority = !!( (uint8_t)pes[6] & 0x08 );
-						// 1 indicates that the PES packet
-						// header is immediately followed by
-						// the video start code or audio syncword
-						uint8_t data_alignment_indicator = !!( (uint8_t)pes[6] & 0x04 );
-						uint8_t copyright = !!( (uint8_t)pes[6] & 0x02 );
-						uint8_t original_or_copy = !!( (uint8_t)pes[6] & 0x01 );
-						// 11 = both present;
-						// 01 is forbidden;
-						// 10 = only PTS;
-						// 00 = no PTS or DTS
-						uint8_t PTS_DTS_indicator = (((uint8_t)pes[7] & 0xC0) >> 6);
-						// This is the Elementary Stream Clock Reference,
-						// used if the stream and system levels are not synchronized'
-						// (i.e. ESCR differs from SCR in the PACK header).
-						uint8_t ESCR_flag = (uint8_t)pes[7] & 0x20;
-						// The rate at which data is delivered for this stream,
-						// in units of 50 bytes/second.
-						uint8_t ES_rate_flag = (uint8_t)pes[7] & 0x10;
-						uint8_t DSM_trick_mode_flag = (uint8_t)pes[7] & 0x08;
-						uint8_t additional_copy_info_flag = (uint8_t)pes[7] & 0x04;
-						uint8_t CRC_flag = (uint8_t)pes[7] & 0x02;
-						uint8_t extension_flag = (uint8_t)pes[7] & 0x01;
-						uint8_t PES_header_length = (uint8_t)pes[8];
-						// printf("%d | %d | 0x%02x\n", data_alignment_indicator, PES_header_length, PTS_DTS_indicator);
-						if ((PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS) ||
-							  (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS)) {
-							uint64_t PTS = (
-								(((uint64_t)pes[9]  & 0x0E) << 32) |
-								(((uint64_t)pes[10] & 0xFF) << 24) |
-								(((uint64_t)pes[11] & 0xFE) << 16) |
-								(((uint64_t)pes[12] & 0xFF) << 8) |
-								 ((uint64_t)pes[13] & 0xFE)
-							);
-							uint64_t DTS = 0;
-							if (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS) {
-								DTS = (
-									(((uint64_t)pes[14]  & 0x0E) << 32) |
-									(((uint64_t)pes[15] & 0xFF) << 24) |
-									(((uint64_t)pes[16] & 0xFE) << 16) |
-									(((uint64_t)pes[17] & 0xFF) << 8) |
-									 ((uint64_t)pes[18] & 0xFE)
-								);
-							}
-
-							printf("PTS: %d DTS: %d\n", PTS, DTS);
-						}
-
-						// ES
-						uint8_t *es = &pes[9+PES_header_length];
-						int es_offset = pes_offset + PES_header_length + 9;
-						int es_length = MPEGTS_PACKET_SIZE - (es_offset - i);
-						int es_i = 0;
-
-						for (es_i = 0; es_i < es_length; es_i++) {
-							uint32_t es_start_code = 0;
-							uint8_t got_es_start_code = 0;
-
-							es_start_code = (
-								(uint32_t)es[es_i] & 0xFF << 24 |
-								(uint32_t)es[es_i+1] & 0xFF << 16 |
-								(uint32_t)es[es_i+2] & 0xFF << 8  |
-								(uint32_t)es[es_i+3] & 0xFF
-							);
-							if (es_start_code == ES_START_CODE_LONG) {
-								es_i += 4;
-								got_es_start_code = 1;
-							} else {
-								es_start_code = (
-									(uint32_t)es[es_i] & 0xFF << 16 |
-									(uint32_t)es[es_i+1] & 0xFF << 8 |
-									(uint32_t)es[es_i+2] & 0xFF
-								);
-								if (es_start_code == ES_START_CODE_SHORT) {
-									es_i += 3;
-									got_es_start_code = 1;
-								}
-							}
-
-							if (got_es_start_code) {
-								uint8_t forbidden_zero_bit = es[es_i] & 0x80;
-								if (forbidden_zero_bit != 0) continue;
-
-								uint8_t nal_ref_idc = es[es_i] & 0x60;
-								uint8_t nal_type = es[es_i] & 0x1F;
-
-								char nal_type_name[255] = { 0 };
-								nal_type_str(nal_type, nal_type_name);
-
-								if (
-									(nal_type == NAL_TYPE_AUD) ||
-									(nal_type == NAL_TYPE_SEI) ||
-									(nal_type == NAL_TYPE_SLICE) ||
-									(nal_type == NAL_TYPE_SPS) ||
-									(nal_type == NAL_TYPE_PPS)
-								) {
-									switch (nal_type) {
-									// case NAL_TYPE_AUD:
-									// 	printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
-									// 	break;
-									case NAL_TYPE_SPS:
-										printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-										break;
-									case NAL_TYPE_PPS:
-										printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-										break;
-									}
-
-									// slice hader
-									if (nal_type == NAL_TYPE_SLICE) {
-										uint32_t offset = 0;
-										uint32_t first_mb_in_slice = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t slice_type = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t pic_parameter_set_id = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t frame_num = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t pic_order_cnt_lsb = decode_u_golomb(&es[es_i+1], &offset);
-
-										switch (slice_type) {
-										case 0:
-										case 5:
-											printf(COLOR_BRIGHT_BLUE "H264 P slice #%d" COLOR_RESET "\n", frame_num);
-											break;
-										case 1:
-										case 6:
-											printf(COLOR_BRIGHT_GREEN "H264 B slice #%d" COLOR_RESET "\n", frame_num);
-											break;
-										case 2:
-										case 7:
-											printf(COLOR_BRIGHT_RED "H264 I slice #%d" COLOR_RESET "\n", frame_num);
-											break;
-										}
-									}
-								}
-							}
-						}
-					}
-
-					// fwrite(payload, payload_length, 1, f_h264);
-					// fflush(f_h264);
-					// h264_len += payload_length;
-				}
-
-				// if (header.contains_payload) {
-				// 	printf("PAYLOAD\n");
-				// 	header_print(&header);
-				// }
-				// if (header.payload_unit_start_indicator) {
-				// 	printf("PAYLOAD START\n");
-				// 	header_print(&header);
-				// }
-			}
+			fwrite(msg, MPEGTS_PACKET_SIZE, 1, f_ts);
 		}
 	}
 }
 
 int main (int argc, char *argv[]) {
+	App *app = app_new();
 	FIFO *fifo = fifo_new(100*7*188);
+	app->fifo = fifo;
 
 	pthread_t udp_thread;
-	pthread_create(&udp_thread, NULL, udp_handler, (void*)fifo);
+	pthread_create(&udp_thread, NULL, udp_handler, (void*)app);
 
 	pthread_t mpegts_thread;
-	pthread_create(&mpegts_thread, NULL, mpegts_handler, (void*)fifo);
+	pthread_create(&mpegts_thread, NULL, mpegts_handler, (void*)app);
 
 	void *udp_thread_status;
 	pthread_join(udp_thread, &udp_thread_status);
@@ -847,334 +872,4 @@ int main (int argc, char *argv[]) {
 	pthread_join(mpegts_thread, &mpegts_thread_status);
 
 	exit(EXIT_SUCCESS);
-
-	struct sockaddr_in addr;
-	int addrlen, sock, msg_len, i, j, h264_len;
-	struct ip_mreq mreq;
-	uint8_t msg[MSG_SIZE];
-	FILE *f_h264 = fopen("./tmp/out.264", "ab");
-	FILE *f_ts = fopen("./tmp/out.ts", "ab");
-
-	/* set up socket */
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock < 0) {
-	 perror("socket");
-	 exit(EXIT_FAILURE);
-	}
-	bzero((char *)&addr, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(EXAMPLE_PORT);
-	addrlen = sizeof(addr);
-
-	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-		perror("bind");
-		exit(1);
-	}
-	mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
-		perror("setsockopt mreq");
-		exit(1);
-	}
-
-	uint16_t program_map_PID = 0;
-	uint16_t video_PID_H264 = 0;
-
-	while (1) {
-		memset(msg, 0, sizeof msg);
-		msg_len = 0;
-		h264_len = 0;
-		msg_len = recvfrom(sock, msg, sizeof(msg), 0, (struct sockaddr *) &addr, &addrlen);
-		if (msg_len < 0) {
-			perror("recvfrom");
-			exit(EXIT_FAILURE);
-		} else if (msg_len == 0) {
-			break;
-		}
-
-		for (i = 0; i < msg_len; i++) {
-			if ((msg[i] == MPEGTS_SYNC_BYTE) && !(i % MPEGTS_PACKET_SIZE)) {
-				Header header = { 0 };
-				header_parse(&header, &msg[i+1]);
-
-				Adaption adaption = { 0 };
-				if (header.adaption_field_control) {
-					adaption_parse(&adaption, &msg[i+4]);
-
-					if (adaption.PCR_flag) {
-						PCR pcr = { 0	};
-						pcr_parse(&pcr, &msg[i+6]);
-
-						// header_print(&header);
-						// adaption_print(&adaption);
-						// pcr_print(&pcr);
-					}
-				}
-
-				if (header.PID == MPEGTS_PID_PAT) {
-					PSI psi = { 0 };
-					psi_parse(&psi, &msg[i+5]);
-					// printf("PAT: "); psi_print(&psi);
-
-					if (psi.table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
-						// PAT (Program association specific data)
-						uint16_t program_number = (((uint16_t)msg[i+13] & 0xFF) << 8) | ((uint16_t)msg[i+14] & 0xFF);
-						program_map_PID = (((uint16_t)msg[i+15] & 0x1F) << 8) | ((uint16_t)msg[i+16] & 0xFF);
-						// printf("%d 0x%04x %d\n", program_number, program_map_PID, program_map_PID);
-					}
-				} else if ((program_map_PID) && (header.PID == program_map_PID)) {
-					PSI psi = { 0 };
-					psi_parse(&psi, &msg[i+5]);
-					// printf("PMT: "); psi_print(&psi);
-
-					if (psi.table_id == MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
-						int16_t section_length_unreaded = (int16_t)psi.section_length;
-						section_length_unreaded -= 9;
-						uint16_t PCR_PID = (
-							(((uint16_t)msg[i+13] & 0x1F) << 8) |
-							((uint16_t)msg[i+14] & 0xFF)
-						);
-						section_length_unreaded -= 2;
-						uint16_t program_info_length = (
-							(((uint16_t)msg[i+15] & 0x03) << 8) |
-							((uint16_t)msg[i+16] & 0xFF)
-						);
-						section_length_unreaded -= 2;
-						// printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
-
-						int pmt_start = i + 17;
-						int pmt_offset = 0;
-						while (section_length_unreaded > 0) {
-							uint8_t stream_type = (uint8_t)msg[pmt_start+pmt_offset];
-							uint16_t elementary_PID = (
-								(((uint16_t)msg[pmt_start+pmt_offset+1] & 0x1F) << 8) |
-								((uint16_t)msg[pmt_start+pmt_offset+2] & 0xFF)
-							);
-							uint16_t ES_info_length = (
-								(((uint16_t)msg[pmt_start+pmt_offset+3] & 0x03) << 8) |
-								((uint16_t)msg[pmt_start+pmt_offset+4] & 0xFF)
-							);
-
-							char stream_type_name[255] = { 0 };
-							mpegts_stream_type_str(stream_type, stream_type_name);
-							// printf("\t - 0x%02x | 0x%02x | %d | %d | %s\n", stream_type, elementary_PID, ES_info_length, psi.section_length, stream_type_name);
-
-							int ES_info_start = pmt_start+pmt_offset+5;
-							int ES_info_offset = 0;
-							int16_t ES_info_length_unreaded = ES_info_length;
-							while (ES_info_length_unreaded > 0) {
-								uint8_t descriptor_tag = (uint8_t)msg[ES_info_start+ES_info_offset];
-								uint8_t descriptor_length = (uint8_t)msg[ES_info_start+ES_info_offset+1];
-								// printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
-								ES_info_length_unreaded -= (2 + descriptor_length);
-								descriptor_length += (2 + descriptor_length);
-							}
-
-							section_length_unreaded -= (5 + ES_info_length);
-							pmt_offset +=	(5 + ES_info_length);
-
-							if (stream_type == MPEGTS_STREAM_TYPE_VIDEO_H264)
-								video_PID_H264 = elementary_PID;
-						}
-					}
-				} else if (header.PID == MPEGTS_PID_SDT) {
-					PSI psi = { 0 };
-					psi_parse(&psi, &msg[i+5]);
-					// printf("SDT: "); psi_print(&psi);
-				}
-
-				if ((header.contains_payload) && (header.payload_unit_start_indicator)) {
-					if (header.PID != video_PID_H264)
-						continue;
-
-					int pes_offset = i + 4;
-					if (header.adaption_field_control) {
-						pes_offset = pes_offset + adaption.adaptation_field_length + 1;
-					}
-
-					uint8_t *pes = &msg[pes_offset];
-					int pes_length = 0;
-					pes_length = MPEGTS_PACKET_SIZE - pes_offset;
-
-					uint32_t start_code = (
-						(uint32_t)pes[0] & 0xFF << 16 |
-						(uint32_t)pes[1] & 0xFF << 8 |
-						(uint32_t)pes[2] & 0xFF
-					);
-					// http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
-					if (start_code == PES_START_CODE) {
-						uint8_t stream_id = (uint8_t)pes[3];
-						uint16_t pes_packet_length = (
-							(uint16_t)pes[4] & 0xFF << 8 |
-							(uint16_t)pes[5] & 0xFF
-						);
-
-						// PES header
-						// 10 binary or 0x2 hex
-						uint8_t marker_bits = (((uint8_t)pes[6] & 0xC0) >> 6);
-						// 00 - not scrambled
-						uint8_t scrambling_control = (uint8_t)pes[6] & 0x30;
-						uint8_t priority = !!( (uint8_t)pes[6] & 0x08 );
-						// 1 indicates that the PES packet
-						// header is immediately followed by
-						// the video start code or audio syncword
-						uint8_t data_alignment_indicator = !!( (uint8_t)pes[6] & 0x04 );
-						uint8_t copyright = !!( (uint8_t)pes[6] & 0x02 );
-						uint8_t original_or_copy = !!( (uint8_t)pes[6] & 0x01 );
-						// 11 = both present;
-						// 01 is forbidden;
-						// 10 = only PTS;
-						// 00 = no PTS or DTS
-						uint8_t PTS_DTS_indicator = (((uint8_t)pes[7] & 0xC0) >> 6);
-						// This is the Elementary Stream Clock Reference,
-						// used if the stream and system levels are not synchronized'
-						// (i.e. ESCR differs from SCR in the PACK header).
-						uint8_t ESCR_flag = (uint8_t)pes[7] & 0x20;
-						// The rate at which data is delivered for this stream,
-						// in units of 50 bytes/second.
-						uint8_t ES_rate_flag = (uint8_t)pes[7] & 0x10;
-						uint8_t DSM_trick_mode_flag = (uint8_t)pes[7] & 0x08;
-						uint8_t additional_copy_info_flag = (uint8_t)pes[7] & 0x04;
-						uint8_t CRC_flag = (uint8_t)pes[7] & 0x02;
-						uint8_t extension_flag = (uint8_t)pes[7] & 0x01;
-						uint8_t PES_header_length = (uint8_t)pes[8];
-						// printf("%d | %d | 0x%02x\n", data_alignment_indicator, PES_header_length, PTS_DTS_indicator);
-						if ((PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS) ||
-							  (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS)) {
-							uint64_t PTS = (
-								(((uint64_t)pes[9]  & 0x0E) << 32) |
-								(((uint64_t)pes[10] & 0xFF) << 24) |
-								(((uint64_t)pes[11] & 0xFE) << 16) |
-								(((uint64_t)pes[12] & 0xFF) << 8) |
-								 ((uint64_t)pes[13] & 0xFE)
-							);
-							uint64_t DTS = 0;
-							if (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS) {
-								DTS = (
-									(((uint64_t)pes[14]  & 0x0E) << 32) |
-									(((uint64_t)pes[15] & 0xFF) << 24) |
-									(((uint64_t)pes[16] & 0xFE) << 16) |
-									(((uint64_t)pes[17] & 0xFF) << 8) |
-									 ((uint64_t)pes[18] & 0xFE)
-								);
-							}
-
-							printf("PTS: %d DTS: %d\n", PTS, DTS);
-						}
-
-						// ES
-						uint8_t *es = &pes[9+PES_header_length];
-						int es_offset = pes_offset + PES_header_length + 9;
-						int es_length = MPEGTS_PACKET_SIZE - (es_offset - i);
-						int es_i = 0;
-
-						for (es_i = 0; es_i < es_length; es_i++) {
-							uint32_t es_start_code = 0;
-							uint8_t got_es_start_code = 0;
-
-							es_start_code = (
-								(uint32_t)es[es_i] & 0xFF << 24 |
-								(uint32_t)es[es_i+1] & 0xFF << 16 |
-								(uint32_t)es[es_i+2] & 0xFF << 8  |
-								(uint32_t)es[es_i+3] & 0xFF
-							);
-							if (es_start_code == ES_START_CODE_LONG) {
-								es_i += 4;
-								got_es_start_code = 1;
-							} else {
-								es_start_code = (
-									(uint32_t)es[es_i] & 0xFF << 16 |
-									(uint32_t)es[es_i+1] & 0xFF << 8 |
-									(uint32_t)es[es_i+2] & 0xFF
-								);
-								if (es_start_code == ES_START_CODE_SHORT) {
-									es_i += 3;
-									got_es_start_code = 1;
-								}
-							}
-
-							if (got_es_start_code) {
-								uint8_t forbidden_zero_bit = es[es_i] & 0x80;
-								if (forbidden_zero_bit != 0) continue;
-
-								uint8_t nal_ref_idc = es[es_i] & 0x60;
-								uint8_t nal_type = es[es_i] & 0x1F;
-
-								char nal_type_name[255] = { 0 };
-								nal_type_str(nal_type, nal_type_name);
-
-								if (
-									(nal_type == NAL_TYPE_AUD) ||
-									(nal_type == NAL_TYPE_SEI) ||
-									(nal_type == NAL_TYPE_SLICE) ||
-									(nal_type == NAL_TYPE_SPS) ||
-									(nal_type == NAL_TYPE_PPS)
-								) {
-									switch (nal_type) {
-									// case NAL_TYPE_AUD:
-									// 	printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
-									// 	break;
-									case NAL_TYPE_SPS:
-										printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-										break;
-									case NAL_TYPE_PPS:
-										printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-										break;
-									}
-
-									// slice hader
-									if (nal_type == NAL_TYPE_SLICE) {
-										uint32_t offset = 0;
-										uint32_t first_mb_in_slice = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t slice_type = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t pic_parameter_set_id = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t frame_num = decode_u_golomb(&es[es_i+1], &offset);
-										uint32_t pic_order_cnt_lsb = decode_u_golomb(&es[es_i+1], &offset);
-
-										switch (slice_type) {
-										case 0:
-										case 5:
-											printf(COLOR_BRIGHT_BLUE "H264 P slice #%d" COLOR_RESET "\n", frame_num);
-											break;
-										case 1:
-										case 6:
-											printf(COLOR_BRIGHT_GREEN "H264 B slice #%d" COLOR_RESET "\n", frame_num);
-											break;
-										case 2:
-										case 7:
-											printf(COLOR_BRIGHT_RED "H264 I slice #%d" COLOR_RESET "\n", frame_num);
-											break;
-										}
-									}
-								}
-							}
-						}
-					}
-
-					// fwrite(payload, payload_length, 1, f_h264);
-					// fflush(f_h264);
-					// h264_len += payload_length;
-				}
-
-				// if (header.contains_payload) {
-				// 	printf("PAYLOAD\n");
-				// 	header_print(&header);
-				// }
-				// if (header.payload_unit_start_indicator) {
-				// 	printf("PAYLOAD START\n");
-				// 	header_print(&header);
-				// }
-			}
-		}
-
-		// fwrite(msg, msg_len, 1, f_ts);
-		// fflush(f_ts);
-
-		// printf("ts   written %d\n", msg_len);
-		// printf("h264 written %d\n", h264_len);
-	}
-
-	fclose(f_h264);
-	fclose(f_ts);
 }

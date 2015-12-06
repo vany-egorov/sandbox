@@ -16,7 +16,10 @@ $(OBJECTS_DIRS)/main.o: ./main.c
 $(OBJECTS_DIRS)/fifo.o: ./fifo.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-main: $(OBJECTS_DIRS)/main.o $(OBJECTS_DIRS)/fifo.o
+$(OBJECTS_DIRS)/config.o: ./config.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+main: $(OBJECTS_DIRS)/main.o $(OBJECTS_DIRS)/fifo.o $(OBJECTS_DIRS)/config.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
 bin-dir:
