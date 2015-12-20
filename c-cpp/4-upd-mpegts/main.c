@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>     // EXIT_SUCCESS, EXIT_FAILURE
+#include <stdlib.h>     // EXIT_SUCCESS, EXIT_FAILURE, malloc
 #include <inttypes.h>
 #include <unistd.h>     // close
 #include <fcntl.h>      // open
@@ -10,8 +10,10 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
+#include "url.h"
 #include "fifo.h"
 #include "color.h"
+#include "config.h"
 
 
 #define EXAMPLE_PORT 5500
@@ -855,6 +857,19 @@ void mpegts_handler(void *args) {
 }
 
 int main (int argc, char *argv[]) {
+	Config *config = config_new();
+	if (config == NULL) {
+		fprintf(stderr, "failed to initialize config\n");
+		exit(EXIT_FAILURE);
+	}
+
+	config_parse(config, argc, argv);
+	config_print(config);
+
+	url_parse(config->i);
+
+	exit(EXIT_SUCCESS);
+
 	App *app = app_new();
 	FIFO *fifo = fifo_new(100*7*188);
 	app->fifo = fifo;

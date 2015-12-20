@@ -13,13 +13,19 @@ OBJECTS_DIRS := ./bin
 $(OBJECTS_DIRS)/main.o: ./main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/url.o: ./url.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/util.o: ./util.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/fifo.o: ./fifo.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJECTS_DIRS)/config.o: ./config.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-main: $(OBJECTS_DIRS)/main.o $(OBJECTS_DIRS)/fifo.o $(OBJECTS_DIRS)/config.o
+main: $(OBJECTS_DIRS)/main.o $(OBJECTS_DIRS)/fifo.o $(OBJECTS_DIRS)/config.o $(OBJECTS_DIRS)/url.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
 bin-dir:
