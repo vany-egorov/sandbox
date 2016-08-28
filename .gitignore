@@ -1,3 +1,6 @@
 bin
 tmp
 *.o
+
+**/target/*
+Cargo.lock
