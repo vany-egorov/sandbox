@@ -1,0 +1,9 @@
+[package]
+name = "api"
+version = "0.1.0"
+authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
+
+[dependencies]
+hyper = "0.9.10"
+env_logger = "0.3.4"
+num_cpus = "1.0.0"
