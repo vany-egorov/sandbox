@@ -13,6 +13,9 @@
 #include "fifo.h"
 #include "color.h"
 
+// h264 containers
+// - Annex B
+// - AVCC
 
 #define EXAMPLE_PORT 5500
 #define EXAMPLE_GROUP "239.1.1.1"
@@ -35,6 +38,20 @@
 #define PES_PTS_DTS_INDICATOR_PTS       0b10
 #define PES_PTS_DTS_INDICATOR_PTS_DTS   0b11
 
+// NALU Start Codes
+//
+// A NALU does not contain is its size.
+// Therefore simply concatenating the NALUs to create a stream will not
+// work because you will not know where one stops and the next begins.
+//
+// The Annex B specification solves this by requiring ‘Start Codes’
+// to precede each NALU. A start code is 2 or 3 0x00 bytes followed with a 0x01 byte. e.g. 0x000001 or 0x00000001.
+//
+// The 4 byte variation is useful for transmission over a serial connection as it is trivial to byte align the stream
+// by looking for 31 zero bits followed by a one. If the next bit is 0 (because every NALU starts with a 0 bit),
+// it is the start of a NALU. The 4 byte variation is usually only used for signaling
+// random access points in the stream such as a SPS PPS AUD and IDR
+// Where as the 3 byte variation is used everywhere else to save space.
 #define ES_START_CODE_SHORT 0x000001
 #define ES_START_CODE_LONG  0x00000001
 
@@ -120,16 +137,37 @@ static void mpegts_stream_type_str(uint8_t v, char *out) {
 }
 
 // ITU-T H.264 (V9) (02/2014) - p63
+//
+// There are 19 different NALU types defined separated into two categories, VCL and non-VCL:
+//
+// - VCL, or Video Coding Layer packets contain the actual visual information.
+// - Non-VCLs contain metadata that may or may not be required to decode the video.
 typedef enum {
 	NAL_TYPE_UNSPECIFIED = 0,
 	NAL_TYPE_SLICE       = 1,
 	NAL_TYPE_DPA         = 2,
 	NAL_TYPE_DPB         = 3,
 	NAL_TYPE_DPC         = 4,
+	// Instantaneous Decoder Refresh (IDR).
+	// This VCL NALU is a self contained image slice.
+	// That is, an IDR can be decoded and displayed without
+	// referencing any other NALU save SPS and PPS.
 	NAL_TYPE_IDR         = 5,
 	NAL_TYPE_SEI         = 6,
+	// Sequence Parameter Set (SPS).
+	// This non-VCL NALU contains information required to configure
+	// the decoder such as profile, level, resolution, frame rate.
 	NAL_TYPE_SPS         = 7,
+	// Picture Parameter Set (PPS). Similar to the SPS, this non-VCL
+	// contains information on entropy coding mode, slice groups,
+	// motion prediction and deblocking filters.
 	NAL_TYPE_PPS         = 8,
+	// Access Unit Delimiter (AUD).
+	// An AUD is an optional NALU that can be use to delimit frames
+	// in an elementary stream. It is not required (unless otherwise
+	// stated by the container/protocol, like TS), and is often not
+	// included in order to save space, but it can be useful to
+	// finds the start of a frame without having to fully parse each NALU.
 	NAL_TYPE_AUD         = 9,
 	NAL_TYPE_EOSEQ       = 10,
 	NAL_TYPE_EOSTREAM    = 11,
