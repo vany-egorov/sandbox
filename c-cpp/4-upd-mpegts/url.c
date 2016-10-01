@@ -2,6 +2,6 @@
 
 URL *url_parse(char *raw) {
 	char *has_scheme = strstr(raw, "://");
-	printf("%s\n", has_scheme);
+	printf("url_parse %s\n", has_scheme);
 	return NULL;
 }

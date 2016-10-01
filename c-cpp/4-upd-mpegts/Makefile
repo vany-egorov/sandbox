@@ -33,6 +33,7 @@ bin-dir:
 
 build: bin-dir main
 
+# tsplay ./tmp/hd.ts 239.1.1.1:5500 -loop
 run:
 	# $(OBJECTS_DIRS)/main 2>&1 >out.log
-	$(OBJECTS_DIRS)/main
+	$(OBJECTS_DIRS)/main -i 239.1.1.1:5500
