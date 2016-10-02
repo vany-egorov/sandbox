@@ -546,12 +546,25 @@ static void psi_print(PSI *it) {
 	);
 }
 
+static FILE *f_dump_h264 = NULL;
+static int is_dump_h264_opened = 0;
+static int nal_size = 0;
+
 // TODO: remove extra args: app_offset, es_offset, es_length
 static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_length) {
 	int es_i = 0;
 	uint64_t es_offset_current = 0;
 	uint32_t es_start_code = 0;
 	int got_es_start_code = 0;
+
+	if (1) {
+		if (!is_dump_h264_opened) {
+			f_dump_h264 = fopen("./tmp/out.h264", "wb");
+			is_dump_h264_opened = 1;
+		}
+		nal_size += es_length;
+		fwrite(data, es_length, 1, f_dump_h264);
+	}
 
 	for (es_i = 0; es_i < es_length; es_i++) {
 		es_start_code = 0;
@@ -655,24 +668,26 @@ static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_l
 					switch (slice_type) {
 					case 0:
 					case 5:
-						printf("ES 0x%08llX | " COLOR_BRIGHT_CYAN "H264 P slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-							es_offset_current, 0, frame_num, pic_order_cnt_lsb);
+						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_CYAN "H264 P slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+							es_offset_current, nal_size, 0, frame_num, pic_order_cnt_lsb);
 						break;
 					case 1:
 					case 6:
-						printf("ES 0x%08llX | " COLOR_BRIGHT_GREEN "H264 B slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-							es_offset_current, 0, frame_num, pic_order_cnt_lsb);
+						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_GREEN "H264 B slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+							es_offset_current, nal_size, 0, frame_num, pic_order_cnt_lsb);
 						break;
 					case 2:
 					case 7:
-						printf("ES 0x%08llX | " COLOR_BRIGHT_RED "H264 I slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-							es_offset_current, 0, frame_num, pic_order_cnt_lsb);
+						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_RED "H264 I slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+							es_offset_current, nal_size, 0, frame_num, pic_order_cnt_lsb);
 						break;
 					default:
 						printf("ES 0x%08llX | " COLOR_BRIGHT_RED "H264 slice #%d { slice-type: %d }" COLOR_RESET "\n",
 							es_offset_current, frame_num, slice_type);
 						break;
 					}
+
+					nal_size = 0;
 				}
 			} else {
 				// printf("!! ES 0x%08llX %d\n", es_offset_current, nal_type);
@@ -978,7 +993,7 @@ void mpegts_handler(void *args) {
 		if (msg[0] == MPEGTS_SYNC_BYTE) {
 			on_msg(app, msg);
 
-			// fwrite(msg, MPEGTS_PACKET_SIZE, 1, f_ts);
+			fwrite(msg, MPEGTS_PACKET_SIZE, 1, f_ts);
 		}
 	}
 }
@@ -996,7 +1011,7 @@ int main (int argc, char *argv[]) {
 	url_parse(config->i);
 
 	App *app = app_new();
-	FIFO *fifo = fifo_new(100*7*188);
+	FIFO *fifo = fifo_new(101*7*188);
 	app->fifo = fifo;
 
 	pthread_t udp_thread;
