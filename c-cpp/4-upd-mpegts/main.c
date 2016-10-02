@@ -550,27 +550,30 @@ static void psi_print(PSI *it) {
 static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_length) {
 	int es_i = 0;
 	uint64_t es_offset_current = 0;
+	uint32_t es_start_code = 0;
+	int got_es_start_code = 0;
 
 	for (es_i = 0; es_i < es_length; es_i++) {
-		uint32_t es_start_code = 0;
-		uint8_t got_es_start_code = 0;
+		es_start_code = 0;
+		got_es_start_code = 0;
 
 		es_offset_current = app_offset + es_offset + es_i;
 
 		es_start_code = (
-			(uint32_t)data[es_i] & 0xFF << 24 |
-			(uint32_t)data[es_i+1] & 0xFF << 16 |
-			(uint32_t)data[es_i+2] & 0xFF << 8  |
-			(uint32_t)data[es_i+3] & 0xFF
+			(uint32_t)data[es_i]   << 24 |
+			(uint32_t)data[es_i+1] << 16 |
+			(uint32_t)data[es_i+2] << 8  |
+			(uint32_t)data[es_i+3]
 		);
 		if (es_start_code == ES_START_CODE_LONG) {
 			es_i += 4;
 			got_es_start_code = 1;
 		} else {
 			es_start_code = (
-				(uint32_t)data[es_i] & 0xFF << 16 |
-				(uint32_t)data[es_i+1] & 0xFF << 8 |
-				(uint32_t)data[es_i+2] & 0xFF
+				0                      << 24 |
+				(uint32_t)data[es_i]   << 16 |
+				(uint32_t)data[es_i+1] << 8  |
+				(uint32_t)data[es_i+2]
 			);
 			if (es_start_code == ES_START_CODE_SHORT) {
 				es_i += 3;
@@ -596,24 +599,24 @@ static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_l
 				(nal_type == NAL_TYPE_SPS) ||
 				(nal_type == NAL_TYPE_PPS)
 			) {
-				// switch (nal_type) {
-				// case NAL_TYPE_AUD:
-				// 	printf("ES 0x%08llX | " COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n",
-				// 		es_offset_current, nal_type_name);
-				// 	break;
-				// case NAL_TYPE_SEI:
-				// 	printf("ES 0x%08llX | " COLOR_BRIGHT_BLUE "%s" COLOR_RESET "\n",
-				// 		es_offset_current, nal_type_name);
-				// 	break;
-				// case NAL_TYPE_SPS:
-				// 	printf("ES 0x%08llX | " COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n",
-				// 		es_offset_current, nal_type_name);
-				// 	break;
-				// case NAL_TYPE_PPS:
-				// 	printf("ES 0x%08llX | " COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n",
-				// 		es_offset_current, nal_type_name);
-				// 	break;
-				// }
+				switch (nal_type) {
+				case NAL_TYPE_AUD:
+					printf("ES 0x%08llX | " COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n",
+						es_offset_current, nal_type_name);
+					break;
+				case NAL_TYPE_SEI:
+					printf("ES 0x%08llX | " COLOR_BRIGHT_BLUE "%s" COLOR_RESET "\n",
+						es_offset_current, nal_type_name);
+					break;
+				case NAL_TYPE_SPS:
+					printf("ES 0x%08llX | " COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n",
+						es_offset_current, nal_type_name);
+					break;
+				case NAL_TYPE_PPS:
+					printf("ES 0x%08llX | " COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n",
+						es_offset_current, nal_type_name);
+					break;
+				}
 
 				// slice hader
 				if ((nal_type == NAL_TYPE_SLICE) || (nal_type == NAL_TYPE_IDR)) {
@@ -629,12 +632,6 @@ static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_l
 					// printf(">>> 5 - %d\n", offset);
 					uint32_t pic_order_cnt_lsb = decode_u_golomb(&data[es_i+1], &offset);
 					// printf(">>> 6 - %d\n", offset);
-
-					printf(">>> %02X | %02X %02X %02X %02X %02X %02X\n",
-						data[es_i],
-						data[es_i+1], data[es_i+2], data[es_i+3],
-						data[es_i+4], data[es_i+5], data[es_i+6]
-					);
 
 					// 0 => P-slice. Consists of P-macroblocks
 					//      (each macro block is predicted using
@@ -693,9 +690,10 @@ typedef struct PES_ PES;
 // TODO: remove extra args: app_offset, pes_offset, i
 static void pes_parse(PES *it, uint8_t *data, uint64_t app_offset, uint64_t pes_offset, int i) {
 	uint32_t start_code = (
-		(uint32_t)data[0] & 0xFF << 16 |
-		(uint32_t)data[1] & 0xFF << 8 |
-		(uint32_t)data[2] & 0xFF
+		0 << 24                 |
+		(uint32_t)data[0] << 16 |
+		(uint32_t)data[1] << 8  |
+		(uint32_t)data[2]
 	);
 	// http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
 	if (start_code == PES_START_CODE) {
@@ -763,10 +761,10 @@ static void pes_parse(PES *it, uint8_t *data, uint64_t app_offset, uint64_t pes_
 		int es_offset = pes_offset + PES_header_length + 9;
 		int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
-		// printf("PES orffset G 0x%" PRIX64 " | PES offset 0x%" PRIX64 " | ES offset 0x%" PRIX64 " \n",
-		// 	app_offset,
-		// 	app_offset + pes_offset,
-		// 	app_offset + es_offset);
+		printf("PES offset G 0x%" PRIX64 " | PES offset 0x%" PRIX64 " | ES offset 0x%" PRIX64 " \n",
+			app_offset,
+			app_offset + pes_offset,
+			app_offset + es_offset);
 
 		es_parse(es_data, app_offset, es_offset, es_length);
 	}
