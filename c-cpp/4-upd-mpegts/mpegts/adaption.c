@@ -1,16 +1,4 @@
-struct mpegts_adaption_s {
-	uint8_t
-		adaptation_field_length:8,
-		discontinuity_indicator:1,
-		random_access_indicator:1,
-		elementary_stream_priority_indicator:1,
-		PCR_flag:1,
-		OPCR_flag:1,
-		splicing_point_flag:1,
-		transport_private_data_flag:1,
-		adaptation_field_extension_flag:1;
-};
-typedef struct mpegts_adaption_s MPEGTSAdaption;
+#include "mpegts.h"
 
 
 void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
@@ -35,3 +23,57 @@ void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
 	it->adaptation_field_extension_flag = adaptation_field_extension_flag;
 }
 
+void mpegts_adaption_print_json(MPEGTSAdaption *it) {
+	printf(
+		"{\"adaptation-field-length\": %d"
+		", \"discontinuity-indicator\": %d"
+		", \"random-access-indicator\": %d"
+		", \"elementary-stream-priority-indicator\": %d"
+		", \"PCR-flag\": %d"
+		", \"OPCR-flag\": %d"
+		", \"splicing-point-flag\": %d"
+		", \"transport-private-data-flag\": %d"
+		", \"adaptation-field-extension-flag\": %d"
+		"}\n",
+		it->adaptation_field_length,
+		it->discontinuity_indicator,
+		it->random_access_indicator,
+		it->elementary_stream_priority_indicator,
+		it->PCR_flag,
+		it->OPCR_flag,
+		it->splicing_point_flag,
+		it->transport_private_data_flag,
+		it->adaptation_field_extension_flag
+	);
+}
+
+void mpegts_pcr_parse(MPEGTSPCR *it, uint8_t *data) {
+	uint64_t base = 0;
+	uint16_t ext = 0;
+
+	base = ((
+		((uint64_t)data[0] & 0xFF) << 32 |
+		((uint64_t)data[1] & 0xFF) << 24 |
+		((uint64_t)data[2] & 0xFF) << 16 |
+		((uint64_t)data[3] & 0xFF) << 8  |
+		((uint64_t)data[4] & 0x80)
+	) >> 7);
+
+	ext = (
+		((uint16_t)data[4] & 0x01) << 8 |
+		((uint16_t)data[5] & 0xFF)
+	);
+
+	it->base = base;
+	it->ext = ext;
+}
+
+void pcr_print_json(MPEGTSPCR *it) {
+	printf(
+		"{\"base\": %" PRIu64 ""
+		",\"ext\": %d"
+		"}\n",
+		it->base,
+		it->ext
+	);
+}

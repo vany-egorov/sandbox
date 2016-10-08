@@ -10,7 +10,16 @@ LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 OBJECTS_DIRS := ./bin
 
 
-$(OBJECTS_DIRS)/main.o: ./main.c
+$(OBJECTS_DIRS)/mpegts-header.o: ./mpegts/header.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/mpegts-adaption.o: ./mpegts/adaption.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/mpegts-psi.o: ./mpegts/psi.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJECTS_DIRS)/url.o: ./url.c
@@ -25,13 +34,29 @@ $(OBJECTS_DIRS)/fifo.o: ./fifo.c
 $(OBJECTS_DIRS)/config.o: ./config.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-main: $(OBJECTS_DIRS)/main.o $(OBJECTS_DIRS)/fifo.o $(OBJECTS_DIRS)/config.o $(OBJECTS_DIRS)/url.o
+$(OBJECTS_DIRS)/main.o: ./main.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+
+main: \
+	$(OBJECTS_DIRS)/mpegts-header.o \
+	$(OBJECTS_DIRS)/mpegts-adaption.o \
+	$(OBJECTS_DIRS)/mpegts-psi.o \
+	$(OBJECTS_DIRS)/mpegts-es.o \
+	$(OBJECTS_DIRS)/fifo.o \
+	$(OBJECTS_DIRS)/config.o \
+	$(OBJECTS_DIRS)/url.o \
+	$(OBJECTS_DIRS)/main.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
 bin-dir:
 	mkdir -p $(OBJECTS_DIRS)
 
 build: bin-dir main
+
+clean:
+	rm -rvf $(OBJECTS_DIRS)/*.o
+	rm -rvf $(OBJECTS_DIRS)/main
 
 # tsplay ./tmp/hd.ts 239.1.1.1:5500 -loop
 run:
