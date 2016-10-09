@@ -21,6 +21,10 @@ void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
 	it->splicing_point_flag = splicing_point_flag;
 	it->transport_private_data_flag = transport_private_data_flag;
 	it->adaptation_field_extension_flag = adaptation_field_extension_flag;
+
+	if (it->PCR_flag) {
+		mpegts_pcr_parse(&it->pcr, &data[2]);
+	}
 }
 
 void mpegts_adaption_print_json(MPEGTSAdaption *it) {
@@ -68,12 +72,14 @@ void mpegts_pcr_parse(MPEGTSPCR *it, uint8_t *data) {
 	it->ext = ext;
 }
 
-void pcr_print_json(MPEGTSPCR *it) {
+void mpegts_pcr_print_json(MPEGTSPCR *it) {
 	printf(
 		"{\"base\": %" PRIu64 ""
 		",\"ext\": %d"
+		",\"PCR\": \"0:0:0:XXX (%d)\""
 		"}\n",
 		it->base,
-		it->ext
+		it->ext,
+		it->base * 300 // 90kHZ => 27MHz
 	);
 }

@@ -155,6 +155,9 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 
 /* psi.c */
 typedef struct mpegts_PSI_s MPEGTSPSI;
+typedef struct mpegts_PAT_s MPEGTSPAT;
+typedef struct mpegts_PMT_s MPEGTSPMT;
+typedef struct mpegts_NIT_s MPEGTSNIT;
 
 // Program Specific Information
 struct mpegts_PSI_s {
@@ -178,12 +181,35 @@ struct mpegts_PSI_s {
 	uint32_t CRC32:32;
 };
 
+// PSI -> PAT
+// Program association specific data
+struct mpegts_PAT_s {
+	uint16_t program_number;  // Relates to the Table ID extension in the associated PMT.
+	                          // A value of 0 is reserved for a NIT packet identifier.
+	uint16_t program_map_PID; // The packet identifier that contains the associated PMT
+};
+
+// PSI -> PMT
+// Program map specific data
+struct mpegts_PMT_s { };
+
+// PSI -> CAT
+// Conditional access specific data
+struct mpegts_CAT_s { };
+
+// PSI -> NIT
+// network information specific data
+struct mpegts_NIT_s { };
+
 void mpegts_psi_parse(MPEGTSPSI *it, uint8_t *data);
 void mpegts_psi_print_json(MPEGTSPSI *it);
 
+void mpegts_pat_parse(MPEGTSPAT *it, uint8_t *data);
+void mpegts_pat_print_json(MPEGTSPAT *it);
+
 
 /* es.c */
-char* mpegts_es_type_string(MPEGTSESType it);
+const char* mpegts_es_type_string(MPEGTSESType it);
 
 
 #endif // __MPEGTS_MPEGTS__

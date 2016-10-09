@@ -452,39 +452,32 @@ static void pes_parse(PES *it, uint8_t *data, uint64_t app_offset, uint64_t pes_
 }
 
 void on_msg(App *app, uint8_t *msg) {
-	if (msg[0] != MPEGTS_SYNC_BYTE) return;
-
 	int i = 0;
 	MPEGTSHeader mpegts_header = { 0 };
+	MPEGTSAdaption mpegts_adaption = { 0 };
+	MPEGTSPSI mpegts_psi = { 0 };
+	MPEGTSPAT mpegts_pat = { 0 };
+
+	if (msg[0] != MPEGTS_SYNC_BYTE) return;
+
 	mpegts_header_parse(&mpegts_header, &msg[i+1]);
 
-	MPEGTSAdaption mpegts_adaption = { 0 };
 	if (mpegts_header.adaption_field_control) {
 		mpegts_adaption_parse(&mpegts_adaption, &msg[i+4]);
 
-		if (mpegts_adaption.PCR_flag) {
-			// PCR pcr = { 0	};
-			mpegts_pcr_parse(&mpegts_adaption.pcr, &msg[i+6]);
-
-			// header_print(&header);
-			// adaption_print(&adaption);
-			// pcr_print(&pcr);
-		}
+		if (mpegts_adaption.PCR_flag)
+			mpegts_pcr_print_json(&mpegts_adaption.pcr);
 	}
 
 	if (mpegts_header.PID == MPEGTS_PID_PAT) {
-		MPEGTSPSI mpegts_psi = { 0 };
 		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
 		// printf("PAT: "); psi_print(&psi);
 
 		if (mpegts_psi.table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
-			// PAT (Program association specific data)
-			uint16_t program_number = (((uint16_t)msg[i+13] & 0xFF) << 8) | ((uint16_t)msg[i+14] & 0xFF);
-			app->program_map_PID = (((uint16_t)msg[i+15] & 0x1F) << 8) | ((uint16_t)msg[i+16] & 0xFF);
-			// printf("%d 0x%04x %d\n", program_number, app->program_map_PID, app->program_map_PID);
+			mpegts_pat_parse(&mpegts_pat, &msg[i+13]);
+			app->program_map_PID = mpegts_pat.program_map_PID;
 		}
 	} else if ((app->program_map_PID) && (mpegts_header.PID == app->program_map_PID)) {
-		MPEGTSPSI mpegts_psi = { 0 };
 		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
 		// printf("PMT: "); psi_print(&psi);
 
@@ -538,7 +531,6 @@ void on_msg(App *app, uint8_t *msg) {
 			}
 		}
 	} else if (mpegts_header.PID == MPEGTS_PID_SDT) {
-		MPEGTSPSI mpegts_psi = { 0 };
 		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
 		// printf("SDT: "); psi_print(&psi);
 	}

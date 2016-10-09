@@ -69,3 +69,18 @@ void mpegts_psi_print_json(MPEGTSPSI *it) {
 		it->CRC32
 	);
 }
+
+void mpegts_pat_parse(MPEGTSPAT *it, uint8_t *data) {
+	it->program_number = (((uint16_t)data[0] & 0xFF) << 8) | ((uint16_t)data[1] & 0xFF);
+	it->program_map_PID = (((uint16_t)data[2] & 0x1F) << 8) | ((uint16_t)data[3] & 0xFF);
+}
+
+void mpegts_pat_print_json(MPEGTSPAT *it) {
+	printf(
+		"{\"program-number\": %d"
+		", \"program-map-PID\": %d"
+		"}\n",
+		it->program_number,
+		it->program_map_PID
+	);
+}

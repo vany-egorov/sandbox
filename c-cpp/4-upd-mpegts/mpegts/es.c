@@ -1,7 +1,7 @@
 #include "mpegts.h"
 
 
-char* mpegts_es_type_string(MPEGTSESType it) {
+const char* mpegts_es_type_string(MPEGTSESType it) {
 	switch(it) {
 	case MPEGTS_STREAM_TYPE_RESERVED: return MPEGTS_STREAM_TYPE_RESERVED;
 	case MPEGTS_STREAM_TYPE_VIDEO_MPEG1: return MPEGTS_STREAM_TYPE_VIDEO_MPEG1_STR;
