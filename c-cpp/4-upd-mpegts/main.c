@@ -466,7 +466,7 @@ void on_msg(App *app, uint8_t *msg) {
 		mpegts_adaption_parse(&mpegts_adaption, &msg[i+4]);
 
 		if (mpegts_adaption.PCR_flag)
-			mpegts_pcr_print_json(&mpegts_adaption.pcr);
+			mpegts_pcr_print_json(&mpegts_adaption.PCR);
 	}
 
 	if (mpegts_header.PID == MPEGTS_PID_PAT) {
@@ -493,6 +493,7 @@ void on_msg(App *app, uint8_t *msg) {
 				(((uint16_t)msg[i+15] & 0x03) << 8) |
 				((uint16_t)msg[i+16] & 0xFF)
 			);
+			printf("program_info_length %d | \n", program_info_length);
 			section_length_unreaded -= 2;
 			// printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
 
@@ -518,7 +519,7 @@ void on_msg(App *app, uint8_t *msg) {
 				while (ES_info_length_unreaded > 0) {
 					uint8_t descriptor_tag = (uint8_t)msg[ES_info_start+ES_info_offset];
 					uint8_t descriptor_length = (uint8_t)msg[ES_info_start+ES_info_offset+1];
-					// printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
+					printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
 					ES_info_length_unreaded -= (2 + descriptor_length);
 					descriptor_length += (2 + descriptor_length);
 				}

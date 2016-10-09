@@ -22,9 +22,8 @@ void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
 	it->transport_private_data_flag = transport_private_data_flag;
 	it->adaptation_field_extension_flag = adaptation_field_extension_flag;
 
-	if (it->PCR_flag) {
-		mpegts_pcr_parse(&it->pcr, &data[2]);
-	}
+	if (it->PCR_flag)
+		mpegts_pcr_parse(&it->PCR, &data[2]);
 }
 
 void mpegts_adaption_print_json(MPEGTSAdaption *it) {

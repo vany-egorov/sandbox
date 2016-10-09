@@ -143,7 +143,7 @@ struct mpegts_adaption_s {
 		transport_private_data_flag:1,
 		adaptation_field_extension_flag:1;
 
-	MPEGTSPCR pcr;
+	MPEGTSPCR PCR;
 };
 
 void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data);
@@ -157,6 +157,8 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 typedef struct mpegts_PSI_s MPEGTSPSI;
 typedef struct mpegts_PAT_s MPEGTSPAT;
 typedef struct mpegts_PMT_s MPEGTSPMT;
+typedef struct mpegts_PMT_ES_info_s MPEGTSPMTESinfo;
+typedef struct mpegts_PMT_program_element_s MPEGTSPMTProgramElement;
 typedef struct mpegts_NIT_s MPEGTSNIT;
 
 // Program Specific Information
@@ -168,8 +170,13 @@ struct mpegts_PSI_s {
 		private_bit:1,
 		reserved_bits:2,
 		section_length_unused_bits:2;
-	uint16_t section_length:10;
-
+	uint16_t section_length:10; // This is a 12-bit field, the first two bits of which shall be "00".
+	                            // It specifies the number of bytes of the
+	                            // section, starting immediately following
+	                            // the section_length field and including the CRC.
+	                            // The section_length shall not
+	                            // exceed 1 021 so that the entire section has a maximum length
+	                            // of 1 024 bytes.
 	// table syntax section
 	uint16_t transport_stream_id:16;
 	uint8_t
@@ -189,9 +196,31 @@ struct mpegts_PAT_s {
 	uint16_t program_map_PID; // The packet identifier that contains the associated PMT
 };
 
+// PSI -> PMT -> program-element -> ES-description
+struct mpegts_PMT_ES_info_s {
+	uint8_t descriptor_tag;
+	uint8_t descriptor_length;
+	// ISO_639_language_code;
+	// audio_type;
+};
+
+// PSI -> PMT -> program element
+struct mpegts_PMT_program_element_s {
+	uint8_t stream_type;
+	uint16_t elementary_PID;
+	uint16_t ES_info_length;
+
+	MPEGTSPMTESinfo es_infos[5];
+};
+
 // PSI -> PMT
 // Program map specific data
-struct mpegts_PMT_s { };
+struct mpegts_PMT_s {
+	uint16_t PCR_PID;
+	uint16_t program_info_length;
+
+	MPEGTSPMTProgramElement program_elements[10];
+};
 
 // PSI -> CAT
 // Conditional access specific data
@@ -206,6 +235,9 @@ void mpegts_psi_print_json(MPEGTSPSI *it);
 
 void mpegts_pat_parse(MPEGTSPAT *it, uint8_t *data);
 void mpegts_pat_print_json(MPEGTSPAT *it);
+
+void mpegts_pmt_parse(MPEGTSPMT *it, uint8_t *data, int16_t section_length);
+void mpegts_pmt_print_json(MPEGTSPMT *it);
 
 
 /* es.c */
