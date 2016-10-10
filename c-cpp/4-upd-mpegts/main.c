@@ -482,18 +482,30 @@ void on_msg(App *app, uint8_t *msg) {
 		// printf("PMT: "); psi_print(&psi);
 
 		if (mpegts_psi.table_id == MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
+			MPEGTSPMT mpegts_pmt = {0};
+			mpegts_pmt_parse(&mpegts_pmt, &mpegts_psi, &msg[i+13]);
+
 			int16_t section_length_unreaded = (int16_t)mpegts_psi.section_length;
+			// transport-stream-id   x2
+			// version-number        x1
+			// curent-next-indicator
+			// section-number        x1
+			// last-section-number   x1
+			// CRC32                 x4
+			//
+			// -----                 x9
 			section_length_unreaded -= 9;
+
 			uint16_t PCR_PID = (
 				(((uint16_t)msg[i+13] & 0x1F) << 8) |
 				((uint16_t)msg[i+14] & 0xFF)
 			);
 			section_length_unreaded -= 2;
+
 			uint16_t program_info_length = (
 				(((uint16_t)msg[i+15] & 0x03) << 8) |
 				((uint16_t)msg[i+16] & 0xFF)
 			);
-			printf("program_info_length %d | \n", program_info_length);
 			section_length_unreaded -= 2;
 			// printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
 

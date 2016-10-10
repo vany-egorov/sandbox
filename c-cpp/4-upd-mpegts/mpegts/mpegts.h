@@ -8,7 +8,7 @@
 
 
 typedef enum mpegts_table_id_enum MPEGTSTableID;
-typedef enum mpegts_es_type_enum MPEGTSESType;
+typedef enum mpegts_es_type_enum  MPEGTSESType;
 
 // ETSI EN 300 468 V1.3.1 (1998-02)
 // ETSI EN 300 468 V1.11.1 (2010-04)
@@ -36,7 +36,7 @@ enum mpegts_table_id_enum {
 	MPEGTS_TABLE_ID_RESOLUTION_NOTIFICATION_SECTION                     = 0x79,
 	MPEGTS_TABLE_ID_MPE_IFEC_SECTION                                    = 0x7A,
 	MPEGTS_TABLE_ID_DISCONTINUITY_INFORMATION_SECTION                   = 0x7E,
-	MPEGTS_TABLE_ID_SELECTION_INFORMATION_SECTION                       = 0x7F
+	MPEGTS_TABLE_ID_SELECTION_INFORMATION_SECTION                       = 0x7F,
 };
 
 // Each elementary stream in a transport stream
@@ -154,12 +154,45 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 
 
 /* psi.c */
-typedef struct mpegts_PSI_s MPEGTSPSI;
-typedef struct mpegts_PAT_s MPEGTSPAT;
-typedef struct mpegts_PMT_s MPEGTSPMT;
-typedef struct mpegts_PMT_ES_info_s MPEGTSPMTESinfo;
+typedef struct mpegts_PSI_s                 MPEGTSPSI;
+typedef struct mpegts_PAT_s                 MPEGTSPAT;
+typedef struct mpegts_PMT_s                 MPEGTSPMT;
+typedef struct mpegts_PMT_ES_info_s         MPEGTSPMTESinfo;
 typedef struct mpegts_PMT_program_element_s MPEGTSPMTProgramElement;
-typedef struct mpegts_NIT_s MPEGTSNIT;
+typedef struct mpegts_NIT_s                 MPEGTSNIT;
+typedef enum   mpegts_PED_tag_s             MPEGTSPEDTag;
+
+// PD = Program Descriptor
+// PED = Program Element Descriptor
+enum mpegts_PED_tag_s {
+	MPEGTS_PED_TAG_RESERVED_00            = 0x00,
+	MPEGTS_PED_TAG_RESERVED_01            = 0x01,
+	MPEGTS_PED_TAG_V_H262_13818_11172     = 0x02,
+	MPEGTS_PED_TAG_A_13818_11172          = 0x03,
+	MPEGTS_PED_TAG_HIERARCHY              = 0x04,
+	MPEGTS_PED_TAG_REG_PRIVATE            = 0x05,
+	MPEGTS_PED_TAG_DATA_STREAM_ALIGN      = 0x06,
+	MPEGTS_PED_TAG_GRID                   = 0x07,
+	MPEGTS_PED_TAG_VIDEO_WINDOW           = 0x08,
+	MPEGTS_PED_TAG_CAS_EMM_ECM_PID        = 0x09,
+	MPEGTS_PED_TAG_ISO_639                = 0x0A,
+	MPEGTS_PED_TAG_SYSTEM_CLOCK_EXT_REF   = 0x0B,
+	MPEGTS_PED_TAG_MULT_BUF_UTIL_BOUNDS   = 0x0C,
+	MPEGTS_PED_TAG_COPYRIGHT              = 0x0D,
+	MPEGTS_PED_TAG_MAX_BIT_RATE           = 0x0E,
+	MPEGTS_PED_TAG_PRIVATE_DATA_INDICATOR = 0x0F,
+	MPEGTS_PED_TAG_SMOOTHING_BUFFER       = 0x10,
+};
+
+#define MPEGTS_PED_TAG_RESERVED_00_STR "Reserved-00"
+#define MPEGTS_PED_TAG_RESERVED_01_STR "Reserved-01"
+#define MPEGTS_PED_TAG_V_H262_13818_11172 "Video stream header parameters for" \
+                                          " ITU-T Rec. H.262," \
+                                          " ISO/IEC 13818-2" \
+                                          " and ISO/IEC 11172-2"
+#define MPEGTS_PED_TAG_ISO_639_STR "ISO 639 language and audio type"
+
+const char* mpegts_PED_tag_string(MPEGTSPEDTag it);
 
 // Program Specific Information
 struct mpegts_PSI_s {
@@ -236,7 +269,7 @@ void mpegts_psi_print_json(MPEGTSPSI *it);
 void mpegts_pat_parse(MPEGTSPAT *it, uint8_t *data);
 void mpegts_pat_print_json(MPEGTSPAT *it);
 
-void mpegts_pmt_parse(MPEGTSPMT *it, uint8_t *data, int16_t section_length);
+void mpegts_pmt_parse(MPEGTSPMT *it, MPEGTSPSI *psi, uint8_t *data);
 void mpegts_pmt_print_json(MPEGTSPMT *it);
 
 
