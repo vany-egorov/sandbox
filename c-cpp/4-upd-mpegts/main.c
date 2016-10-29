@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>     // EXIT_SUCCESS, EXIT_FAILURE, malloc
+#include <sysexits.h>   // EX_OK, EX_SOFTWARE
 #include <inttypes.h>
 #include <unistd.h>     // close
 #include <fcntl.h>      // open
@@ -593,7 +593,7 @@ cleanup:
 	app->offset += MPEGTS_PACKET_SIZE;
 }
 
-void udp_handler(void *args) {
+void* udp_handler(void *args) {
 	struct ip_mreq mreq;
 	struct sockaddr_in addr;
 	int i, addrlen, sock, msg_len;
@@ -623,6 +623,8 @@ void udp_handler(void *args) {
 		exit(EXIT_FAILURE);
 	}
 
+	size_t written = 0;
+
 	while (1) {
 		memset(msg, 0, sizeof msg);
 		msg_len = recvfrom(sock, msg, sizeof(msg), 0, (struct sockaddr *) &addr, &addrlen);
@@ -633,13 +635,12 @@ void udp_handler(void *args) {
 			break;
 		}
 
-		for (i = 0; i < msg_len; i += MPEGTS_PACKET_SIZE) {
-			fifo_write(app->fifo, &msg[i], MPEGTS_PACKET_SIZE);
-		}
+		for (i = 0; i < msg_len; i += MPEGTS_PACKET_SIZE)
+			fifo_write(app->fifo, &msg[i], MPEGTS_PACKET_SIZE, &written);
 	}
 }
 
-void mpegts_handler(void *args) {
+void* mpegts_handler(void *args) {
 	int i = 0;
 	size_t readed_len = 0;
 	App *app = (App*)args;
@@ -669,6 +670,8 @@ void mpegts_handler(void *args) {
 }
 
 int main (int argc, char *argv[]) {
+	int ret = EX_OK;
+
 	Config *config = config_new();
 	if (config == NULL) {
 		fprintf(stderr, "failed to initialize config\n");
@@ -678,10 +681,10 @@ int main (int argc, char *argv[]) {
 	config_parse(config, argc, argv);
 	config_print(config);
 
-	url_parse(config->i);
+	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 
 	App *app = app_new();
-	FIFO *fifo = fifo_new(101*7*188);
+	FIFO *fifo = fifo_new(30000*7*188);
 	app->fifo = fifo;
 
 	pthread_t udp_thread;
@@ -696,5 +699,6 @@ int main (int argc, char *argv[]) {
 	void *mpegts_thread_status;
 	pthread_join(mpegts_thread, &mpegts_thread_status);
 
-	exit(EXIT_SUCCESS);
+cleanup:
+	return ret;
 }

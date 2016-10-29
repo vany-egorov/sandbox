@@ -23,4 +23,7 @@
 #define COLOR_RESET "\033[0m"
 
 
+#define COLORSTDERR(X, ...) fprintf(stderr, COLOR_BRIGHT_RED X COLOR_RESET "\n", ##__VA_ARGS__)
+
+
 #endif // __COLOR__

@@ -29,8 +29,35 @@ void config_del(Config *it) {
 
 
 void config_print(Config *it) {
-	if (it->i) printf("input: %s\n", it->i);
-	if (it->o) printf("output: %s\n", it->o);
+	char buf[255];
+
+	if (it->i) {
+		memset(&buf, 0, sizeof(buf));
+		url_sprint(it->i, buf, sizeof(buf));
+		printf("src/input: \"%s\"\n", buf);
+	} else
+		printf("src/input: \"-\"\n");
+
+	if (it->o) {
+		memset(&buf, 0, sizeof(buf));
+		url_sprint(it->o, buf, sizeof(buf));
+		printf("dst/input: \"%s\"\n", buf);
+	} else
+		printf("dst/input: \"-\"\n");
+}
+
+int config_validate(Config *it) {
+	int ret = 0;
+
+	if (!it->i) {
+		COLORSTDERR("--src / --input / -s / -i : provide source/input;");
+		ret = 1;
+	} else if (it->i->scheme != URL_SCHEME_UDP) {
+		COLORSTDERR("--src / --input / -s / -i : only UDP source supported;");
+		ret = 1;
+	}
+
+	return ret;
 }
 
 void config_help(void) {
@@ -52,6 +79,24 @@ int config_parse(Config *it, int argc, char **argv) {
 	for (i = 0; i < argc; i++) {
 		key = argv[i];
 
+		// $1
+		if ((i==1) &&
+		    (key[0] != '-')) {
+			if (!it->i) it->i = calloc(1, sizeof(URL));
+			url_parse(it->i, key);
+			continue;
+		}
+
+		// $2
+		if ((i==2) &&
+				(key[0] != '-') &&     // positional argument
+		    (argv[1][0] != '-') && // no flag before
+		    (it->i)) {
+			if (!it->o) it->o = calloc(1, sizeof(URL));
+			url_parse(it->o, key);
+			continue;
+		}
+
 		// -v | --version
 		if (CFGISOPTION(key, "version") || CFGISOPTION(key, "v")) {
 			it->version = 1;
@@ -64,16 +109,16 @@ int config_parse(Config *it, int argc, char **argv) {
 			return 0;
 		}
 
-		// -i | --input
-		if (CFGISOPTION(key, "i") || CFGISOPTION(key, "input") || CFGISOPTION(key, "in")) {
-			it->i = argv[i+1];
-			continue;
+		// -s | -i | --src
+		if (CFGISOPTION(key, "src") || CFGISOPTION(key, "s") || CFGISOPTION(key, "i")) {
+			if (!it->i) it->i = calloc(1, sizeof(URL));
+			url_parse(it->i, argv[i+1]);
 		}
 
-		// -o | --output
-		if (CFGISOPTION(key, "o") || CFGISOPTION(key, "output") || CFGISOPTION(key, "out")) {
-			it->o = argv[i+1];
-			continue;
+		// -d | -o | --dst
+		if (CFGISOPTION(key, "dst") || CFGISOPTION(key, "d") || CFGISOPTION(key, "o") || CFGISOPTION(key, "out")) {
+			if (!it->o) it->o = calloc(1, sizeof(URL));
+			url_parse(it->o, argv[i+1]);
 		}
 	}
 }

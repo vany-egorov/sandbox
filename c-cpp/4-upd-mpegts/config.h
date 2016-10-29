@@ -6,6 +6,7 @@
 #include <stdlib.h> // malloc, NULL
 #include <stdint.h> // uint8_t
 
+#include "url.h"
 #include "color.h"
 
 
@@ -13,8 +14,8 @@ struct _Config {
 	uint8_t version;
 	uint8_t help;
 
-	char *i;
-	char *o;
+	URL *i;
+	URL *o;
 };
 
 typedef struct _Config Config;

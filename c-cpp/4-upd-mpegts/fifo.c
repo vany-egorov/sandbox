@@ -1,19 +1,13 @@
-#include <stdio.h>
-#include <string.h> // memcpy, size_t
-#include <stdlib.h> // EXIT_SUCCESS, EXIT_FAILURE
-#include <stdint.h> // uint8_t, uint16_t
-#include <semaphore.h> // uint8_t, uint16_t
-
 #include "fifo.h"
 
 
 FIFO *fifo_new(size_t cap) {
 	FIFO *it = (FIFO*)calloc(1, sizeof(FIFO));
-	it->data = NULL;
 	it->cap = cap;
 	it->len = 0;
 	it->start = 0;
 	it->finish = 0;
+	it->data = (uint8_t*)calloc(1, cap);
 	sem_init(&it->sem, 0, 0);
 
 	return it;
@@ -21,16 +15,40 @@ FIFO *fifo_new(size_t cap) {
 
 void fifo_print(FIFO *it) {
 	printf(
-		"{\"start\": %d"
-		", \"finish\": %d"
-		", \"length (len)\": %d"
-		", \"capacity (cap)\": %d"
+		"{\"start\": %zd"
+		", \"finish\": %zd"
+		", \"length (len)\": %zd"
+		", \"capacity (cap)\": %zd"
 		"}\n",
 		it->start,
 		it->finish,
 		it->len,
 		it->cap
 	);
+}
+
+void fifo_print_safe(FIFO *it) {
+	pthread_mutex_lock(&it->rw_mutex);
+	fifo_print(it);
+	pthread_mutex_unlock(&it->rw_mutex);
+}
+
+void fifo_sprint_safe(FIFO *it, char *buf, size_t bufsz) {
+	if (!it) return;
+
+	pthread_mutex_lock(&it->rw_mutex);
+	snprintf(buf, bufsz, "{"
+		"\"start\": %zd"
+		", \"finish\": %zd"
+		", \"length (len)\": %zd"
+		", \"capacity (cap)\": %zd"
+		"}",
+		it->start,
+		it->finish,
+		it->len,
+		it->cap
+	);
+	pthread_mutex_unlock(&it->rw_mutex);
 }
 
 void fifo_print_data(FIFO *it) {
@@ -62,58 +80,112 @@ void fifo_print_data(FIFO *it) {
 	}
 }
 
-void fifo_delete(FIFO *it) {
+void fifo_wait_data(FIFO *it) {
+	sem_wait(&it->sem);
+}
+
+size_t fifo_len(FIFO *it) {
+	size_t len = 0;
+	pthread_mutex_lock(&it->rw_mutex);
+	len = it->len;
+	pthread_mutex_unlock(&it->rw_mutex);
+	return len;
+}
+
+// TODO: support multiple overflow
+// impl Writer for FIFO
+int fifo_write(void *ctx, uint8_t *src, size_t srcsz, size_t *writesz) {
+	FIFO *it = NULL;
+	int ret = 0;
+	size_t finish_nxt = 0,
+	       offset = 0;
+
+	it = (FIFO*)ctx;
+
+	pthread_mutex_lock(&it->rw_mutex);
+	finish_nxt = (it->finish + srcsz) % it->cap;
+
+	if (it->finish + srcsz <= it->cap) {
+		memcpy(it->data + it->finish, src, srcsz);
+	} else { // split data into two segments
+		offset = it->cap - it->finish;
+		                                                       // [0 .............................. cap]
+		memcpy(it->data + it->finish, src,        offset);     // [..................... finish ... cap]
+		memcpy(it->data,              src+offset, finish_nxt); // [0 ... finish-nxt ............... cap]
+	}
+
+	it->finish = finish_nxt;
+	it->len += srcsz;
+
+	if (it->len > it->cap) { // fifo overflow
+		it->len = it->cap;
+		it->start = it->finish;
+	}
+
+	pthread_mutex_unlock(&it->rw_mutex);
+	sem_post(&it->sem);
+
+	*writesz = srcsz;
+	return ret;
+}
+
+// TODO: support multiple overflow
+// TODO: check overflow (MLR for mpegts detected when not chunked read)
+// impl Reader for FIFO
+int fifo_read(void *ctx, uint8_t *dst, size_t dstsz, size_t *readsz) {
+	int ret = 0;
+	FIFO *it = NULL;
+	size_t offset = 0;
+
+	it = (FIFO*)ctx;
+
+	pthread_mutex_lock(&it->rw_mutex);
+
+	if (!it->len) {
+		*readsz = 0;
+		pthread_mutex_unlock(&it->rw_mutex);
+		return ret;
+	}
+
+	if (dstsz > it->len) dstsz = it->len;
+
+	if (it->start + dstsz < it->cap) {
+		memcpy(dst, it->data + it->start, dstsz);
+		memset(it->data + it->start, 0, dstsz);
+	} else { // split data into two segments
+		offset = it->cap - it->start;
+
+		memcpy(dst,        it->data + it->start, offset);
+		memcpy(dst+offset, it->data            , dstsz-offset);
+
+		memset(it->data + it->start, 0, offset);
+		memset(it->data, 0, dstsz-offset);
+	}
+
+	it->start = (it->start + (size_t)dstsz) % it->cap;
+	it->len -= dstsz;
+	pthread_mutex_unlock(&it->rw_mutex);
+
+	*readsz = dstsz;
+	return ret;
+}
+
+void fifo_reset(FIFO *it) {
+	pthread_mutex_lock(&it->rw_mutex);
+	memset(it->data, 0, it->cap);
+	it->len = 0;
+	it->start = 0;
+	it->finish = 0;
+	pthread_mutex_unlock(&it->rw_mutex);
+}
+
+void fifo_del(FIFO *it) {
 	if (it) {
 		if (it->data) {
 			free(it->data);
 			it->data = NULL;
 		}
+		sem_destroy(&it->sem);
 		free(it);
 	}
-}
-
-void fifo_wait_data(FIFO *it) {
-	sem_wait(&it->sem);
-}
-
-size_t fifo_write(FIFO *it, uint8_t *src, size_t src_len) {
-	size_t finish_prv = it->finish;
-	size_t finish_nxt = (it->finish + (size_t)src_len) % it->cap;
-
-	pthread_mutex_lock(&it->rw_mutex);
-	if (!it->data) it->data = (uint8_t*)calloc(1, src_len);
-	void *result = memcpy(it->data + it->finish, src, src_len);
-
-	it->finish = finish_nxt;
-	it->len += src_len;
-
-	if (it->len > it->cap) {
-		it->len = it->cap;
-		it->start = it->finish;
-		printf("fifo overflow\n");
-	}
-
-	sem_post(&it->sem);
-	pthread_mutex_unlock(&it->rw_mutex);
-
-	return src_len;
-}
-
-void fifo_read(FIFO *it, uint8_t *dst, size_t dst_len, size_t *readed_len) {
-	pthread_mutex_lock(&it->rw_mutex);
-
-	if (!it->len) {
-		*readed_len = 0;
-		pthread_mutex_unlock(&it->rw_mutex);
-		return;
-	}
-
-	void *result = memcpy(dst, it->data + it->start, dst_len);
-	memset(it->data + it->start, 0, dst_len);
-
-	it->start = (it->start + (size_t)dst_len) % it->cap;
-	it->len -= dst_len;
-	pthread_mutex_unlock(&it->rw_mutex);
-
-	*readed_len = dst_len;
 }
