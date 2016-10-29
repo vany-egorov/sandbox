@@ -22,7 +22,13 @@ $(OBJECTS_DIRS)/mpegts-psi.o: ./mpegts/psi.c
 $(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/udp.o: ./udp.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/url.o: ./url.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/io.o: ./io.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJECTS_DIRS)/util.o: ./util.c
@@ -45,7 +51,9 @@ main: \
 	$(OBJECTS_DIRS)/mpegts-es.o \
 	$(OBJECTS_DIRS)/fifo.o \
 	$(OBJECTS_DIRS)/config.o \
+	$(OBJECTS_DIRS)/udp.o \
 	$(OBJECTS_DIRS)/url.o \
+	$(OBJECTS_DIRS)/io.o \
 	$(OBJECTS_DIRS)/main.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 

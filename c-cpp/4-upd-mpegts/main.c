@@ -1,6 +1,7 @@
 #include <stdio.h>
+#include <errno.h>      // errno
 #include <sysexits.h>   // EX_OK, EX_SOFTWARE
-#include <inttypes.h>
+#include <inttypes.h>   // PRId64
 #include <unistd.h>     // close
 #include <fcntl.h>      // open
 #include <string.h>     // memcpy, memset, size_t
@@ -10,22 +11,21 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
-#include "./mpegts/mpegts.h"
+#include "io.h"
 #include "url.h"
+#include "udp.h"
 #include "fifo.h"
 #include "color.h"
 #include "config.h"
+#include "./mpegts/mpegts.h"
 
 
 // h264 containers
 // - Annex B
 // - AVCC
 
-#define EXAMPLE_PORT 5500
-#define EXAMPLE_GROUP "239.1.1.1"
-#define MSG_SIZE 1504
-
 #define MPEGTS_SYNC_BYTE    0x47
+#define MPEGTS_PACKET_COUNT 7
 #define MPEGTS_PACKET_SIZE  188
 
 #define MPEGTS_PID_PAT      0x0000
@@ -197,19 +197,6 @@ uint32_t decode_u_golomb(const uint8_t * const base, uint32_t * const offset) {
 	}
 
 	return (info - 1);
-}
-
-typedef struct App {
-	FIFO    *fifo;
-	uint64_t offset; // global offset
-	uint16_t program_map_PID;
-	uint16_t video_PID_H264;
-} App;
-
-static App *app_new(void) {
-	App *it = (App*)calloc(1, sizeof(App));
-	it->program_map_PID = 0;
-	it->video_PID_H264 = 0;
 }
 
 static FILE *f_dump_h264 = NULL;
@@ -451,7 +438,15 @@ static void pes_parse(PES *it, uint8_t *data, uint64_t app_offset, uint64_t pes_
 	}
 }
 
-void on_msg(App *app, uint8_t *msg) {
+typedef struct parse_worker_s ParseWorker;
+struct parse_worker_s {
+	FIFO    *fifo;
+	uint64_t offset; // global offset
+	uint16_t program_map_PID;
+	uint16_t video_PID_H264;
+};
+
+void on_msg(ParseWorker *it, uint8_t *msg) {
 	int i = 0;
 	MPEGTSHeader mpegts_header = { 0 };
 	MPEGTSAdaption mpegts_adaption = { 0 };
@@ -475,9 +470,9 @@ void on_msg(App *app, uint8_t *msg) {
 
 		if (mpegts_psi.table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
 			mpegts_pat_parse(&mpegts_pat, &msg[i+13]);
-			app->program_map_PID = mpegts_pat.program_map_PID;
+			it->program_map_PID = mpegts_pat.program_map_PID;
 		}
-	} else if ((app->program_map_PID) && (mpegts_header.PID == app->program_map_PID)) {
+	} else if ((it->program_map_PID) && (mpegts_header.PID == it->program_map_PID)) {
 		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
 		// printf("PMT: "); psi_print(&psi);
 
@@ -540,7 +535,7 @@ void on_msg(App *app, uint8_t *msg) {
 				pmt_offset +=	(5 + ES_info_length);
 
 				if (stream_type == MPEGTS_STREAM_TYPE_VIDEO_H264)
-					app->video_PID_H264 = elementary_PID;
+					it->video_PID_H264 = elementary_PID;
 			}
 		}
 	} else if (mpegts_header.PID == MPEGTS_PID_SDT) {
@@ -550,7 +545,7 @@ void on_msg(App *app, uint8_t *msg) {
 
 	if (mpegts_header.contains_payload) {
 		if (mpegts_header.payload_unit_start_indicator) {
-			if (mpegts_header.PID != app->video_PID_H264)
+			if (mpegts_header.PID != it->video_PID_H264)
 				goto cleanup;
 
 			int pes_offset = i + 4;
@@ -562,17 +557,17 @@ void on_msg(App *app, uint8_t *msg) {
 			pes_length = MPEGTS_PACKET_SIZE - pes_offset;
 
 			PES pes = { 0 };
-			pes_parse(&pes, &msg[pes_offset], app->offset, pes_offset, i);
+			pes_parse(&pes, &msg[pes_offset], it->offset, pes_offset, i);
 
 			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
-			// 	app->offset + pes_offset, pes.PTS, pes.DTS);
+			// 	it->offset + pes_offset, pes.PTS, pes.DTS);
 		} else {
 			int es_offset = i + 4;
 			if (mpegts_header.adaption_field_control) {
 				es_offset = es_offset + mpegts_adaption.adaptation_field_length + 1;
 			}
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
-			es_parse(&msg[es_offset], app->offset, es_offset, es_length);
+			es_parse(&msg[es_offset], it->offset, es_offset, es_length);
 		}
 
 		// fwrite(payload, payload_length, 1, f_h264);
@@ -590,80 +585,45 @@ void on_msg(App *app, uint8_t *msg) {
 	// }
 
 cleanup:
-	app->offset += MPEGTS_PACKET_SIZE;
+	it->offset += MPEGTS_PACKET_SIZE;
 }
 
-void* udp_handler(void *args) {
-	struct ip_mreq mreq;
-	struct sockaddr_in addr;
-	int i, addrlen, sock, msg_len;
-	uint8_t msg[MSG_SIZE];
+typedef struct read_worker_s ReadWorker;
+struct read_worker_s {
+	IOReader *reader;
+	IOWriter *writer;
+};
 
-	App *app = (App*)args;
+void* read_worker_do(void *args) {
+	ReadWorker *it = NULL;
+	uint8_t buf[MPEGTS_PACKET_COUNT*MPEGTS_PACKET_SIZE] = { 0 };
+	size_t copied = 0;
 
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock < 0) {
-		perror("socket");
-		exit(EXIT_FAILURE);
-	}
-	bzero((char *)&addr, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(EXAMPLE_PORT);
-	addrlen = sizeof(addr);
+	it = (ReadWorker*)args;
 
-	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-		perror("bind");
-		exit(EXIT_FAILURE);
-	}
-	mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
-		perror("setsockopt mreq");
-		exit(EXIT_FAILURE);
-	}
+	for(;;)
+		io_copy(it->reader, it->writer, buf, sizeof(buf), &copied);
 
-	size_t written = 0;
-
-	while (1) {
-		memset(msg, 0, sizeof msg);
-		msg_len = recvfrom(sock, msg, sizeof(msg), 0, (struct sockaddr *) &addr, &addrlen);
-		if (msg_len < 0) {
-			perror("recvfrom");
-			exit(EXIT_FAILURE);
-		} else if (msg_len == 0) {
-			break;
-		}
-
-		for (i = 0; i < msg_len; i += MPEGTS_PACKET_SIZE)
-			fifo_write(app->fifo, &msg[i], MPEGTS_PACKET_SIZE, &written);
-	}
+	return NULL;
 }
 
-void* mpegts_handler(void *args) {
+void* parse_worker_do(void *args) {
 	int i = 0;
-	size_t readed_len = 0;
-	App *app = (App*)args;
+	size_t readed_len = 0,
+	       fifo_length = 0;
+	ParseWorker *it = (ParseWorker*)args;
 
 	FILE *f_ts = fopen("./tmp/out.ts", "wb");
 
 	for(;;) {
-		fifo_wait_data(app->fifo);
+		fifo_wait_data(it->fifo);
+		fifo_length = fifo_len(it->fifo);
 
 		uint8_t msg[MPEGTS_PACKET_SIZE] = { 0 };
-		fifo_read(app->fifo, msg, MPEGTS_PACKET_SIZE, &readed_len);
 
-		// if (!readed_len) continue;
-
-		// printf("readed_len %d\n", readed_len);
-		// for (i = 0; i < MPEGTS_PACKET_SIZE; i++) {
-		// 	printf("0x%02X ", msg[i]);
-		// }
-		// printf("\n");
-
-		if (msg[0] == MPEGTS_SYNC_BYTE) {
-			on_msg(app, msg);
-
+		for (i = 0; i < fifo_length; i += MPEGTS_PACKET_SIZE) {
+			fifo_read(it->fifo, msg, MPEGTS_PACKET_SIZE, &readed_len);
+			on_msg(it, msg);
 			fwrite(msg, MPEGTS_PACKET_SIZE, 1, f_ts);
 		}
 	}
@@ -671,8 +631,22 @@ void* mpegts_handler(void *args) {
 
 int main (int argc, char *argv[]) {
 	int ret = EX_OK;
+	char ebuf[255];
 
-	Config *config = config_new();
+	Config *config = NULL;
+
+	FIFO *fifo = NULL;
+	UDP *udp_i = NULL;
+	IOReader *reader_udp = NULL;
+	IOReader *reader_fifo = NULL;
+	IOWriter *writer_fifo = NULL;
+
+	ReadWorker read_worker = { 0 };
+	ParseWorker parse_worker = { 0 };
+	pthread_t read_thread = { 0 },
+	          parse_thread = { 0 };
+
+	config = config_new();
 	if (config == NULL) {
 		fprintf(stderr, "failed to initialize config\n");
 		exit(EXIT_FAILURE);
@@ -683,21 +657,50 @@ int main (int argc, char *argv[]) {
 
 	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 
-	App *app = app_new();
-	FIFO *fifo = fifo_new(30000*7*188);
-	app->fifo = fifo;
+	udp_i = udp_new();
+	reader_udp = io_reader_new(udp_i, udp_read);
+	fifo = fifo_new(100*7*188);
+	writer_fifo = io_writer_new(fifo, fifo_write);
+	reader_fifo = io_reader_new(fifo, fifo_read);
 
-	pthread_t udp_thread;
-	pthread_create(&udp_thread, NULL, udp_handler, (void*)app);
+	if ((!udp_i) ||
+		  (!reader_udp) ||
+		  (!fifo) ||
+		  (!writer_fifo) || (!reader_fifo)) {
+		fprintf(stderr, "error allocating memory for structure\n");
+		ret = EX_SOFTWARE; goto cleanup;
+	}
 
-	pthread_t mpegts_thread;
-	pthread_create(&mpegts_thread, NULL, mpegts_handler, (void*)app);
+	if (udp_connect_i(udp_i, config->i->host, config->i->port, NULL,
+	                  ebuf, sizeof(ebuf))) {
+		fprintf(stderr, "[udp-i @ %p] connect error: %s\n", udp_i, ebuf);
+		ret = EX_SOFTWARE; goto cleanup;
+	} else {
+		printf("[udp-i @ %p] OK {"
+			"\"sock\": %d"
+			", \"udp-multicast-group\": \"%s\""
+			", \"port\": %d"
+			", \"if\": \"%s\""
+		"}", udp_i, udp_i->sock, config->i->host, "-");
+	}
 
-	void *udp_thread_status;
-	pthread_join(udp_thread, &udp_thread_status);
+	read_worker.reader = reader_udp;
+	read_worker.writer = writer_fifo;
+	if (pthread_create(&read_thread, NULL, read_worker_do, (void*)&read_worker)) {
+		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
+		ret = EX_SOFTWARE; goto cleanup;
+	} else
+		printf("[read-worker @ %p] OK", &read_thread);
 
-	void *mpegts_thread_status;
-	pthread_join(mpegts_thread, &mpegts_thread_status);
+	// parse_worker.reader = reader_fifo;
+	parse_worker.fifo = fifo;
+	if (pthread_create(&parse_thread, NULL, parse_worker_do, (void*)&parse_worker)) {
+		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
+		ret = EX_SOFTWARE; goto cleanup;
+	} else
+		printf("[parse-worker @ %p] OK", &parse_thread);
+
+	pause();
 
 cleanup:
 	return ret;

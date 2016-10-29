@@ -1,5 +1,5 @@
-#ifndef __MCASTTEST_URL__
-#define __MCASTTEST_URL__
+#ifndef __URL__
+#define __URL__
 
 
 #include <regex.h>  // regcomp, REG_EXTENDED, REG_ICASE, regex_t
@@ -89,4 +89,4 @@ const char *url_scheme_string(URLScheme it);
 const char *url_scheme_descr(URLScheme it);
 
 
-#endif // __MCASTTEST_URL__
+#endif // __URL__
