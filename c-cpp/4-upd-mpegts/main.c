@@ -616,6 +616,7 @@ void* parse_worker_do(void *args) {
 	FILE *f_ts = fopen("./tmp/out.ts", "wb");
 
 	for(;;) {
+
 		fifo_wait_data(it->fifo);
 		fifo_length = fifo_len(it->fifo);
 
@@ -639,6 +640,7 @@ int main (int argc, char *argv[]) {
 	UDP *udp_i = NULL;
 	IOReader *reader_udp = NULL;
 	IOReader *reader_fifo = NULL;
+	IOWriter *writer_file = NULL;
 	IOWriter *writer_fifo = NULL;
 
 	ReadWorker read_worker = { 0 };
