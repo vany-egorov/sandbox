@@ -14,6 +14,7 @@
 #include "io.h"
 #include "url.h"
 #include "udp.h"
+#include "file.h"
 #include "fifo.h"
 #include "color.h"
 #include "config.h"
@@ -613,8 +614,6 @@ void* parse_worker_do(void *args) {
 	       fifo_length = 0;
 	ParseWorker *it = (ParseWorker*)args;
 
-	FILE *f_ts = fopen("./tmp/out.ts", "wb");
-
 	for(;;) {
 
 		fifo_wait_data(it->fifo);
@@ -625,7 +624,6 @@ void* parse_worker_do(void *args) {
 		for (i = 0; i < fifo_length; i += MPEGTS_PACKET_SIZE) {
 			fifo_read(it->fifo, msg, MPEGTS_PACKET_SIZE, &readed_len);
 			on_msg(it, msg);
-			fwrite(msg, MPEGTS_PACKET_SIZE, 1, f_ts);
 		}
 	}
 }
@@ -639,10 +637,12 @@ int main (int argc, char *argv[]) {
 	FIFO *fifo = NULL;
 	UDP *udp_i = NULL;
 	File *file_ts = NULL;
+	IOMultiWriter *multi = NULL;
 	IOReader *reader_udp = NULL;
 	IOReader *reader_fifo = NULL;
 	IOWriter *writer_file = NULL;
 	IOWriter *writer_fifo = NULL;
+	IOWriter *writer_multi = NULL;
 
 	ReadWorker read_worker = { 0 };
 	ParseWorker parse_worker = { 0 };
@@ -693,7 +693,7 @@ int main (int argc, char *argv[]) {
 			", \"udp-multicast-group\": \"%s\""
 			", \"port\": %d"
 			", \"if\": \"%s\""
-		"}\n", udp_i, udp_i->sock, config->i->host, "-");
+		"}\n", udp_i, udp_i->sock, config->i->host, config->i->port, "-");
 
 	if (file_open(file_ts, "./tmp/out.ts", "wb",
 	              ebuf, sizeof(ebuf))) {
