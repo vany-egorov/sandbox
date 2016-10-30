@@ -165,32 +165,47 @@ typedef enum   mpegts_PED_tag_s             MPEGTSPEDTag;
 // PD = Program Descriptor
 // PED = Program Element Descriptor
 enum mpegts_PED_tag_s {
-	MPEGTS_PED_TAG_RESERVED_00            = 0x00,
-	MPEGTS_PED_TAG_RESERVED_01            = 0x01,
-	MPEGTS_PED_TAG_V_H262_13818_11172     = 0x02,
-	MPEGTS_PED_TAG_A_13818_11172          = 0x03,
-	MPEGTS_PED_TAG_HIERARCHY              = 0x04,
-	MPEGTS_PED_TAG_REG_PRIVATE            = 0x05,
-	MPEGTS_PED_TAG_DATA_STREAM_ALIGN      = 0x06,
-	MPEGTS_PED_TAG_GRID                   = 0x07,
-	MPEGTS_PED_TAG_VIDEO_WINDOW           = 0x08,
-	MPEGTS_PED_TAG_CAS_EMM_ECM_PID        = 0x09,
-	MPEGTS_PED_TAG_ISO_639                = 0x0A,
-	MPEGTS_PED_TAG_SYSTEM_CLOCK_EXT_REF   = 0x0B,
-	MPEGTS_PED_TAG_MULT_BUF_UTIL_BOUNDS   = 0x0C,
-	MPEGTS_PED_TAG_COPYRIGHT              = 0x0D,
-	MPEGTS_PED_TAG_MAX_BIT_RATE           = 0x0E,
-	MPEGTS_PED_TAG_PRIVATE_DATA_INDICATOR = 0x0F,
-	MPEGTS_PED_TAG_SMOOTHING_BUFFER       = 0x10,
+	MPEGTS_PED_TAG_RESERVED_00                   = 0x00,
+	MPEGTS_PED_TAG_RESERVED_01                   = 0x01,
+	MPEGTS_PED_TAG_V_H262_13818_11172            = 0x02,
+	MPEGTS_PED_TAG_A_13818_11172                 = 0x03,
+	MPEGTS_PED_TAG_HIERARCHY                     = 0x04,
+	MPEGTS_PED_TAG_REG_PRIVATE                   = 0x05,
+	MPEGTS_PED_TAG_DATA_STREAM_ALIGN             = 0x06,
+	MPEGTS_PED_TAG_GRID                          = 0x07,
+	MPEGTS_PED_TAG_VIDEO_WINDOW                  = 0x08,
+	MPEGTS_PED_TAG_CAS_EMM_ECM_PID               = 0x09,
+	MPEGTS_PED_TAG_ISO_639                       = 0x0A,
+	MPEGTS_PED_TAG_SYSTEM_CLOCK_EXT_REF          = 0x0B,
+	MPEGTS_PED_TAG_MULT_BUF_UTIL_BOUNDS          = 0x0C,
+	MPEGTS_PED_TAG_COPYRIGHT                     = 0x0D,
+	MPEGTS_PED_TAG_MAX_BIT_RATE                  = 0x0E,
+	MPEGTS_PED_TAG_PRIVATE_DATA_INDICATOR        = 0x0F,
+	MPEGTS_PED_TAG_SMOOTHING_BUFFER              = 0x10,
+	MPEGTS_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL = 0x11,
 };
 
 #define MPEGTS_PED_TAG_RESERVED_00_STR "Reserved-00"
 #define MPEGTS_PED_TAG_RESERVED_01_STR "Reserved-01"
-#define MPEGTS_PED_TAG_V_H262_13818_11172 "Video stream header parameters for" \
-                                          " ITU-T Rec. H.262," \
-                                          " ISO/IEC 13818-2" \
-                                          " and ISO/IEC 11172-2"
+#define MPEGTS_PED_TAG_V_H262_13818_11172_STR "Video stream header parameters for" \
+                                              " ITU-T Rec. H.262," \
+                                              " ISO/IEC 13818-2" \
+                                              " and ISO/IEC 11172-2"
+#define MPEGTS_PED_TAG_HIERARCHY_STR "Hierarchy for stream selection"
+#define MPEGTS_PED_TAG_REG_PRIVATE_STR "Registration of private formats"
+#define MPEGTS_PED_TAG_DATA_STREAM_ALIGN_STR "Data stream alignment for packetized" \
+                                             " video and audio sync point"
+#define MPEGTS_PED_TAG_GRID_STR "Target background grid defines total display area size"
+#define MPEGTS_PED_TAG_VIDEO_WINDOW_STR "Video Window defines position in display area"
+#define MPEGTS_PED_TAG_CAS_EMM_ECM_PID_STR "Conditional access system and EMM/ECM PID"
 #define MPEGTS_PED_TAG_ISO_639_STR "ISO 639 language and audio type"
+#define MPEGTS_PED_TAG_SYSTEM_CLOCK_EXT_REF_STR "System clock external reference"
+#define MPEGTS_PED_TAG_MULT_BUF_UTIL_BOUNDS_STR "Multiplex buffer utilization bounds"
+#define MPEGTS_PED_TAG_COPYRIGHT_STR "Copyright identification system and reference"
+#define MPEGTS_PED_TAG_MAX_BIT_RATE_STR "Maximum bit rate"
+#define MPEGTS_PED_TAG_PRIVATE_DATA_INDICATOR_STR "Private data indicator"
+#define MPEGTS_PED_TAG_SMOOTHING_BUFFER_STR "Smoothing buffer"
+#define MPEGTS_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR "STD video buffer leak control"
 
 const char* mpegts_PED_tag_string(MPEGTSPEDTag it);
 
