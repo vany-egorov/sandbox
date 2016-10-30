@@ -638,6 +638,7 @@ int main (int argc, char *argv[]) {
 
 	FIFO *fifo = NULL;
 	UDP *udp_i = NULL;
+	File *file_ts = NULL;
 	IOReader *reader_udp = NULL;
 	IOReader *reader_fifo = NULL;
 	IOWriter *writer_file = NULL;
@@ -659,35 +660,50 @@ int main (int argc, char *argv[]) {
 
 	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 
-	udp_i = udp_new();
+	udp_i = udp_new();                     // i
+	file_ts = file_new();                  // o
+	fifo = fifo_new(100*7*188);            // o
+	multi = io_multi_writer_new(NULL, 0);  // o
 	reader_udp = io_reader_new(udp_i, udp_read);
-	fifo = fifo_new(100*7*188);
-	writer_fifo = io_writer_new(fifo, fifo_write);
 	reader_fifo = io_reader_new(fifo, fifo_read);
+	writer_file = io_writer_new(file_ts, file_write);
+	writer_fifo = io_writer_new(fifo, fifo_write);
+	writer_multi = io_writer_new(multi, io_multi_writer_write);
 
 	if ((!udp_i) ||
 		  (!reader_udp) ||
 		  (!fifo) ||
+		  (!multi) || (!writer_multi) ||
+		  (!writer_file) ||
 		  (!writer_fifo) || (!reader_fifo)) {
 		fprintf(stderr, "error allocating memory for structure\n");
 		ret = EX_SOFTWARE; goto cleanup;
 	}
 
+	io_multi_writer_push(multi, writer_fifo);
+	io_multi_writer_push(multi, writer_file);
+
 	if (udp_connect_i(udp_i, config->i->host, config->i->port, NULL,
 	                  ebuf, sizeof(ebuf))) {
-		fprintf(stderr, "[udp-i @ %p] connect error: %s\n", udp_i, ebuf);
+		fprintf(stderr, "[udp-i @ %p] connect error: \"%s\"\n", udp_i, ebuf);
 		ret = EX_SOFTWARE; goto cleanup;
-	} else {
+	} else
 		printf("[udp-i @ %p] OK {"
 			"\"sock\": %d"
 			", \"udp-multicast-group\": \"%s\""
 			", \"port\": %d"
 			", \"if\": \"%s\""
-		"}", udp_i, udp_i->sock, config->i->host, "-");
-	}
+		"}\n", udp_i, udp_i->sock, config->i->host, "-");
+
+	if (file_open(file_ts, "./tmp/out.ts", "wb",
+	              ebuf, sizeof(ebuf))) {
+		fprintf(stderr, "[file-ts @ %p] open error: \"%s\"\n", file_ts, ebuf);
+		ret = EX_SOFTWARE; goto cleanup;
+	} else
+		printf("[file-ts @ %p] OK \n", file_ts);
 
 	read_worker.reader = reader_udp;
-	read_worker.writer = writer_fifo;
+	read_worker.writer = writer_multi;
 	if (pthread_create(&read_thread, NULL, read_worker_do, (void*)&read_worker)) {
 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
 		ret = EX_SOFTWARE; goto cleanup;

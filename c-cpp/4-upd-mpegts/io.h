@@ -54,6 +54,7 @@ struct io_multi_writer_s {
 	size_t     len;
 };
 
+IOMultiWriter *io_multi_writer_new(IOWriter **writers, size_t len);
 int io_multi_writer_push(IOMultiWriter *it, IOWriter *w);
 // impl Writer for MultiWriter
 int io_multi_writer_write(void *ctx, uint8_t *buf, size_t bufsz, size_t *written);
