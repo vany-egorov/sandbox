@@ -518,7 +518,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 					((uint16_t)msg[pmt_start+pmt_offset+4] & 0xFF)
 				);
 
-				printf("%s\n", mpegts_es_type_string(stream_type));
+				// printf("%s\n", mpegts_es_type_string(stream_type));
 				// printf("\t - 0x%02x | 0x%02x | %d | %d | %s\n", stream_type, elementary_PID, ES_info_length, psi.section_length, stream_type_name);
 
 				int ES_info_start = pmt_start+pmt_offset+5;
@@ -527,7 +527,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				while (ES_info_length_unreaded > 0) {
 					uint8_t descriptor_tag = (uint8_t)msg[ES_info_start+ES_info_offset];
 					uint8_t descriptor_length = (uint8_t)msg[ES_info_start+ES_info_offset+1];
-					printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
+					// printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
 					ES_info_length_unreaded -= (2 + descriptor_length);
 					descriptor_length += (2 + descriptor_length);
 				}
@@ -636,11 +636,13 @@ int main (int argc, char *argv[]) {
 
 	FIFO *fifo = NULL;
 	UDP *udp_i = NULL;
-	File *file_ts = NULL;
+	File *file_ts_1 = NULL;
+	File *file_ts_2 = NULL;
 	IOMultiWriter *multi = NULL;
 	IOReader *reader_udp = NULL;
 	IOReader *reader_fifo = NULL;
-	IOWriter *writer_file = NULL;
+	IOWriter *writer_file_1 = NULL;
+	IOWriter *writer_file_2 = NULL;
 	IOWriter *writer_fifo = NULL;
 	IOWriter *writer_multi = NULL;
 
@@ -661,12 +663,14 @@ int main (int argc, char *argv[]) {
 	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 
 	udp_i = udp_new();                     // i
-	file_ts = file_new();                  // o
+	file_ts_1 = file_new();                // o
+	file_ts_2 = file_new();                // o
 	fifo = fifo_new(100*7*188);            // o
 	multi = io_multi_writer_new(NULL, 0);  // o
 	reader_udp = io_reader_new(udp_i, udp_read);
 	reader_fifo = io_reader_new(fifo, fifo_read);
-	writer_file = io_writer_new(file_ts, file_write);
+	writer_file_1 = io_writer_new(file_ts_1, file_write);
+	writer_file_2 = io_writer_new(file_ts_2, file_write);
 	writer_fifo = io_writer_new(fifo, fifo_write);
 	writer_multi = io_writer_new(multi, io_multi_writer_write);
 
@@ -674,14 +678,15 @@ int main (int argc, char *argv[]) {
 		  (!reader_udp) ||
 		  (!fifo) ||
 		  (!multi) || (!writer_multi) ||
-		  (!writer_file) ||
+		  (!writer_file_1) || (!writer_file_2) ||
 		  (!writer_fifo) || (!reader_fifo)) {
 		fprintf(stderr, "error allocating memory for structure\n");
 		ret = EX_SOFTWARE; goto cleanup;
 	}
 
 	io_multi_writer_push(multi, writer_fifo);
-	io_multi_writer_push(multi, writer_file);
+	io_multi_writer_push(multi, writer_file_1);
+	io_multi_writer_push(multi, writer_file_2);
 
 	if (udp_connect_i(udp_i, config->i->host, config->i->port, NULL,
 	                  ebuf, sizeof(ebuf))) {
@@ -695,12 +700,19 @@ int main (int argc, char *argv[]) {
 			", \"if\": \"%s\""
 		"}\n", udp_i, udp_i->sock, config->i->host, config->i->port, "-");
 
-	if (file_open(file_ts, "./tmp/out.ts", "wb",
+	if (file_open(file_ts_1, "./tmp/out-1.ts", "wb",
 	              ebuf, sizeof(ebuf))) {
-		fprintf(stderr, "[file-ts @ %p] open error: \"%s\"\n", file_ts, ebuf);
+		fprintf(stderr, "[file-ts-1 @ %p] open error: \"%s\"\n", file_ts_1, ebuf);
 		ret = EX_SOFTWARE; goto cleanup;
 	} else
-		printf("[file-ts @ %p] OK \n", file_ts);
+		printf("[file-ts-1 @ %p] OK \n", file_ts_1);
+
+	if (file_open(file_ts_2, "./tmp/out-2.ts", "wb",
+	              ebuf, sizeof(ebuf))) {
+		fprintf(stderr, "[file-ts-2 @ %p] open error: \"%s\"\n", file_ts_2, ebuf);
+		ret = EX_SOFTWARE; goto cleanup;
+	} else
+		printf("[file-ts-2 @ %p] OK \n", file_ts_2);
 
 	read_worker.reader = reader_udp;
 	read_worker.writer = writer_multi;
@@ -708,7 +720,7 @@ int main (int argc, char *argv[]) {
 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
 		ret = EX_SOFTWARE; goto cleanup;
 	} else
-		printf("[read-worker @ %p] OK", &read_thread);
+		printf("[read-worker @ %p] OK \n", &read_thread);
 
 	// parse_worker.reader = reader_fifo;
 	parse_worker.fifo = fifo;
@@ -716,7 +728,7 @@ int main (int argc, char *argv[]) {
 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
 		ret = EX_SOFTWARE; goto cleanup;
 	} else
-		printf("[parse-worker @ %p] OK", &parse_thread);
+		printf("[parse-worker @ %p] OK \n", &parse_thread);
 
 	pause();
 

@@ -4,6 +4,8 @@
 
 #include <stdio.h>    // printf
 #include <stdint.h>   // uint8_t
+#include <string.h>   // memcpy
+#include <stdlib.h>   // calloc, realloc
 #include <inttypes.h> // PRIu64
 
 
@@ -90,8 +92,8 @@ enum mpegts_es_type_enum {
 #define MPEGTS_STREAM_TYPE_VIDEO_MPEG4_FLEX_MUX_STR "ISO/IEC 14496-1 (MPEG-4 FlexMux)" \
                                                     " in a packetized stream"
 #define MPEGTS_STREAM_TYPE_VIDEO_H264_STR "ITU-T Rec. H.264 and ISO/IEC 14496-10" \
-                                          " (lower bit-rate video) in a" \
-                                          " packetized stream"
+                                              " (lower bit-rate video) in a" \
+                                              " packetized stream"
 #define MPEGTS_STREAM_TYPE_VIDEO_H265_STR "ITU-T Rec. H.265 and ISO/IEC 23008-2 " \
                                           "(Ultra HD video) in a packetized stream"
 #define MPEGTS_STREAM_TYPE_AUIDO_AAC_AES_128_CBC_STR "ISO/IEC 13818-7 ADTS AAC" \
@@ -154,13 +156,15 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 
 
 /* psi.c */
-typedef struct mpegts_PSI_s                 MPEGTSPSI;
-typedef struct mpegts_PAT_s                 MPEGTSPAT;
-typedef struct mpegts_PMT_s                 MPEGTSPMT;
-typedef struct mpegts_PMT_ES_info_s         MPEGTSPMTESinfo;
-typedef struct mpegts_PMT_program_element_s MPEGTSPMTProgramElement;
-typedef struct mpegts_NIT_s                 MPEGTSNIT;
-typedef enum   mpegts_PED_tag_s             MPEGTSPEDTag;
+typedef struct mpegts_PSI_s                  MPEGTSPSI;
+typedef struct mpegts_PAT_s                  MPEGTSPAT;
+typedef struct mpegts_PMT_s                  MPEGTSPMT;
+typedef struct mpegts_PMT_program_element_s  MPEGTSPMTProgramElement;
+typedef struct mpegts_PMT_program_elements_s MPEGTSPMTProgramElements;
+typedef struct mpegts_PMT_ES_info_s          MPEGTSPMTESInfo;
+typedef struct mpegts_PMT_ES_infos_s         MPEGTSPMTESInfos;
+typedef struct mpegts_NIT_s                  MPEGTSNIT;
+typedef enum   mpegts_PED_tag_s              MPEGTSPEDTag;
 
 // PD = Program Descriptor
 // PED = Program Element Descriptor
@@ -191,6 +195,8 @@ enum mpegts_PED_tag_s {
                                               " ITU-T Rec. H.262," \
                                               " ISO/IEC 13818-2" \
                                               " and ISO/IEC 11172-2"
+#define MPEGTS_PED_TAG_A_13818_11172_STR "Audio stream header parameters for" \
+                                         " ISO/IEC 13818-3 and ISO/IEC 11172-3"
 #define MPEGTS_PED_TAG_HIERARCHY_STR "Hierarchy for stream selection"
 #define MPEGTS_PED_TAG_REG_PRIVATE_STR "Registration of private formats"
 #define MPEGTS_PED_TAG_DATA_STREAM_ALIGN_STR "Data stream alignment for packetized" \
@@ -244,21 +250,36 @@ struct mpegts_PAT_s {
 	uint16_t program_map_PID; // The packet identifier that contains the associated PMT
 };
 
-// PSI -> PMT -> program-element -> ES-description
+// PSI -> PMT -> program-element -> ES-info (model)
 struct mpegts_PMT_ES_info_s {
 	uint8_t descriptor_tag;
 	uint8_t descriptor_length;
-	// ISO_639_language_code;
-	// audio_type;
+	uint8_t descriptor_data[32];
 };
 
-// PSI -> PMT -> program element
+// PSI -> PMT -> program-element -> ES-infos (collection)
+struct mpegts_PMT_ES_infos_s {
+	uint8_t len;
+	uint8_t cap;
+
+	MPEGTSPMTESInfo *c;
+};
+
+// PSI -> PMT -> program element (model)
 struct mpegts_PMT_program_element_s {
 	uint8_t stream_type;
 	uint16_t elementary_PID;
 	uint16_t ES_info_length;
 
-	MPEGTSPMTESinfo es_infos[5];
+	MPEGTSPMTESInfos es_infos;
+};
+
+// PSI -> PMT -> program elements (collection)
+struct mpegts_PMT_program_elements_s {
+	uint8_t len;
+	uint8_t cap;
+
+	MPEGTSPMTProgramElement *c;
 };
 
 // PSI -> PMT
@@ -267,7 +288,7 @@ struct mpegts_PMT_s {
 	uint16_t PCR_PID;
 	uint16_t program_info_length;
 
-	MPEGTSPMTProgramElement program_elements[10];
+	MPEGTSPMTProgramElements program_elements;
 };
 
 // PSI -> CAT
@@ -286,7 +307,6 @@ void mpegts_pat_print_json(MPEGTSPAT *it);
 
 void mpegts_pmt_parse(MPEGTSPMT *it, MPEGTSPSI *psi, uint8_t *data);
 void mpegts_pmt_print_json(MPEGTSPMT *it);
-
 
 /* es.c */
 const char* mpegts_es_type_string(MPEGTSESType it);
