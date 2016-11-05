@@ -9,8 +9,19 @@
 #include <inttypes.h> // PRIu64
 
 
+#define MPEGTS_SYNC_BYTE    0x47
+#define MPEGTS_PACKET_COUNT 7
+#define MPEGTS_PACKET_SIZE  188
+
+#define MPEGTS_PID_PAT      0x0000
+#define MPEGTS_PID_CAT      0x0001
+#define MPEGTS_PID_TSDT     0x0002
+#define MPEGTS_PID_CIT      0x0003
+#define MPEGTS_PID_SDT      0x0011
+#define MPEGTS_PID_NULL     0x1FFF
+
+
 typedef enum mpegts_table_id_enum MPEGTSTableID;
-typedef enum mpegts_es_type_enum  MPEGTSESType;
 
 // ETSI EN 300 468 V1.3.1 (1998-02)
 // ETSI EN 300 468 V1.11.1 (2010-04)
@@ -40,6 +51,10 @@ enum mpegts_table_id_enum {
 	MPEGTS_TABLE_ID_DISCONTINUITY_INFORMATION_SECTION                   = 0x7E,
 	MPEGTS_TABLE_ID_SELECTION_INFORMATION_SECTION                       = 0x7F,
 };
+
+
+/* es.c */
+typedef enum mpegts_es_type_enum MPEGTSESType;
 
 // Each elementary stream in a transport stream
 // is identified by an 8-bit elementary stream
@@ -92,13 +107,15 @@ enum mpegts_es_type_enum {
 #define MPEGTS_STREAM_TYPE_VIDEO_MPEG4_FLEX_MUX_STR "ISO/IEC 14496-1 (MPEG-4 FlexMux)" \
                                                     " in a packetized stream"
 #define MPEGTS_STREAM_TYPE_VIDEO_H264_STR "ITU-T Rec. H.264 and ISO/IEC 14496-10" \
-                                              " (lower bit-rate video) in a" \
-                                              " packetized stream"
+                                          " (lower bit-rate video) in a" \
+                                          " packetized stream"
 #define MPEGTS_STREAM_TYPE_VIDEO_H265_STR "ITU-T Rec. H.265 and ISO/IEC 23008-2 " \
                                           "(Ultra HD video) in a packetized stream"
 #define MPEGTS_STREAM_TYPE_AUIDO_AAC_AES_128_CBC_STR "ISO/IEC 13818-7 ADTS AAC" \
                                                      " with AES-128-CBC frame encryption" \
                                                      " in a packetized stream"
+
+const char* mpegts_es_type_string(MPEGTSESType it);
 
 
 /* header.c */
@@ -119,8 +136,10 @@ struct mpegts_header_s {
 		continuity_counter:4;
 };
 
-void mpegts_header_parse(MPEGTSHeader *it, uint8_t *data);
-void mpegts_header_print_json(MPEGTSHeader *it);
+MPEGTSHeader *mpegts_header_new(void);
+void          mpegts_header_parse(MPEGTSHeader *it, uint8_t *data);
+void          mpegts_header_print_json(MPEGTSHeader *it);
+void          mpegts_header_del(MPEGTSHeader* it);
 
 
 /* adaption.c */
@@ -156,64 +175,62 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 
 
 /* psi.c */
-typedef struct mpegts_PSI_s                  MPEGTSPSI;
-typedef struct mpegts_PAT_s                  MPEGTSPAT;
-typedef struct mpegts_PMT_s                  MPEGTSPMT;
-typedef struct mpegts_PMT_program_element_s  MPEGTSPMTProgramElement;
-typedef struct mpegts_PMT_program_elements_s MPEGTSPMTProgramElements;
-typedef struct mpegts_PMT_ES_info_s          MPEGTSPMTESInfo;
-typedef struct mpegts_PMT_ES_infos_s         MPEGTSPMTESInfos;
-typedef struct mpegts_NIT_s                  MPEGTSNIT;
-typedef enum   mpegts_PED_tag_s              MPEGTSPEDTag;
+typedef struct mpegts_PSI_s                      MPEGTSPSI;
+typedef struct mpegts_PSI_PAT_s                  MPEGTSPSIPAT;
+typedef struct mpegts_PSI_PMT_s                  MPEGTSPSIPMT;
+typedef struct mpegts_PSI_PMT_program_element_s  MPEGTSPSIPMTProgramElement;
+typedef struct mpegts_PSI_PMT_program_elements_s MPEGTSPSIPMTProgramElements;
+typedef struct mpegts_PSI_PMT_ES_info_s          MPEGTSPSIPMTESInfo;
+typedef struct mpegts_PSI_PMT_ES_infos_s         MPEGTSPSIPMTESInfos;
+typedef struct mpegts_PSI_NIT_s                  MPEGTSPSINIT;
+typedef enum   mpegts_PSI_PED_tag_s              MPEGTSPSIPEDTag;
 
 // PD = Program Descriptor
 // PED = Program Element Descriptor
-enum mpegts_PED_tag_s {
-	MPEGTS_PED_TAG_RESERVED_00                   = 0x00,
-	MPEGTS_PED_TAG_RESERVED_01                   = 0x01,
-	MPEGTS_PED_TAG_V_H262_13818_11172            = 0x02,
-	MPEGTS_PED_TAG_A_13818_11172                 = 0x03,
-	MPEGTS_PED_TAG_HIERARCHY                     = 0x04,
-	MPEGTS_PED_TAG_REG_PRIVATE                   = 0x05,
-	MPEGTS_PED_TAG_DATA_STREAM_ALIGN             = 0x06,
-	MPEGTS_PED_TAG_GRID                          = 0x07,
-	MPEGTS_PED_TAG_VIDEO_WINDOW                  = 0x08,
-	MPEGTS_PED_TAG_CAS_EMM_ECM_PID               = 0x09,
-	MPEGTS_PED_TAG_ISO_639                       = 0x0A,
-	MPEGTS_PED_TAG_SYSTEM_CLOCK_EXT_REF          = 0x0B,
-	MPEGTS_PED_TAG_MULT_BUF_UTIL_BOUNDS          = 0x0C,
-	MPEGTS_PED_TAG_COPYRIGHT                     = 0x0D,
-	MPEGTS_PED_TAG_MAX_BIT_RATE                  = 0x0E,
-	MPEGTS_PED_TAG_PRIVATE_DATA_INDICATOR        = 0x0F,
-	MPEGTS_PED_TAG_SMOOTHING_BUFFER              = 0x10,
-	MPEGTS_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL = 0x11,
+enum mpegts_PSI_PED_tag_s {
+	MPEGTS_PSI_PED_TAG_RESERVED_00                   = 0x00,
+	MPEGTS_PSI_PED_TAG_RESERVED_01                   = 0x01,
+	MPEGTS_PSI_PED_TAG_V_H262_13818_11172            = 0x02,
+	MPEGTS_PSI_PED_TAG_A_13818_11172                 = 0x03,
+	MPEGTS_PSI_PED_TAG_HIERARCHY                     = 0x04,
+	MPEGTS_PSI_PED_TAG_REG_PRIVATE                   = 0x05,
+	MPEGTS_PSI_PED_TAG_DATA_STREAM_ALIGN             = 0x06,
+	MPEGTS_PSI_PED_TAG_GRID                          = 0x07,
+	MPEGTS_PSI_PED_TAG_VIDEO_WINDOW                  = 0x08,
+	MPEGTS_PSI_PED_TAG_CAS_EMM_ECM_PID               = 0x09,
+	MPEGTS_PSI_PED_TAG_ISO_639                       = 0x0A,
+	MPEGTS_PSI_PED_TAG_SYSTEM_CLOCK_EXT_REF          = 0x0B,
+	MPEGTS_PSI_PED_TAG_MULT_BUF_UTIL_BOUNDS          = 0x0C,
+	MPEGTS_PSI_PED_TAG_COPYRIGHT                     = 0x0D,
+	MPEGTS_PSI_PED_TAG_MAX_BIT_RATE                  = 0x0E,
+	MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR        = 0x0F,
+	MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER              = 0x10,
+	MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL = 0x11,
 };
 
-#define MPEGTS_PED_TAG_RESERVED_00_STR "Reserved-00"
-#define MPEGTS_PED_TAG_RESERVED_01_STR "Reserved-01"
-#define MPEGTS_PED_TAG_V_H262_13818_11172_STR "Video stream header parameters for" \
-                                              " ITU-T Rec. H.262," \
-                                              " ISO/IEC 13818-2" \
-                                              " and ISO/IEC 11172-2"
-#define MPEGTS_PED_TAG_A_13818_11172_STR "Audio stream header parameters for" \
+#define MPEGTS_PSI_PED_TAG_RESERVED_00_STR "Reserved-00"
+#define MPEGTS_PSI_PED_TAG_RESERVED_01_STR "Reserved-01"
+#define MPEGTS_PSI_PED_TAG_V_H262_13818_11172_STR "Video stream header parameters for" \
+                                                  " ITU-T Rec. H.262," \
+                                                  " ISO/IEC 13818-2" \
+                                                  " and ISO/IEC 11172-2"
+#define MPEGTS_PSI_PED_TAG_A_13818_11172_STR "Audio stream header parameters for" \
                                          " ISO/IEC 13818-3 and ISO/IEC 11172-3"
-#define MPEGTS_PED_TAG_HIERARCHY_STR "Hierarchy for stream selection"
-#define MPEGTS_PED_TAG_REG_PRIVATE_STR "Registration of private formats"
-#define MPEGTS_PED_TAG_DATA_STREAM_ALIGN_STR "Data stream alignment for packetized" \
+#define MPEGTS_PSI_PED_TAG_HIERARCHY_STR "Hierarchy for stream selection"
+#define MPEGTS_PSI_PED_TAG_REG_PRIVATE_STR "Registration of private formats"
+#define MPEGTS_PSI_PED_TAG_DATA_STREAM_ALIGN_STR "Data stream alignment for packetized" \
                                              " video and audio sync point"
-#define MPEGTS_PED_TAG_GRID_STR "Target background grid defines total display area size"
-#define MPEGTS_PED_TAG_VIDEO_WINDOW_STR "Video Window defines position in display area"
-#define MPEGTS_PED_TAG_CAS_EMM_ECM_PID_STR "Conditional access system and EMM/ECM PID"
-#define MPEGTS_PED_TAG_ISO_639_STR "ISO 639 language and audio type"
-#define MPEGTS_PED_TAG_SYSTEM_CLOCK_EXT_REF_STR "System clock external reference"
-#define MPEGTS_PED_TAG_MULT_BUF_UTIL_BOUNDS_STR "Multiplex buffer utilization bounds"
-#define MPEGTS_PED_TAG_COPYRIGHT_STR "Copyright identification system and reference"
-#define MPEGTS_PED_TAG_MAX_BIT_RATE_STR "Maximum bit rate"
-#define MPEGTS_PED_TAG_PRIVATE_DATA_INDICATOR_STR "Private data indicator"
-#define MPEGTS_PED_TAG_SMOOTHING_BUFFER_STR "Smoothing buffer"
-#define MPEGTS_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR "STD video buffer leak control"
-
-const char* mpegts_PED_tag_string(MPEGTSPEDTag it);
+#define MPEGTS_PSI_PED_TAG_GRID_STR "Target background grid defines total display area size"
+#define MPEGTS_PSI_PED_TAG_VIDEO_WINDOW_STR "Video Window defines position in display area"
+#define MPEGTS_PSI_PED_TAG_CAS_EMM_ECM_PID_STR "Conditional access system and EMM/ECM PID"
+#define MPEGTS_PSI_PED_TAG_ISO_639_STR "ISO 639 language and audio type"
+#define MPEGTS_PSI_PED_TAG_SYSTEM_CLOCK_EXT_REF_STR "System clock external reference"
+#define MPEGTS_PSI_PED_TAG_MULT_BUF_UTIL_BOUNDS_STR "Multiplex buffer utilization bounds"
+#define MPEGTS_PSI_PED_TAG_COPYRIGHT_STR "Copyright identification system and reference"
+#define MPEGTS_PSI_PED_TAG_MAX_BIT_RATE_STR "Maximum bit rate"
+#define MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR_STR "Private data indicator"
+#define MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER_STR "Smoothing buffer"
+#define MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR "STD video buffer leak control"
 
 // Program Specific Information
 struct mpegts_PSI_s {
@@ -242,74 +259,105 @@ struct mpegts_PSI_s {
 	uint32_t CRC32:32;
 };
 
+void mpegts_psi_parse(MPEGTSPSI *it, uint8_t *data);
+void mpegts_psi_print_json(MPEGTSPSI *it);
+
+
+/* psi-pat.c */
 // PSI -> PAT
 // Program association specific data
-struct mpegts_PAT_s {
+struct mpegts_PSI_PAT_s {
+	MPEGTSPSI psi;
+
 	uint16_t program_number;  // Relates to the Table ID extension in the associated PMT.
 	                          // A value of 0 is reserved for a NIT packet identifier.
 	uint16_t program_map_PID; // The packet identifier that contains the associated PMT
 };
 
+MPEGTSPSIPAT *mpegts_psi_pat_new(void);
+void mpegts_psi_pat_parse(MPEGTSPSIPAT *it, uint8_t *data);
+void mpegts_psi_pat_print_json(MPEGTSPSIPAT *it);
+void mpegts_psi_pat_del(MPEGTSPSIPAT *it);
+
+
+/* psi-pmt.c */
 // PSI -> PMT -> program-element -> ES-info (model)
-struct mpegts_PMT_ES_info_s {
+struct mpegts_PSI_PMT_ES_info_s {
 	uint8_t descriptor_tag;
 	uint8_t descriptor_length;
 	uint8_t descriptor_data[32];
 };
 
 // PSI -> PMT -> program-element -> ES-infos (collection)
-struct mpegts_PMT_ES_infos_s {
+struct mpegts_PSI_PMT_ES_infos_s {
 	uint8_t len;
 	uint8_t cap;
 
-	MPEGTSPMTESInfo *c;
+	MPEGTSPSIPMTESInfo *c;
 };
 
 // PSI -> PMT -> program element (model)
-struct mpegts_PMT_program_element_s {
-	uint8_t stream_type;
+struct mpegts_PSI_PMT_program_element_s {
+	uint8_t  stream_type;
 	uint16_t elementary_PID;
 	uint16_t ES_info_length;
 
-	MPEGTSPMTESInfos es_infos;
+	MPEGTSPSIPMTESInfos es_infos;
 };
 
 // PSI -> PMT -> program elements (collection)
-struct mpegts_PMT_program_elements_s {
+struct mpegts_PSI_PMT_program_elements_s {
 	uint8_t len;
 	uint8_t cap;
 
-	MPEGTSPMTProgramElement *c;
+	MPEGTSPSIPMTProgramElement *c;
 };
 
 // PSI -> PMT
 // Program map specific data
-struct mpegts_PMT_s {
+struct mpegts_PSI_PMT_s {
+	MPEGTSPSI psi;
+
 	uint16_t PCR_PID;
 	uint16_t program_info_length;
 
-	MPEGTSPMTProgramElements program_elements;
+	MPEGTSPSIPMTProgramElements program_elements;
 };
 
+MPEGTSPSIPMT               *mpegts_psi_pmt_new(void);
+const char                 *mpegts_psi_ped_tag_string(MPEGTSPSIPEDTag it);
+void                        mpegts_psi_pmt_parse(MPEGTSPSIPMT *it, uint8_t *data);
+MPEGTSPSIPMTProgramElement *mpegts_psi_pmt_search_by_es_type(MPEGTSPSIPMT *it, MPEGTSESType q);
+void                        mpegts_psi_pmt_print_json(MPEGTSPSIPMT *it);
+void                        mpegts_psi_pmt_del(MPEGTSPSIPMT *it);
+
+
+/* psi-cat.c */
 // PSI -> CAT
 // Conditional access specific data
-struct mpegts_CAT_s { };
+struct mpegts_CAT_s {
+	MPEGTSPSI psi;
+};
 
+
+/* psi-nit.c */
 // PSI -> NIT
 // network information specific data
-struct mpegts_NIT_s { };
+struct mpegts_NIT_s {
+	MPEGTSPSI psi;
+};
 
-void mpegts_psi_parse(MPEGTSPSI *it, uint8_t *data);
-void mpegts_psi_print_json(MPEGTSPSI *it);
 
-void mpegts_pat_parse(MPEGTSPAT *it, uint8_t *data);
-void mpegts_pat_print_json(MPEGTSPAT *it);
+/* mpegts.c */
+typedef struct mpegts_s MPEGTS;
 
-void mpegts_pmt_parse(MPEGTSPMT *it, MPEGTSPSI *psi, uint8_t *data);
-void mpegts_pmt_print_json(MPEGTSPMT *it);
+struct mpegts_s {
+	MPEGTSPSIPAT *psi_pat;
+	MPEGTSPSIPMT *psi_pmt;
+};
 
-/* es.c */
-const char* mpegts_es_type_string(MPEGTSESType it);
+MPEGTS *mpegts_new(void);
+void    mpegts_del(MPEGTS *it);
 
 
 #endif // __MPEGTS_MPEGTS__

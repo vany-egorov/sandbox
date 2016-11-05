@@ -25,17 +25,6 @@
 // - Annex B
 // - AVCC
 
-#define MPEGTS_SYNC_BYTE    0x47
-#define MPEGTS_PACKET_COUNT 7
-#define MPEGTS_PACKET_SIZE  188
-
-#define MPEGTS_PID_PAT      0x0000
-#define MPEGTS_PID_CAT      0x0001
-#define MPEGTS_PID_TSDT     0x0002
-#define MPEGTS_PID_CIT      0x0003
-#define MPEGTS_PID_SDT      0x0011
-#define MPEGTS_PID_NULL     0x1FFF
-
 #define PES_START_CODE 0x000001
 
 #define PES_PTS_DTS_INDICATOR_NO        0b00
@@ -442,17 +431,20 @@ static void pes_parse(PES *it, uint8_t *data, uint64_t app_offset, uint64_t pes_
 typedef struct parse_worker_s ParseWorker;
 struct parse_worker_s {
 	FIFO    *fifo;
+
+	MPEGTS   mpegts;
 	uint64_t offset; // global offset
-	uint16_t program_map_PID;
 	uint16_t video_PID_H264;
 };
 
 void on_msg(ParseWorker *it, uint8_t *msg) {
 	int i = 0;
+	MPEGTS *mpegts = &it->mpegts;
+	MPEGTSPSIPMTProgramElement *mpegts_psi_pmt_program_element = NULL;
 	MPEGTSHeader mpegts_header = { 0 };
 	MPEGTSAdaption mpegts_adaption = { 0 };
+	MPEGTSPSIPMT mpegts_pmt = {0};
 	MPEGTSPSI mpegts_psi = { 0 };
-	MPEGTSPAT mpegts_pat = { 0 };
 
 	if (msg[0] != MPEGTS_SYNC_BYTE) return;
 
@@ -465,80 +457,25 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			mpegts_pcr_print_json(&mpegts_adaption.PCR);
 	}
 
-	if (mpegts_header.PID == MPEGTS_PID_PAT) {
-		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
-		// printf("PAT: "); psi_print(&psi);
+	// PSI-PAT
+	if ((!mpegts->psi_pat) &&
+	    (mpegts_header.PID == MPEGTS_PID_PAT)) {
+		mpegts_psi_pat_del(mpegts->psi_pat);
+		mpegts->psi_pat = mpegts_psi_pat_new();
+		mpegts_psi_pat_parse(mpegts->psi_pat, &msg[i+5]);
+		mpegts_psi_pat_print_json(mpegts->psi_pat);
 
-		if (mpegts_psi.table_id == MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
-			mpegts_pat_parse(&mpegts_pat, &msg[i+13]);
-			it->program_map_PID = mpegts_pat.program_map_PID;
-		}
-	} else if ((it->program_map_PID) && (mpegts_header.PID == it->program_map_PID)) {
-		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
-		// printf("PMT: "); psi_print(&psi);
+	// PSI-PMT
+	} else if ((!mpegts->psi_pmt) &&
+	           (mpegts->psi_pat) &&
+	           (mpegts_header.PID == mpegts->psi_pat->program_map_PID)) {
+		mpegts_psi_pmt_del(mpegts->psi_pmt);
+		mpegts->psi_pmt = mpegts_psi_pmt_new();
+		mpegts_psi_pmt_parse(mpegts->psi_pmt, &msg[i+5]);
+		mpegts_psi_pmt_program_element = mpegts_psi_pmt_search_by_es_type(mpegts->psi_pmt, MPEGTS_STREAM_TYPE_VIDEO_H264);
+		if (mpegts_psi_pmt_program_element != NULL)
+			it->video_PID_H264 = mpegts_psi_pmt_program_element->elementary_PID;
 
-		if (mpegts_psi.table_id == MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
-			MPEGTSPMT mpegts_pmt = {0};
-			mpegts_pmt_parse(&mpegts_pmt, &mpegts_psi, &msg[i+13]);
-
-			int16_t section_length_unreaded = (int16_t)mpegts_psi.section_length;
-			// transport-stream-id   x2
-			// version-number        x1
-			// curent-next-indicator
-			// section-number        x1
-			// last-section-number   x1
-			// CRC32                 x4
-			//
-			// -----                 x9
-			section_length_unreaded -= 9;
-
-			uint16_t PCR_PID = (
-				(((uint16_t)msg[i+13] & 0x1F) << 8) |
-				((uint16_t)msg[i+14] & 0xFF)
-			);
-			section_length_unreaded -= 2;
-
-			uint16_t program_info_length = (
-				(((uint16_t)msg[i+15] & 0x03) << 8) |
-				((uint16_t)msg[i+16] & 0xFF)
-			);
-			section_length_unreaded -= 2;
-			// printf("%d | %d | %d\n", PCR_PID, program_info_length, section_length_unreaded);
-
-			int pmt_start = i + 17;
-			int pmt_offset = 0;
-			while (section_length_unreaded > 0) {
-				uint8_t stream_type = (uint8_t)msg[pmt_start+pmt_offset];
-				uint16_t elementary_PID = (
-					(((uint16_t)msg[pmt_start+pmt_offset+1] & 0x1F) << 8) |
-					((uint16_t)msg[pmt_start+pmt_offset+2] & 0xFF)
-				);
-				uint16_t ES_info_length = (
-					(((uint16_t)msg[pmt_start+pmt_offset+3] & 0x03) << 8) |
-					((uint16_t)msg[pmt_start+pmt_offset+4] & 0xFF)
-				);
-
-				// printf("%s\n", mpegts_es_type_string(stream_type));
-				// printf("\t - 0x%02x | 0x%02x | %d | %d | %s\n", stream_type, elementary_PID, ES_info_length, psi.section_length, stream_type_name);
-
-				int ES_info_start = pmt_start+pmt_offset+5;
-				int ES_info_offset = 0;
-				int16_t ES_info_length_unreaded = ES_info_length;
-				while (ES_info_length_unreaded > 0) {
-					uint8_t descriptor_tag = (uint8_t)msg[ES_info_start+ES_info_offset];
-					uint8_t descriptor_length = (uint8_t)msg[ES_info_start+ES_info_offset+1];
-					// printf("\t\t - 0x%02x | %d\n", descriptor_tag, descriptor_length);
-					ES_info_length_unreaded -= (2 + descriptor_length);
-					descriptor_length += (2 + descriptor_length);
-				}
-
-				section_length_unreaded -= (5 + ES_info_length);
-				pmt_offset +=	(5 + ES_info_length);
-
-				if (stream_type == MPEGTS_STREAM_TYPE_VIDEO_H264)
-					it->video_PID_H264 = elementary_PID;
-			}
-		}
 	} else if (mpegts_header.PID == MPEGTS_PID_SDT) {
 		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
 		// printf("SDT: "); psi_print(&psi);

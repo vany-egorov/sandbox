@@ -19,6 +19,18 @@ $(OBJECTS_DIRS)/mpegts-adaption.o: ./mpegts/adaption.c
 $(OBJECTS_DIRS)/mpegts-psi.o: ./mpegts/psi.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/mpegts-psi-cat.o: ./mpegts/psi-cat.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/mpegts-psi-nit.o: ./mpegts/psi-nit.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/mpegts-psi-pat.o: ./mpegts/psi-pat.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/mpegts-psi-pmt.o: ./mpegts/psi-pmt.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -51,6 +63,10 @@ main: \
 	$(OBJECTS_DIRS)/mpegts-header.o \
 	$(OBJECTS_DIRS)/mpegts-adaption.o \
 	$(OBJECTS_DIRS)/mpegts-psi.o \
+	$(OBJECTS_DIRS)/mpegts-psi-cat.o \
+	$(OBJECTS_DIRS)/mpegts-psi-nit.o \
+	$(OBJECTS_DIRS)/mpegts-psi-pat.o \
+	$(OBJECTS_DIRS)/mpegts-psi-pmt.o \
 	$(OBJECTS_DIRS)/mpegts-es.o \
 	$(OBJECTS_DIRS)/fifo.o \
 	$(OBJECTS_DIRS)/config.o \
