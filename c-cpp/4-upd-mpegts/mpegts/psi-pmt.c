@@ -137,6 +137,7 @@ void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 			it->descriptor_data.language.code[0] = data[2];
 			it->descriptor_data.language.code[1] = data[3];
 			it->descriptor_data.language.code[2] = data[4];
+			it->descriptor_data.language.code[3] = '\0';
 			it->descriptor_data.language.audio_type = (uint8_t)data[5];
 
 			printf("~~~ \t language-code: %s;\n", it->descriptor_data.language.code);
@@ -147,9 +148,9 @@ void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 			memcpy(
 				it->descriptor_data.undefined.data, // dst
 				&data[2],                           // src
-				sizeof(it->descriptor_data.undefined.data) <= (size_t)it->descriptor_length
-					? (size_t)it->descriptor_length
-					: sizeof(it->descriptor_data.undefined.data)
+				(sizeof(it->descriptor_data.undefined.data)-1) <= (size_t)it->descriptor_length
+					? (sizeof(it->descriptor_data.undefined.data)-1)
+					: (size_t)it->descriptor_length
 			);
 
 			int i;

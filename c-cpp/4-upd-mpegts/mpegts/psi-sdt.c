@@ -112,8 +112,59 @@ static void mpegts_psi_sdt_service_parse_descriptors(MPEGTSPSISDTService *it, ui
 }
 
 void mpegts_psi_sdt_descriptor_parse(MPEGTSPSISDTDescriptor *it, uint8_t *data) {
-	it->descriptor_tag = (MPEGTSPSIPEDTag)data[0];
-	it->descriptor_length = (uint8_t)data[1];
+	int pos = 0;
+
+	it->descriptor_tag = (MPEGTSPSIPEDTag)data[pos++];
+	it->descriptor_length = (uint8_t)data[pos++];
+
+	if (it->descriptor_length) {
+		switch (it->descriptor_tag) {
+		case MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR:
+			it->descriptor_data.service.service_type = (uint8_t)data[pos++];
+
+			it->descriptor_data.service.service_provider_name_length = (uint8_t)data[pos++];
+			memcpy(
+				it->descriptor_data.service.service_provider_name,
+				&data[pos],
+				(sizeof(it->descriptor_data.service.service_provider_name)-1) <= (size_t)it->descriptor_data.service.service_provider_name_length
+					? (sizeof(it->descriptor_data.undefined.data)-1)
+					: (size_t)it->descriptor_data.service.service_provider_name_length
+			);
+			pos += (int)it->descriptor_data.service.service_provider_name_length;
+
+			it->descriptor_data.service.service_name_length = (uint8_t)data[pos++];
+			memcpy(
+				it->descriptor_data.service.service_name,
+				&data[pos],
+				(sizeof(it->descriptor_data.service.service_name)-1) <= (size_t)it->descriptor_data.service.service_name_length
+					? (sizeof(it->descriptor_data.undefined.data)-1)
+					: (size_t)it->descriptor_data.service.service_name_length
+			);
+
+			printf("~~~ \t service-type: %d;\n", it->descriptor_data.service.service_type);
+			printf("~~~ \t service-provider-name-length: %d;\n", it->descriptor_data.service.service_provider_name_length);
+			printf("~~~ \t service-provider-name: \"%s\";\n", it->descriptor_data.service.service_provider_name);
+			printf("~~~ \t service-name-length: %d;\n", it->descriptor_data.service.service_name_length);
+			printf("~~~ \t service-name: \"%s\";\n", it->descriptor_data.service.service_name);
+			break;
+
+		default:
+			memcpy(
+				it->descriptor_data.undefined.data, // dst
+				&data[2],                           // src
+				(sizeof(it->descriptor_data.undefined.data)-1) <= (size_t)it->descriptor_length
+					? (sizeof(it->descriptor_data.undefined.data)-1)
+					: (size_t)it->descriptor_length
+			);
+
+			int i;
+			printf("~~~ \t ");
+			for (i=0; i < (int)it->descriptor_length; i++) {
+				printf("%c", it->descriptor_data.undefined.data[i]);
+			}
+			printf("\n");
+		}
+	}
 	// printf("~~~ \t (%X \"%s\") %d\n", it->descriptor_tag, mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
 	// if (it->descriptor_length)
 	// 	memcpy(

@@ -274,7 +274,7 @@ struct mpegts_PSI_descriptor_data_service_s {
 };
 
 struct mpegts_PSI_descriptor_data_language_s {
-	char    code[3];
+	char    code[4];
 	uint8_t audio_type;
 };
 
