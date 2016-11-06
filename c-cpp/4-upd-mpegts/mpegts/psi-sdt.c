@@ -114,24 +114,24 @@ static void mpegts_psi_sdt_service_parse_descriptors(MPEGTSPSISDTService *it, ui
 void mpegts_psi_sdt_descriptor_parse(MPEGTSPSISDTDescriptor *it, uint8_t *data) {
 	it->descriptor_tag = (MPEGTSPSIPEDTag)data[0];
 	it->descriptor_length = (uint8_t)data[1];
-	printf("~~~ \t (%X \"%s\") %d\n", it->descriptor_tag, mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
-	if (it->descriptor_length)
-		memcpy(
-			it->descriptor_data, // dst
-			&data[2],            // src
-			sizeof(it->descriptor_data) <= (size_t)it->descriptor_length
-				? (size_t)it->descriptor_length
-				: sizeof(it->descriptor_data)
-		);
+	// printf("~~~ \t (%X \"%s\") %d\n", it->descriptor_tag, mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
+	// if (it->descriptor_length)
+	// 	memcpy(
+	// 		it->descriptor_data, // dst
+	// 		&data[2],            // src
+	// 		sizeof(it->descriptor_data) <= (size_t)it->descriptor_length
+	// 			? (size_t)it->descriptor_length
+	// 			: sizeof(it->descriptor_data)
+	// 	);
 
-	if (it->descriptor_length) {
-		int i;
-		printf("~~~ \t ");
-		for (i=0; i < (int)it->descriptor_length; i++) {
-			printf("%c", it->descriptor_data[i]);
-		}
-		printf("\n");
-	}
+	// if (it->descriptor_length) {
+	// 	int i;
+	// 	printf("~~~ \t ");
+	// 	for (i=0; i < (int)it->descriptor_length; i++) {
+	// 		printf("%c", it->descriptor_data[i]);
+	// 	}
+	// 	printf("\n");
+	// }
 }
 
 const char *mpegts_psi_sdt_service_running_status_string(MPEGTSPSISDTServiceRunningStatus it) {

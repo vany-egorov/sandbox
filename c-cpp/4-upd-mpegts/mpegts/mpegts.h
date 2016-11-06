@@ -176,18 +176,23 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 
 /* psi.c */
 typedef struct mpegts_PSI_s                               MPEGTSPSI;
+typedef struct mpegts_PSI_descriptor_data_service_s       MPEGTSPSIDescriptorDataService;
+typedef struct mpegts_PSI_descriptor_data_language_s      MPEGTSPSIDescriptorDataLanguage;
+typedef struct mpegts_PSI_descriptor_data_undefined_s     MPEGTSPSIDescriptorDataUndefined;
 typedef struct mpegts_PSI_PAT_s                           MPEGTSPSIPAT;
 typedef struct mpegts_PSI_PMT_s                           MPEGTSPSIPMT;
 typedef struct mpegts_PSI_PMT_program_element_s           MPEGTSPSIPMTProgramElement;
 typedef struct mpegts_PSI_PMT_program_elements_s          MPEGTSPSIPMTProgramElements;
 typedef struct mpegts_PSI_PMT_ES_info_s                   MPEGTSPSIPMTESInfo;
 typedef struct mpegts_PSI_PMT_ES_infos_s                  MPEGTSPSIPMTESInfos;
+typedef union  mpegts_PSI_PMT_descriptor_data_union       MPEGTSPSIPMTDescriptorData;
 typedef struct mpegts_PSI_NIT_s                           MPEGTSPSINIT;
 typedef struct mpegts_PSI_SDT_s                           MPEGTSPSISDT;
 typedef struct mpegts_PSI_SDT_service_s                   MPEGTSPSISDTService;
 typedef struct mpegts_PSI_SDT_services_s                  MPEGTSPSISDTServices;
 typedef struct mpegts_PSI_SDT_descriptor_s                MPEGTSPSISDTDescriptor;
 typedef struct mpegts_PSI_SDT_descriptors_s               MPEGTSPSISDTDescriptors;
+typedef union  mpegts_PSI_SDT_descriptor_data_union       MPEGTSPSISDTDescriptorData;
 typedef enum   mpegts_PSI_PED_tag_enum                    MPEGTSPSIPEDTag;
 typedef enum   mpegts_PSI_SDT_service_running_status_enum MPEGTSPSISDTServiceRunningStatus;
 
@@ -212,6 +217,7 @@ enum mpegts_PSI_PED_tag_enum {
 	MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR        = 0x0F,
 	MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER              = 0x10,
 	MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL = 0x11,
+	MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR            = 0x48,
 };
 
 #define MPEGTS_PSI_PED_TAG_RESERVED_00_STR "Reserved-00"
@@ -237,6 +243,7 @@ enum mpegts_PSI_PED_tag_enum {
 #define MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR_STR "Private data indicator"
 #define MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER_STR "Smoothing buffer"
 #define MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR "STD video buffer leak control"
+#define MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR_STR "Service descriptor"
 
 enum mpegts_PSI_SDT_service_running_status_enum {
 	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_UNDEFINED               = 0x00,
@@ -257,6 +264,23 @@ enum mpegts_PSI_SDT_service_running_status_enum {
 #define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_05_STR "reserved-05"
 #define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_06_STR "reserved-06"
 #define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_07_STR "reserved-07"
+
+struct mpegts_PSI_descriptor_data_service_s {
+	uint8_t service_type;
+	uint8_t service_provider_name_length;
+	char    service_provider_name[50];
+	uint8_t service_name_length;
+	char    service_name[50];
+};
+
+struct mpegts_PSI_descriptor_data_language_s {
+	char    code[3];
+	uint8_t audio_type;
+};
+
+struct mpegts_PSI_descriptor_data_undefined_s {
+	uint8_t data[32];
+};
 
 // Program Specific Information
 struct mpegts_PSI_s {
@@ -307,11 +331,17 @@ void mpegts_psi_pat_del(MPEGTSPSIPAT *it);
 
 
 /* psi-pmt.c */
+union mpegts_PSI_PMT_descriptor_data_union {
+	MPEGTSPSIDescriptorDataLanguage  language;
+	MPEGTSPSIDescriptorDataUndefined undefined;
+};
+
 // PSI -> PMT -> program-element -> ES-info (model)
 struct mpegts_PSI_PMT_ES_info_s {
 	uint8_t descriptor_tag;
 	uint8_t descriptor_length;
-	uint8_t descriptor_data[32]; // TODO: move to union or struct
+
+	MPEGTSPSIPMTDescriptorData descriptor_data;
 };
 
 // PSI -> PMT -> program-element -> ES-infos (collection)
@@ -375,10 +405,16 @@ struct mpegts_PSI_NIT_s {
 
 
 /* psi-sdt.c */
+union mpegts_PSI_SDT_descriptor_data_union {
+	MPEGTSPSIDescriptorDataService   service;
+	MPEGTSPSIDescriptorDataUndefined undefined;
+};
+
 struct mpegts_PSI_SDT_descriptor_s {
 	uint8_t descriptor_tag;
 	uint8_t descriptor_length;
-	uint8_t descriptor_data[32]; // TODO: move to union or struct
+
+	MPEGTSPSISDTDescriptorData descriptor_data;
 };
 
 struct mpegts_PSI_SDT_descriptors_s {

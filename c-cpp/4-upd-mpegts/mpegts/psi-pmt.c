@@ -33,6 +33,7 @@ const char* mpegts_psi_ped_tag_string(MPEGTSPSIPEDTag it) {
 	case MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR:        return MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR_STR;
 	case MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER:              return MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER_STR;
 	case MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL: return MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR;
+	case MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR:            return MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR_STR;
 	}
 
 	return "unknown Program Element Descriptor tag";
@@ -129,22 +130,35 @@ void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 	it->descriptor_tag = (MPEGTSPSIPEDTag)data[0];
 	it->descriptor_length = (uint8_t)data[1];
 	printf("~~~ \t (%X \"%s\") %d\n", it->descriptor_tag, mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
-	if (it->descriptor_length)
-		memcpy(
-			it->descriptor_data, // dst
-			&data[2],            // src
-			sizeof(it->descriptor_data) <= (size_t)it->descriptor_length
-				? (size_t)it->descriptor_length
-				: sizeof(it->descriptor_data)
-		);
 
 	if (it->descriptor_length) {
-		int i;
-		printf("~~~ \t ");
-		for (i=0; i < (int)it->descriptor_length; i++) {
-			printf("%c", it->descriptor_data[i]);
+		switch (it->descriptor_tag) {
+		case MPEGTS_PSI_PED_TAG_ISO_639:
+			it->descriptor_data.language.code[0] = data[2];
+			it->descriptor_data.language.code[1] = data[3];
+			it->descriptor_data.language.code[2] = data[4];
+			it->descriptor_data.language.audio_type = (uint8_t)data[5];
+
+			printf("~~~ \t language-code: %s;\n", it->descriptor_data.language.code);
+			printf("~~~ \t audio-type: %d;\n", it->descriptor_data.language.audio_type);
+			break;
+
+		default:
+			memcpy(
+				it->descriptor_data.undefined.data, // dst
+				&data[2],                           // src
+				sizeof(it->descriptor_data.undefined.data) <= (size_t)it->descriptor_length
+					? (size_t)it->descriptor_length
+					: sizeof(it->descriptor_data.undefined.data)
+			);
+
+			int i;
+			printf("~~~ \t ");
+			for (i=0; i < (int)it->descriptor_length; i++) {
+				printf("%c", it->descriptor_data.undefined.data[i]);
+			}
+			printf("\n");
 		}
-		printf("\n");
 	}
 }
 
