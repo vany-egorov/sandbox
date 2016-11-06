@@ -6,6 +6,7 @@ MPEGTS *mpegts_new(void) {
 
 	it->psi_pat = NULL;
 	it->psi_pmt = NULL;
+	it->psi_sdt = NULL;
 
 	return it;
 }
@@ -21,6 +22,11 @@ void mpegts_del(MPEGTS *it) {
 	if (it->psi_pmt) {
 		mpegts_psi_pmt_del(it->psi_pmt);
 		it->psi_pmt = NULL;
+	}
+
+	if (it->psi_sdt) {
+		mpegts_psi_sdt_del(it->psi_sdt);
+		it->psi_sdt = NULL;
 	}
 
 	free(it);

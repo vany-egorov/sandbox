@@ -32,7 +32,7 @@ enum mpegts_table_id_enum {
 	MPEGTS_TABLE_ID_TRANSPORT_STREAM_DESCRIPTION_SECTION                = 0x03,
 	MPEGTS_TABLE_ID_NETWORK_INFORMATION_SECTION_ACTUAL_NETWORK          = 0x40,
 	MPEGTS_TABLE_ID_NETWORK_INFORMATION_SECTION_OTHER_NETWORK           = 0x41,
-	MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_ACTUAL_TRANSPORT_STREAM = 0x42,
+	MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_ACTUAL_TRANSPORT_STREAM = 0x42,  // 66
 	MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_OTHER_TRANSPORT_STREAM  = 0x46,
 	MPEGTS_TABLE_ID_BOUQUET_ASSOCIATION_SECTION                         = 0x4A,
 	MPEGTS_TABLE_ID_EVENT_INFORMATION_SECTION_ACTUAL_TRANSPORT_STREAM   = 0x4E,
@@ -175,19 +175,25 @@ void mpegts_pcr_print_json(MPEGTSPCR *it);
 
 
 /* psi.c */
-typedef struct mpegts_PSI_s                      MPEGTSPSI;
-typedef struct mpegts_PSI_PAT_s                  MPEGTSPSIPAT;
-typedef struct mpegts_PSI_PMT_s                  MPEGTSPSIPMT;
-typedef struct mpegts_PSI_PMT_program_element_s  MPEGTSPSIPMTProgramElement;
-typedef struct mpegts_PSI_PMT_program_elements_s MPEGTSPSIPMTProgramElements;
-typedef struct mpegts_PSI_PMT_ES_info_s          MPEGTSPSIPMTESInfo;
-typedef struct mpegts_PSI_PMT_ES_infos_s         MPEGTSPSIPMTESInfos;
-typedef struct mpegts_PSI_NIT_s                  MPEGTSPSINIT;
-typedef enum   mpegts_PSI_PED_tag_s              MPEGTSPSIPEDTag;
+typedef struct mpegts_PSI_s                               MPEGTSPSI;
+typedef struct mpegts_PSI_PAT_s                           MPEGTSPSIPAT;
+typedef struct mpegts_PSI_PMT_s                           MPEGTSPSIPMT;
+typedef struct mpegts_PSI_PMT_program_element_s           MPEGTSPSIPMTProgramElement;
+typedef struct mpegts_PSI_PMT_program_elements_s          MPEGTSPSIPMTProgramElements;
+typedef struct mpegts_PSI_PMT_ES_info_s                   MPEGTSPSIPMTESInfo;
+typedef struct mpegts_PSI_PMT_ES_infos_s                  MPEGTSPSIPMTESInfos;
+typedef struct mpegts_PSI_NIT_s                           MPEGTSPSINIT;
+typedef struct mpegts_PSI_SDT_s                           MPEGTSPSISDT;
+typedef struct mpegts_PSI_SDT_service_s                   MPEGTSPSISDTService;
+typedef struct mpegts_PSI_SDT_services_s                  MPEGTSPSISDTServices;
+typedef struct mpegts_PSI_SDT_descriptor_s                MPEGTSPSISDTDescriptor;
+typedef struct mpegts_PSI_SDT_descriptors_s               MPEGTSPSISDTDescriptors;
+typedef enum   mpegts_PSI_PED_tag_enum                    MPEGTSPSIPEDTag;
+typedef enum   mpegts_PSI_SDT_service_running_status_enum MPEGTSPSISDTServiceRunningStatus;
 
 // PD = Program Descriptor
 // PED = Program Element Descriptor
-enum mpegts_PSI_PED_tag_s {
+enum mpegts_PSI_PED_tag_enum {
 	MPEGTS_PSI_PED_TAG_RESERVED_00                   = 0x00,
 	MPEGTS_PSI_PED_TAG_RESERVED_01                   = 0x01,
 	MPEGTS_PSI_PED_TAG_V_H262_13818_11172            = 0x02,
@@ -231,6 +237,26 @@ enum mpegts_PSI_PED_tag_s {
 #define MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR_STR "Private data indicator"
 #define MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER_STR "Smoothing buffer"
 #define MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR "STD video buffer leak control"
+
+enum mpegts_PSI_SDT_service_running_status_enum {
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_UNDEFINED               = 0x00,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_NOT_RUNNING             = 0x01,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_STARTS_IN_A_FEW_SECONDS = 0x02,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_PAUSING                 = 0x03,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RUNNING                 = 0x04,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_05             = 0x05,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_06             = 0x06,
+	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_07             = 0x07,
+};
+
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_UNDEFINED_STR "undefined"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_NOT_RUNNING_STR "not running"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_STARTS_IN_A_FEW_SECONDS_STR "starts in a few seconds"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_PAUSING_STR "pausing"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RUNNING_STR "running"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_05_STR "reserved-05"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_06_STR "reserved-06"
+#define MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_RESERVED_07_STR "reserved-07"
 
 // Program Specific Information
 struct mpegts_PSI_s {
@@ -285,7 +311,7 @@ void mpegts_psi_pat_del(MPEGTSPSIPAT *it);
 struct mpegts_PSI_PMT_ES_info_s {
 	uint8_t descriptor_tag;
 	uint8_t descriptor_length;
-	uint8_t descriptor_data[32];
+	uint8_t descriptor_data[32]; // TODO: move to union or struct
 };
 
 // PSI -> PMT -> program-element -> ES-infos (collection)
@@ -335,7 +361,7 @@ void                        mpegts_psi_pmt_del(MPEGTSPSIPMT *it);
 /* psi-cat.c */
 // PSI -> CAT
 // Conditional access specific data
-struct mpegts_CAT_s {
+struct mpegts_PSI_CAT_s {
 	MPEGTSPSI psi;
 };
 
@@ -343,9 +369,93 @@ struct mpegts_CAT_s {
 /* psi-nit.c */
 // PSI -> NIT
 // network information specific data
-struct mpegts_NIT_s {
+struct mpegts_PSI_NIT_s {
 	MPEGTSPSI psi;
 };
+
+
+/* psi-sdt.c */
+struct mpegts_PSI_SDT_descriptor_s {
+	uint8_t descriptor_tag;
+	uint8_t descriptor_length;
+	uint8_t descriptor_data[32]; // TODO: move to union or struct
+};
+
+struct mpegts_PSI_SDT_descriptors_s {
+	uint8_t len;
+	uint8_t cap;
+
+	MPEGTSPSISDTDescriptor *c;
+};
+
+// PSI -> SDT -> service (model)
+struct mpegts_PSI_SDT_service_s {
+	// This is a 16-bit field which serves as a label
+	// to identify this service from any other service within the TS.
+	// The service_id is the same as the program_number
+	// in the corresponding program_map_section.
+	uint16_t service_id;
+	uint8_t
+		reserved_future_use:6,
+
+		// This is a 1-bit field which when set to "1"
+		// indicates that EIT schedule information for the service is
+		// present in the current TS, see ETR 211 [7] for
+		// information on maximum time interval between
+		// occurrences of an EIT schedule sub_table).
+		// If the flag is set to 0 then the EIT schedule information
+		// for the service should not be present in the TS.
+		EIT_schedule_flag:1,
+
+		// This is a 1-bit field which when set to "1" indicates
+		// that EIT_present_following information for the service
+		// is present in the current TS, see ETR 211 [7] for
+		// information on maximum time interval between occurrences
+		// of an EIT present/following sub_table).
+		// If the flag is set to 0 then the EIT present/following
+		// information for the service should not be present in the TS.
+		EIT_present_following_flag:1;
+
+	uint16_t
+		running_status:3,
+
+		// This 1-bit field, when set to "0"
+		// indicates that all the component streams
+		// of the service are not scrambled.
+		// When set to "1" it indicates that access to
+		// one or more streams may be controlled by a CA system.
+		free_CA_mode:1,
+
+		descriptors_loop_length:12;
+
+	MPEGTSPSISDTDescriptors descriptors;
+};
+
+// PSI -> SDT -> services (collection)
+struct mpegts_PSI_SDT_services_s {
+	uint8_t len;
+	uint8_t cap;
+
+	MPEGTSPSISDTService *c;
+};
+
+// PSI -> SDT
+struct mpegts_PSI_SDT_s {
+	MPEGTSPSI psi;
+
+	uint16_t original_network_id;  // A unique identifier of a network.
+	                               // This 16-bit field gives the label
+	                               // identifying the network_id of The
+	                               // originating delivery system
+	uint8_t reserved_future_use;
+
+	MPEGTSPSISDTServices services;
+};
+
+MPEGTSPSISDT *mpegts_psi_sdt_new(void);
+void          mpegts_psi_sdt_parse(MPEGTSPSISDT *it, uint8_t *data);
+void          mpegts_psi_sdt_del(MPEGTSPSISDT *it);
+const char   *mpegts_psi_sdt_service_running_status_string(MPEGTSPSISDTServiceRunningStatus it);
 
 
 /* mpegts.c */
@@ -354,6 +464,7 @@ typedef struct mpegts_s MPEGTS;
 struct mpegts_s {
 	MPEGTSPSIPAT *psi_pat;
 	MPEGTSPSIPMT *psi_pmt;
+	MPEGTSPSISDT *psi_sdt;
 };
 
 MPEGTS *mpegts_new(void);

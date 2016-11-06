@@ -44,20 +44,24 @@ void mpegts_psi_pmt_parse(MPEGTSPSIPMT *it, uint8_t *data) {
 
 	mpegts_psi_parse(&it->psi, data);
 
-	if (it->psi.table_id != MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) return;
+	if (it->psi.table_id != MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
+		fprintf(stderr, "[psi-pmt @ %p] error parsing PMT table - got bad table-id %02X\n",
+			it, it->psi.table_id);
+		return;
+	}
 
 	// psi-size x8
 	data += 8;
 
 	end = (int)it->psi.section_length;
-	// transport-stream-id   x2
-	// version-number        x1
+	// transport-stream-id   x2;
+	// version-number        x1;
 	// curent-next-indicator
-	// section-number        x1
-	// last-section-number   x1
-	// CRC32                 x4
+	// section-number        x1;
+	// last-section-number   x1;
+	// CRC32                 x4;
 	//
-	// -----                 x9
+	// -----                 x9;
 	end -= 9;
 
 	it->PCR_PID = (
@@ -86,10 +90,6 @@ void mpegts_psi_pmt_parse(MPEGTSPSIPMT *it, uint8_t *data) {
 }
 
 static void mpegts_psi_pmt_program_element_parse_header(MPEGTSPSIPMTProgramElement *it, uint8_t *data) {
-	int pos = 0, // ES-info => parser position current
-	    end = 0; // ES-info => finish
-	uint8_t *es_info_data = NULL;
-
 	it->stream_type = (uint8_t)data[0];
 	it->elementary_PID = (
 		(((uint16_t)data[1] & 0x1F) << 8) |
@@ -142,7 +142,7 @@ void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 		int i;
 		printf("~~~ \t ");
 		for (i=0; i < (int)it->descriptor_length; i++) {
-			printf("%c", it->descriptor_data[i], mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
+			printf("%c", it->descriptor_data[i]);
 		}
 		printf("\n");
 	}

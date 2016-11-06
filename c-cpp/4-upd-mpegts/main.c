@@ -476,8 +476,11 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 		if (mpegts_psi_pmt_program_element != NULL)
 			it->video_PID_H264 = mpegts_psi_pmt_program_element->elementary_PID;
 
-	} else if (mpegts_header.PID == MPEGTS_PID_SDT) {
-		mpegts_psi_parse(&mpegts_psi, &msg[i+5]);
+	} else if ((!mpegts->psi_sdt) &&
+	           (mpegts_header.PID == MPEGTS_PID_SDT)) {
+		mpegts_psi_sdt_del(mpegts->psi_sdt);
+		mpegts->psi_sdt = mpegts_psi_sdt_new();
+		mpegts_psi_sdt_parse(mpegts->psi_sdt, &msg[i+5]);
 		// printf("SDT: "); psi_print(&psi);
 	}
 

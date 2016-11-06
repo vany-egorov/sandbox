@@ -31,6 +31,9 @@ $(OBJECTS_DIRS)/mpegts-psi-pat.o: ./mpegts/psi-pat.c
 $(OBJECTS_DIRS)/mpegts-psi-pmt.o: ./mpegts/psi-pmt.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/mpegts-psi-sdt.o: ./mpegts/psi-sdt.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -67,6 +70,7 @@ main: \
 	$(OBJECTS_DIRS)/mpegts-psi-nit.o \
 	$(OBJECTS_DIRS)/mpegts-psi-pat.o \
 	$(OBJECTS_DIRS)/mpegts-psi-pmt.o \
+	$(OBJECTS_DIRS)/mpegts-psi-sdt.o \
 	$(OBJECTS_DIRS)/mpegts-es.o \
 	$(OBJECTS_DIRS)/fifo.o \
 	$(OBJECTS_DIRS)/config.o \
