@@ -63,13 +63,7 @@ void mpegts_psi_sdt_parse(MPEGTSPSISDT *it, uint8_t *data) {
 		// -----                        x5;
 		pos += 5;
 		pos += (int)a->descriptors_loop_length;
-		printf("===> %d | %d (%s)\n",
-			a->descriptors_loop_length,
-			a->running_status,
-			mpegts_psi_sdt_service_running_status_string(a->running_status)
-		);
 	}
-	printf("===> %d\n", it->original_network_id);
 }
 
 static void mpegts_psi_sdt_service_parse_header(MPEGTSPSISDTService *it, uint8_t *data) {
@@ -140,12 +134,6 @@ void mpegts_psi_sdt_descriptor_parse(MPEGTSPSISDTDescriptor *it, uint8_t *data) 
 					? (sizeof(it->descriptor_data.undefined.data)-1)
 					: (size_t)it->descriptor_data.service.service_name_length
 			);
-
-			printf("~~~ \t service-type: %d;\n", it->descriptor_data.service.service_type);
-			printf("~~~ \t service-provider-name-length: %d;\n", it->descriptor_data.service.service_provider_name_length);
-			printf("~~~ \t service-provider-name: \"%s\";\n", it->descriptor_data.service.service_provider_name);
-			printf("~~~ \t service-name-length: %d;\n", it->descriptor_data.service.service_name_length);
-			printf("~~~ \t service-name: \"%s\";\n", it->descriptor_data.service.service_name);
 			break;
 
 		default:
@@ -156,33 +144,8 @@ void mpegts_psi_sdt_descriptor_parse(MPEGTSPSISDTDescriptor *it, uint8_t *data) 
 					? (sizeof(it->descriptor_data.undefined.data)-1)
 					: (size_t)it->descriptor_length
 			);
-
-			int i;
-			printf("~~~ \t ");
-			for (i=0; i < (int)it->descriptor_length; i++) {
-				printf("%c", it->descriptor_data.undefined.data[i]);
-			}
-			printf("\n");
 		}
 	}
-	// printf("~~~ \t (%X \"%s\") %d\n", it->descriptor_tag, mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
-	// if (it->descriptor_length)
-	// 	memcpy(
-	// 		it->descriptor_data, // dst
-	// 		&data[2],            // src
-	// 		sizeof(it->descriptor_data) <= (size_t)it->descriptor_length
-	// 			? (size_t)it->descriptor_length
-	// 			: sizeof(it->descriptor_data)
-	// 	);
-
-	// if (it->descriptor_length) {
-	// 	int i;
-	// 	printf("~~~ \t ");
-	// 	for (i=0; i < (int)it->descriptor_length; i++) {
-	// 		printf("%c", it->descriptor_data[i]);
-	// 	}
-	// 	printf("\n");
-	// }
 }
 
 const char *mpegts_psi_sdt_service_running_status_string(MPEGTSPSISDTServiceRunningStatus it) {
@@ -258,6 +221,58 @@ static MPEGTSPSISDTDescriptor* mpegts_psi_sdt_descriptors_push_unique(MPEGTSPSIS
 	*a = *b;
 
 	return a;
+}
+
+void mpegts_psi_sdt_print_humanized(MPEGTSPSISDT *it) {
+	int i = 0,
+	    j = 0;
+	MPEGTSPSISDTService *service = NULL;
+	MPEGTSPSISDTDescriptor *descriptor = NULL;
+	MPEGTSPSIDescriptorDataService *dservice = NULL;
+	MPEGTSPSIDescriptorDataUndefined *dund = NULL;
+
+	printf("SDT:\n");
+	printf("  psi-transport-stream-id: %d (0x%02X)\n", it->psi.transport_stream_id, it->psi.transport_stream_id);
+	printf("  psi-CRC32: 0x%02X\n", it->psi.CRC32);
+	printf("  original-network-id: %d (0x%02X)\n", it->original_network_id, it->original_network_id);
+	if (it->services.c) {
+		printf("  services:\n");
+		for (i = 0; i < it->services.len; i++) {
+			service = &it->services.c[i];
+
+			printf("    - service-id: %d (0x%02X)\n", service->service_id, service->service_id);
+			printf("      EIT-schedule-flag: %d (0x%02X)\n", service->EIT_schedule_flag, service->EIT_schedule_flag);
+			printf("      EIT-present-following-flag: %d (0x%02X)\n", service->EIT_present_following_flag, service->EIT_present_following_flag);
+			printf("      running-status: %d (0x%02X) / \"%s\"\n", service->running_status, service->running_status, mpegts_psi_sdt_service_running_status_string(service->running_status));
+			printf("      free-CA-mode: %d (0x%02X)\n", service->free_CA_mode, service->free_CA_mode);
+
+			if (service->descriptors.c) {
+				printf("      descriptors:\n");
+				for (j = 0; j < service->descriptors.len; j++) {
+					descriptor = &service->descriptors.c[j];
+
+					printf("        - descriptor-tag: %d (0x%02X) / \"%s\"\n", descriptor->descriptor_tag, descriptor->descriptor_tag, mpegts_psi_ped_tag_string(descriptor->descriptor_tag));
+					printf("          descriptor-data:\n");
+					switch (descriptor->descriptor_tag) {
+						case MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR: {
+							dservice = &descriptor->descriptor_data.service;
+							printf("            service-type: %d (0x%02x)\n", dservice->service_type, dservice->service_type);
+							printf("            service-provider-name: \"%s\"\n", dservice->service_provider_name);
+							printf("            service-name: \"%s\"\n", dservice->service_name);
+							break;
+						}
+						default: {
+							dund = &descriptor->descriptor_data.undefined;
+							printf("            service-type: \"undefined\"\n");
+							printf("            data: \"%s\"\n", dund->data);
+						}
+					}
+
+				}
+			}
+
+		}
+	}
 }
 
 void mpegts_psi_sdt_del(MPEGTSPSISDT *it) {

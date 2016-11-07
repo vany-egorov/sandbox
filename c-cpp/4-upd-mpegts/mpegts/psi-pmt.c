@@ -106,8 +106,6 @@ static void mpegts_psi_pmt_program_element_parse_es_infos(MPEGTSPSIPMTProgramEle
 	int pos = 0, // ES-info => parser position current
 	    end = 0; // ES-info => finish
 
-	printf("~~~ %X %s\n", it->elementary_PID, mpegts_es_type_string(it->stream_type));
-
 	if (it->ES_info_length) {
 		pos = 0;
 		end = (int)it->ES_info_length;
@@ -129,7 +127,6 @@ static void mpegts_psi_pmt_program_element_parse_es_infos(MPEGTSPSIPMTProgramEle
 void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 	it->descriptor_tag = (MPEGTSPSIPEDTag)data[0];
 	it->descriptor_length = (uint8_t)data[1];
-	printf("~~~ \t (%X \"%s\") %d\n", it->descriptor_tag, mpegts_psi_ped_tag_string(it->descriptor_tag), it->descriptor_length);
 
 	if (it->descriptor_length) {
 		switch (it->descriptor_tag) {
@@ -139,9 +136,6 @@ void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 			it->descriptor_data.language.code[2] = data[4];
 			it->descriptor_data.language.code[3] = '\0';
 			it->descriptor_data.language.audio_type = (uint8_t)data[5];
-
-			printf("~~~ \t language-code: %s;\n", it->descriptor_data.language.code);
-			printf("~~~ \t audio-type: %d;\n", it->descriptor_data.language.audio_type);
 			break;
 
 		default:
@@ -152,13 +146,6 @@ void mpegts_psi_pmt_es_info_parse(MPEGTSPSIPMTESInfo *it, uint8_t *data) {
 					? (sizeof(it->descriptor_data.undefined.data)-1)
 					: (size_t)it->descriptor_length
 			);
-
-			int i;
-			printf("~~~ \t ");
-			for (i=0; i < (int)it->descriptor_length; i++) {
-				printf("%c", it->descriptor_data.undefined.data[i]);
-			}
-			printf("\n");
 		}
 	}
 }
@@ -240,6 +227,55 @@ MPEGTSPSIPMTProgramElement *mpegts_psi_pmt_search_by_es_type(MPEGTSPSIPMT *it, M
 }
 
 void mpegts_psi_pmt_print_json(MPEGTSPSIPMT *it) {}
+
+void mpegts_psi_pmt_print_humanized(MPEGTSPSIPMT *it) {
+	int i = 0,
+	    j = 0;
+	MPEGTSPSIPMTProgramElement *pe;
+	MPEGTSPSIPMTESInfo *ei;
+	MPEGTSPSIDescriptorDataLanguage *dlanguage = NULL;
+	MPEGTSPSIDescriptorDataUndefined *dund = NULL;
+
+	printf("PMT:\n");
+	printf("  psi-transport-stream-id: %d (0x%02X)\n", it->psi.transport_stream_id, it->psi.transport_stream_id);
+	printf("  psi-CRC32: 0x%02X\n", it->psi.CRC32);
+	printf("  PCR-PID: %d (0x%02X)\n", it->PCR_PID, it->PCR_PID);
+
+	if (it->program_elements.c) {
+		printf("  program-elements:\n");
+		for (i = 0; i < it->program_elements.len; i++) {
+			pe = &it->program_elements.c[i];
+
+			printf("    - stream-type: %d (0x%02X) / \"%s\"\n", pe->stream_type, pe->stream_type, mpegts_es_type_string(pe->stream_type));
+			printf("      PID: %d (0x%02X)\n", pe->elementary_PID, pe->elementary_PID);
+
+			if (pe->es_infos.c) {
+				printf("      ES-info:\n");
+				for (j = 0; j < pe->es_infos.len; j++) {
+					ei = &pe->es_infos.c[j];
+
+					printf("        - descriptor-tag: %d (0x%02X) / \"%s\"\n", ei->descriptor_tag, ei->descriptor_tag, mpegts_psi_ped_tag_string(ei->descriptor_tag));
+					printf("          descriptor-data:\n");
+					switch (ei->descriptor_tag) {
+						case MPEGTS_PSI_PED_TAG_ISO_639: {
+							dlanguage = &ei->descriptor_data.language;
+							printf("            code: \"%s\"\n", dlanguage->code);
+							printf("            audio-type: %d (0x%02X)\n", dlanguage->audio_type, dlanguage->audio_type);
+							break;
+						}
+						default: {
+							dund = &ei->descriptor_data.undefined;
+							printf("            service-type: \"undefined\"\n");
+							printf("            data: \"%s\"\n", dund->data);
+						}
+					}
+
+				}
+			}
+
+		}
+	}
+}
 
 void mpegts_psi_pmt_del(MPEGTSPSIPMT *it) {
 	if (!it) return;

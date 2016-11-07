@@ -327,6 +327,7 @@ struct mpegts_PSI_PAT_s {
 MPEGTSPSIPAT *mpegts_psi_pat_new(void);
 void mpegts_psi_pat_parse(MPEGTSPSIPAT *it, uint8_t *data);
 void mpegts_psi_pat_print_json(MPEGTSPSIPAT *it);
+void mpegts_psi_pat_print_humanized(MPEGTSPSIPAT *it);
 void mpegts_psi_pat_del(MPEGTSPSIPAT *it);
 
 
@@ -384,6 +385,7 @@ MPEGTSPSIPMT               *mpegts_psi_pmt_new(void);
 const char                 *mpegts_psi_ped_tag_string(MPEGTSPSIPEDTag it);
 void                        mpegts_psi_pmt_parse(MPEGTSPSIPMT *it, uint8_t *data);
 MPEGTSPSIPMTProgramElement *mpegts_psi_pmt_search_by_es_type(MPEGTSPSIPMT *it, MPEGTSESType q);
+void                        mpegts_psi_pmt_print_humanized(MPEGTSPSIPMT *it);
 void                        mpegts_psi_pmt_print_json(MPEGTSPSIPMT *it);
 void                        mpegts_psi_pmt_del(MPEGTSPSIPMT *it);
 
@@ -490,6 +492,7 @@ struct mpegts_PSI_SDT_s {
 
 MPEGTSPSISDT *mpegts_psi_sdt_new(void);
 void          mpegts_psi_sdt_parse(MPEGTSPSISDT *it, uint8_t *data);
+void          mpegts_psi_sdt_print_humanized(MPEGTSPSISDT *it);
 void          mpegts_psi_sdt_del(MPEGTSPSISDT *it);
 const char   *mpegts_psi_sdt_service_running_status_string(MPEGTSPSISDTServiceRunningStatus it);
 

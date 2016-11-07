@@ -463,7 +463,6 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 		mpegts_psi_pat_del(mpegts->psi_pat);
 		mpegts->psi_pat = mpegts_psi_pat_new();
 		mpegts_psi_pat_parse(mpegts->psi_pat, &msg[i+5]);
-		mpegts_psi_pat_print_json(mpegts->psi_pat);
 
 	// PSI-PMT
 	} else if ((!mpegts->psi_pmt) &&
@@ -565,6 +564,16 @@ void* parse_worker_do(void *args) {
 			fifo_read(it->fifo, msg, MPEGTS_PACKET_SIZE, &readed_len);
 			on_msg(it, msg);
 		}
+
+		if ((it->mpegts.psi_pat) &&
+		    (it->mpegts.psi_pmt) &&
+		    (it->mpegts.psi_sdt)) {
+			mpegts_psi_pat_print_humanized(it->mpegts.psi_pat);
+			mpegts_psi_sdt_print_humanized(it->mpegts.psi_sdt);
+			mpegts_psi_pmt_print_humanized(it->mpegts.psi_pmt);
+			exit(0);
+		}
+
 	}
 }
 

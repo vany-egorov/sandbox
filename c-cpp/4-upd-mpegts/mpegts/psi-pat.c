@@ -31,6 +31,12 @@ void mpegts_psi_pat_print_json(MPEGTSPSIPAT *it) {
 	);
 }
 
+void mpegts_psi_pat_print_humanized(MPEGTSPSIPAT *it) {
+	printf("PAT:\n");
+	printf("  program-number: %d (0x%02X)\n", it->program_number, it->program_number);
+	printf("  program-map-PID: %d (0x%02X)\n", it->program_map_PID, it->program_map_PID);
+}
+
 void mpegts_psi_pat_del(MPEGTSPSIPAT *it) {
 	if (!it) return;
 
