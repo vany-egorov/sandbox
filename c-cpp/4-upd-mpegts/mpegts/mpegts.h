@@ -20,6 +20,13 @@
 #define MPEGTS_PID_SDT      0x0011
 #define MPEGTS_PID_NULL     0x1FFF
 
+#define MPEGTS_PES_START_CODE 0x000001
+
+#define MPEGTS_PES_PTS_DTS_INDICATOR_NO        0b00
+#define MPEGTS_PES_PTS_DTS_INDICATOR_FORBIDDEN 0b01
+#define MPEGTS_PES_PTS_DTS_INDICATOR_PTS       0b10
+#define MPEGTS_PES_PTS_DTS_INDICATOR_PTS_DTS   0b11
+
 
 typedef enum mpegts_table_id_enum MPEGTSTableID;
 
@@ -508,6 +515,40 @@ struct mpegts_s {
 
 MPEGTS *mpegts_new(void);
 void    mpegts_del(MPEGTS *it);
+
+
+/* pes.c */
+typedef struct mpegts_pes_s MPEGTSPES;
+
+struct mpegts_pes_s {
+	uint8_t  stream_id;
+	uint16_t packet_length;
+	uint8_t
+		marker_bits              :2,
+		scrambling_control       :2,
+		priority                 :1,
+		data_alignment_indicator :1,
+		copyright                :1,
+		original_or_copy         :1;
+	uint8_t
+		PTS_DTS_indicator         :2,
+		ESCR_flag                 :1,
+		ES_rate_flag              :1,
+		DSM_trick_mode_flag       :1,
+		additional_copy_info_flag :1,
+		CRC_flag                  :1,
+		extension_flag            :1;
+	uint8_t  header_length;
+	uint64_t DTS;
+	uint64_t PTS;
+};
+
+void mpegts_pes_parse(MPEGTSPES *it, uint8_t *data);
+void mpegts_pes_print_json(MPEGTSPES *it);
+void mpegts_pes_print_humanized(MPEGTSPES *it);
+
+
+/* es.c */
 
 
 #endif // __MPEGTS_MPEGTS__

@@ -37,6 +37,9 @@ $(OBJECTS_DIRS)/mpegts-psi-pmt.o: ./mpegts/psi-pmt.c
 $(OBJECTS_DIRS)/mpegts-psi-sdt.o: ./mpegts/psi-sdt.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/mpegts-pes.o: ./mpegts/pes.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -78,6 +81,7 @@ main: \
 	$(OBJECTS_DIRS)/mpegts-psi-pat.o \
 	$(OBJECTS_DIRS)/mpegts-psi-pmt.o \
 	$(OBJECTS_DIRS)/mpegts-psi-sdt.o \
+	$(OBJECTS_DIRS)/mpegts-pes.o \
 	$(OBJECTS_DIRS)/mpegts-es.o \
 	$(OBJECTS_DIRS)/h264-h264.o \
 	$(OBJECTS_DIRS)/fifo.o \

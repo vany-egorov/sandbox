@@ -2,6 +2,11 @@
 #define __H264_H264__
 
 
+// h264 containers
+// - Annex B
+// - AVCC
+
+
 typedef enum h264_nal_type_enum H264NALType;
 
 // ITU-T H.264 (V9) (02/2014) - p63

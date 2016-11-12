@@ -75,7 +75,7 @@ void mpegts_pcr_print_json(MPEGTSPCR *it) {
 	printf(
 		"{\"base\": %" PRIu64 ""
 		",\"ext\": %d"
-		",\"PCR\": \"0:0:0:XXX (%d)\""
+		",\"PCR\": \"0:0:0:XXX (%" PRIu64 ")\""
 		"}\n",
 		it->base,
 		it->ext,
