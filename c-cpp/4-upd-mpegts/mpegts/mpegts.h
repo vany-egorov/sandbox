@@ -543,7 +543,7 @@ struct mpegts_pes_s {
 	uint64_t PTS;
 };
 
-void mpegts_pes_parse(MPEGTSPES *it, uint8_t *data);
+int  mpegts_pes_parse(MPEGTSPES *it, uint8_t *data);
 void mpegts_pes_print_json(MPEGTSPES *it);
 void mpegts_pes_print_humanized(MPEGTSPES *it);
 

@@ -2,7 +2,7 @@
 
 
 // http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
-void mpegts_pes_parse(MPEGTSPES *it, uint8_t *data) {
+int mpegts_pes_parse(MPEGTSPES *it, uint8_t *data) {
 	uint32_t start_code = (
 		0 << 24                 |
 		(uint32_t)data[0] << 16 |
@@ -10,7 +10,7 @@ void mpegts_pes_parse(MPEGTSPES *it, uint8_t *data) {
 		(uint32_t)data[2]
 	);
 
-	if (start_code != MPEGTS_PES_START_CODE) return;
+	if (start_code != MPEGTS_PES_START_CODE) return 1;
 
 	it->stream_id = (uint8_t)data[3];
 	it->packet_length = (
@@ -71,6 +71,8 @@ void mpegts_pes_parse(MPEGTSPES *it, uint8_t *data) {
 			);
 		}
 	}
+
+	return 0;
 }
 
 inline static const char *mpegts_pes_scrambling_control_string(uint8_t v) {
@@ -87,7 +89,18 @@ inline static const char *mpegts_pes_pts_dts_indicator_string(uint8_t v) {
 	}
 }
 
-void mpegts_pes_print_json(MPEGTSPES *it) {}
+void mpegts_pes_print_json(MPEGTSPES *it) {
+	printf(
+		"{"
+			"\"stream-id\": 0x%02X"
+			", \"packet-length\": %d"
+			", \"PES-scrambling-control\": %d"
+		"}\n",
+		it->stream_id,
+		it->packet_length,
+		it->scrambling_control
+	);
+}
 
 void mpegts_pes_print_humanized(MPEGTSPES *it) {
 	printf("PES packet:\n");
@@ -106,10 +119,10 @@ void mpegts_pes_print_humanized(MPEGTSPES *it) {
 	printf("  PES-CRC-flag: %d (0x%02X)\n", it->CRC_flag, it->CRC_flag);
 	printf("  PES-extension-flag: %d (0x%02X)\n", it->extension_flag, it->extension_flag);
 	printf("  PES-header-data-length: %d (0x%02X)\n", it->header_length, it->header_length);
-	if (it->DTS)
-		printf("    DTS: \"0:0:0:XXX (%" PRIu64 ")\"\n", it->DTS);
 	if (it->PTS)
 		printf("    PTS: \"0:0:0:XXX (%" PRIu64 ")\"\n", it->PTS);
+	if (it->DTS)
+		printf("    DTS: \"0:0:0:XXX (%" PRIu64 ")\"\n", it->DTS);
 	if ((it->PTS) && (it->DTS))
 		printf("    PTS - DTS: %" PRId64 "\n", it->PTS - it->DTS);
 }

@@ -387,8 +387,10 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			PES pes = { 0 };
 			MPEGTSPES mpegts_pes = { 0 };
 			pes_parse(&pes, &msg[pes_offset], it->offset, pes_offset, i);
-			mpegts_pes_parse(&mpegts_pes, &msg[pes_offset]);
-			mpegts_pes_print_humanized(&mpegts_pes);
+			if (!mpegts_pes_parse(&mpegts_pes, &msg[pes_offset])) {
+				mpegts_pes_print_humanized(&mpegts_pes);
+				mpegts_pes_print_json(&mpegts_pes);
+			}
 
 			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
 			// 	it->offset + pes_offset, pes.PTS, pes.DTS);
