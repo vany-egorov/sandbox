@@ -15,6 +15,7 @@ Config *config_new(void) {
 
 	it->version = 0;
 	it->help = 0;
+	it->probe = 0;
 
 	it->i = NULL;
 	it->o = NULL;
@@ -69,6 +70,7 @@ void config_help(void) {
 	printf("\t                                 . \t file:///tmp/in.ts    - file\n");
 	printf("\t%s -o, --output %s          | <str>  | Where to write to:\n", COLOR_BRIGHT_GREEN, COLOR_RESET);
 	printf("\t                                 . \t file:///tmp/out.ts   - file\n");
+	printf("\t%s --probe %s               | print stream information (PAT, SDT, PMT) and exit\n", COLOR_BRIGHT_GREEN, COLOR_RESET);
 }
 
 /** command-line SAX parser **/
@@ -120,5 +122,8 @@ int config_parse(Config *it, int argc, char **argv) {
 			if (!it->o) it->o = calloc(1, sizeof(URL));
 			url_parse(it->o, argv[i+1]);
 		}
+
+		// --probe
+		if (CFGISOPTION(key, "probe")) { it->probe = 1; }
 	}
 }

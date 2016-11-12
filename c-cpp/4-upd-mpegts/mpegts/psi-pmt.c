@@ -246,8 +246,8 @@ void mpegts_psi_pmt_print_humanized(MPEGTSPSIPMT *it) {
 		for (i = 0; i < it->program_elements.len; i++) {
 			pe = &it->program_elements.c[i];
 
-			printf("    - stream-type: %d (0x%02X) / \"%s\"\n", pe->stream_type, pe->stream_type, mpegts_es_type_string(pe->stream_type));
-			printf("      PID: %d (0x%02X)\n", pe->elementary_PID, pe->elementary_PID);
+			printf("    - PID: %d (0x%02X)\n", pe->elementary_PID, pe->elementary_PID);
+			printf("      stream-type: %d (0x%02X) / \"%s\"\n", pe->stream_type, pe->stream_type, mpegts_es_type_string(pe->stream_type));
 
 			if (pe->es_infos.c) {
 				printf("      ES-info:\n");

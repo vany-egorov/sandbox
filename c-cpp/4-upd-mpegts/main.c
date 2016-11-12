@@ -433,6 +433,7 @@ struct parse_worker_s {
 	FIFO    *fifo;
 
 	MPEGTS   mpegts;
+	uint8_t  probe;
 	uint64_t offset; // global offset
 	uint16_t video_PID_H264;
 };
@@ -565,7 +566,8 @@ void* parse_worker_do(void *args) {
 			on_msg(it, msg);
 		}
 
-		if ((it->mpegts.psi_pat) &&
+		if ((it->probe) &&
+			  (it->mpegts.psi_pat) &&
 		    (it->mpegts.psi_pmt) &&
 		    (it->mpegts.psi_sdt)) {
 			mpegts_psi_pat_print_humanized(it->mpegts.psi_pat);
@@ -603,13 +605,14 @@ int main (int argc, char *argv[]) {
 	config = config_new();
 	if (config == NULL) {
 		fprintf(stderr, "failed to initialize config\n");
-		exit(EXIT_FAILURE);
+		ret = EX_SOFTWARE; goto cleanup;
 	}
 
 	config_parse(config, argc, argv);
 	config_print(config);
 
 	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
+	if (config->help) { config_help(); goto cleanup; }
 
 	udp_i = udp_new();                     // i
 	file_ts_1 = file_new();                // o
@@ -673,6 +676,7 @@ int main (int argc, char *argv[]) {
 
 	// parse_worker.reader = reader_fifo;
 	parse_worker.fifo = fifo;
+	parse_worker.probe = config->probe;
 	if (pthread_create(&parse_thread, NULL, parse_worker_do, (void*)&parse_worker)) {
 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
 		ret = EX_SOFTWARE; goto cleanup;

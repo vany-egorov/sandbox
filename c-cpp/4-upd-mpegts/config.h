@@ -13,6 +13,7 @@
 struct _Config {
 	uint8_t version;
 	uint8_t help;
+	uint8_t probe;
 
 	URL *i;
 	URL *o;
