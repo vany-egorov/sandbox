@@ -10,6 +10,9 @@ LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 OBJECTS_DIRS := ./bin
 
 
+$(OBJECTS_DIRS)/mpegts-mpegts.o: ./mpegts/mpegts.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/mpegts-header.o: ./mpegts/header.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -35,6 +38,9 @@ $(OBJECTS_DIRS)/mpegts-psi-sdt.o: ./mpegts/psi-sdt.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/h264-h264.o: ./h264/h264.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJECTS_DIRS)/udp.o: ./udp.c
@@ -63,6 +69,7 @@ $(OBJECTS_DIRS)/main.o: ./main.c
 
 
 main: \
+	$(OBJECTS_DIRS)/mpegts-mpegts.o \
 	$(OBJECTS_DIRS)/mpegts-header.o \
 	$(OBJECTS_DIRS)/mpegts-adaption.o \
 	$(OBJECTS_DIRS)/mpegts-psi.o \
@@ -72,6 +79,7 @@ main: \
 	$(OBJECTS_DIRS)/mpegts-psi-pmt.o \
 	$(OBJECTS_DIRS)/mpegts-psi-sdt.o \
 	$(OBJECTS_DIRS)/mpegts-es.o \
+	$(OBJECTS_DIRS)/h264-h264.o \
 	$(OBJECTS_DIRS)/fifo.o \
 	$(OBJECTS_DIRS)/config.o \
 	$(OBJECTS_DIRS)/udp.o \

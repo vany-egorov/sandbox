@@ -1,0 +1,28 @@
+#include "h264.h"
+
+
+const char* h264_nal_type_string(H264NALType it) {
+	switch(it) {
+	case NAL_TYPE_UNSPECIFIED: return NAL_TYPE_UNSPECIFIED_STR;
+	case NAL_TYPE_DPA: return NAL_TYPE_DPA_STR;
+	case NAL_TYPE_DPB: return NAL_TYPE_DPB_STR;
+	case NAL_TYPE_DPC: return NAL_TYPE_DPC_STR;
+	case NAL_TYPE_IDR: return NAL_TYPE_IDR_STR;
+	case NAL_TYPE_SEI: return NAL_TYPE_SEI_STR;
+	case NAL_TYPE_SPS: return NAL_TYPE_SPS_STR;
+	case NAL_TYPE_PPS: return NAL_TYPE_PPS_STR;
+	case NAL_TYPE_AUD: return NAL_TYPE_AUD_STR;
+	case NAL_TYPE_EOSEQ: return NAL_TYPE_EOSEQ_STR;
+	case NAL_TYPE_EOSTREAM: return NAL_TYPE_EOSTREAM_STR;
+	case NAL_TYPE_FILL: return NAL_TYPE_FILL_STR;
+	case NAL_TYPE_SPS_EXT: return NAL_TYPE_SPS_EXT_STR;
+	case NAL_TYPE_PREFIX: return NAL_TYPE_PREFIX_STR;
+	case NAL_TYPE_SSPS: return NAL_TYPE_SSPS_STR;
+	case NAL_TYPE_DPS: return NAL_TYPE_DPS_STR;
+	case NAL_TYPE_CSOACPWP: return NAL_TYPE_CSOACPWP_STR;
+	case NAL_TYPE_CSE: return NAL_TYPE_CSE_STR;
+	case NAL_TYPE_CSE3D: return NAL_TYPE_CSE3D_STR;
+	}
+
+	return "";
+}

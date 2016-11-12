@@ -19,6 +19,7 @@
 #include "color.h"
 #include "config.h"
 #include "./mpegts/mpegts.h"
+#include "./h264/h264.h"
 
 
 // h264 containers
@@ -48,115 +49,6 @@
 // Where as the 3 byte variation is used everywhere else to save space.
 #define ES_START_CODE_SHORT 0x000001
 #define ES_START_CODE_LONG  0x00000001
-
-// ITU-T H.264 (V9) (02/2014) - p63
-//
-// There are 19 different NALU types defined separated into two categories, VCL and non-VCL:
-//
-// - VCL, or Video Coding Layer packets contain the actual visual information.
-// - Non-VCLs contain metadata that may or may not be required to decode the video.
-typedef enum {
-	NAL_TYPE_UNSPECIFIED = 0,
-	NAL_TYPE_SLICE       = 1,
-	NAL_TYPE_DPA         = 2,
-	NAL_TYPE_DPB         = 3,
-	NAL_TYPE_DPC         = 4,
-	// Instantaneous Decoder Refresh (IDR).
-	// This VCL NALU is a self contained image slice.
-	// That is, an IDR can be decoded and displayed without
-	// referencing any other NALU save SPS and PPS.
-	NAL_TYPE_IDR         = 5,
-	NAL_TYPE_SEI         = 6,
-	// Sequence Parameter Set (SPS).
-	// This non-VCL NALU contains information required to configure
-	// the decoder such as profile, level, resolution, frame rate.
-	NAL_TYPE_SPS         = 7,
-	// Picture Parameter Set (PPS). Similar to the SPS, this non-VCL
-	// contains information on entropy coding mode, slice groups,
-	// motion prediction and deblocking filters.
-	NAL_TYPE_PPS         = 8,
-	// Access Unit Delimiter (AUD).
-	// An AUD is an optional NALU that can be use to delimit frames
-	// in an elementary stream. It is not required (unless otherwise
-	// stated by the container/protocol, like TS), and is often not
-	// included in order to save space, but it can be useful to
-	// finds the start of a frame without having to fully parse each NALU.
-	NAL_TYPE_AUD         = 9,
-	NAL_TYPE_EOSEQ       = 10,
-	NAL_TYPE_EOSTREAM    = 11,
-	NAL_TYPE_FILL        = 12,
-	NAL_TYPE_SPS_EXT     = 13,
-	NAL_TYPE_PREFIX      = 14,
-	NAL_TYPE_SSPS        = 15,
-	NAL_TYPE_DPS         = 16,
-	NAL_TYPE_CSOACPWP    = 19,
-	NAL_TYPE_CSE         = 20,
-	NAL_TYPE_CSE3D       = 21,
-} NALType;
-
-static void nal_type_str(NALType v, char *out) {
-	switch(v) {
-	case NAL_TYPE_SLICE:
-		strcpy(out, "H264 slice");
-		break;
-	case NAL_TYPE_DPA:
-		strcpy(out, "H264 DPA - Coded slice data partition A");
-		break;
-	case NAL_TYPE_DPB:
-		strcpy(out, "H264 DPB - Coded slice data partition B");
-		break;
-	case NAL_TYPE_DPC:
-		strcpy(out, "H264 DPC - Coded slice data partition C");
-		break;
-	case NAL_TYPE_IDR:
-		strcpy(out, "H264 IDR - instantaneous decoding refresh access-unit/picture");
-		break;
-	case NAL_TYPE_SEI:
-		strcpy(out, "H264 SEI - Supplemental enhancement information");
-		break;
-	case NAL_TYPE_SPS:
-		strcpy(out, "H264 SPS - Sequence parameter set");
-		break;
-	case NAL_TYPE_PPS:
-		strcpy(out, "H264 PPS - Picture parameter set");
-		break;
-	case NAL_TYPE_AUD:
-		strcpy(out, "H264 AUD - Access unit delimiter");
-		break;
-	case NAL_TYPE_EOSEQ:
-		strcpy(out, "H264 EOSEQ - end of sequence");
-		break;
-	case NAL_TYPE_EOSTREAM:
-		strcpy(out, "H264 EOSTREAM - End of stream");
-		break;
-	case NAL_TYPE_FILL:
-		strcpy(out, "H264 FILL - Filler data");
-		break;
-	case NAL_TYPE_SPS_EXT:
-		strcpy(out, "H264 SPS EXT - Sequence parameter set extension");
-		break;
-	case NAL_TYPE_PREFIX:
-		strcpy(out, "H264 PREFIX - Prefix NAL unit");
-		break;
-	case NAL_TYPE_SSPS:
-		strcpy(out, "H264 SSPS - Subset sequence parameter set");
-		break;
-	case NAL_TYPE_DPS:
-		strcpy(out, "H264 DPS - Depth parameter set");
-		break;
-	case NAL_TYPE_CSOACPWP:
-		strcpy(out, "H264 CSOACPWP - Coded slice of an auxiliary "
-								"coded picture without partitioning");
-		break;
-	case NAL_TYPE_CSE:
-		strcpy(out, "H264 CSE - Coded slice extension");
-		break;
-	case NAL_TYPE_CSE3D:
-		strcpy(out, "H264 CSE3D - Coded slice extension for a depth view "
-								"component or a 3D-AVC texture view component");
-		break;
-	}
-}
 
 inline uint32_t get_bit(const uint8_t * const base, uint32_t offset) {
 	return ((*(base + (offset >> 0x3))) >> (0x7 - (offset & 0x7))) & 0x1;
@@ -244,8 +136,7 @@ static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_l
 			uint8_t nal_ref_idc = data[es_i] & 0x60;
 			uint8_t nal_type = data[es_i] & 0x1F;
 
-			char nal_type_name[255] = { 0 };
-			nal_type_str(nal_type, nal_type_name);
+			const char *nal_type_name = h264_nal_type_string(nal_type);
 
 			if (
 				(nal_type == NAL_TYPE_AUD) ||
