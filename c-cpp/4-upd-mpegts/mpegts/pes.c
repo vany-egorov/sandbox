@@ -95,10 +95,38 @@ void mpegts_pes_print_json(MPEGTSPES *it) {
 			"\"stream-id\": 0x%02X"
 			", \"packet-length\": %d"
 			", \"PES-scrambling-control\": %d"
+			", \"PES-priority\": %d"
+			", \"data-alignment-indicator\": %d"
+			", \"copyright\": %d"
+			", \"original-or-copy\": %d"
+			", \"PTS-DTS-indicator\": %d"
+			", \"ESCR-flag\": %d"
+			", \"ES-rate-flag\": %d"
+			", \"DSM-trick-mode-flag\": %d"
+			", \"additional-copy-info-flag\": %d"
+			", \"PES-CRC-flag\": %d"
+			", \"PES-extension-flag\": %d"
+			", \"PES-header-data-length\": %d"
+			", \"PTS\": %" PRIu64 ""
+			", \"DTS\": %" PRIu64 ""
 		"}\n",
 		it->stream_id,
 		it->packet_length,
-		it->scrambling_control
+		it->scrambling_control,
+		it->priority,
+		it->data_alignment_indicator,
+		it->copyright,
+		it->original_or_copy,
+		it->PTS_DTS_indicator,
+		it->ESCR_flag,
+		it->ES_rate_flag,
+		it->DSM_trick_mode_flag,
+		it->additional_copy_info_flag,
+		it->CRC_flag,
+		it->extension_flag,
+		it->header_length,
+		it->PTS,
+		it->DTS
 	);
 }
 

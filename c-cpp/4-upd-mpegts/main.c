@@ -22,13 +22,6 @@
 #include "./h264/h264.h"
 
 
-#define PES_START_CODE 0x000001
-
-#define PES_PTS_DTS_INDICATOR_NO        0b00
-#define PES_PTS_DTS_INDICATOR_FORBIDDEN 0b01
-#define PES_PTS_DTS_INDICATOR_PTS       0b10
-#define PES_PTS_DTS_INDICATOR_PTS_DTS   0b11
-
 // NALU Start Codes
 //
 // A NALU does not contain is its size.
@@ -226,95 +219,6 @@ static void es_parse(uint8_t *data, uint64_t app_offset, int es_offset, int es_l
 	}
 }
 
-struct PES_ {
-	uint64_t PTS;
-	uint64_t DTS;
-};
-typedef struct PES_ PES;
-
-// TODO: remove extra args: app_offset, pes_offset, i
-static void pes_parse(PES *it, uint8_t *data, uint64_t app_offset, uint64_t pes_offset, int i) {
-	uint32_t start_code = (
-		0 << 24                 |
-		(uint32_t)data[0] << 16 |
-		(uint32_t)data[1] << 8  |
-		(uint32_t)data[2]
-	);
-	// http://dvd.sourceforge.net/dvdinfo/pes-hdr.html
-	if (start_code == PES_START_CODE) {
-		uint8_t stream_id = (uint8_t)data[3];
-		uint16_t pes_packet_length = (
-			(uint16_t)data[4] & 0xFF << 8 |
-			(uint16_t)data[5] & 0xFF
-		);
-
-		// PES header
-		// 10 binary or 0x2 hex
-		uint8_t marker_bits = (((uint8_t)data[6] & 0xC0) >> 6);
-		// 00 - not scrambled
-		uint8_t scrambling_control = (uint8_t)data[6] & 0x30;
-		uint8_t priority = !!( (uint8_t)data[6] & 0x08 );
-		// 1 indicates that the PES packet
-		// header is immediately followed by
-		// the video start code or audio syncword
-		uint8_t data_alignment_indicator = !!( (uint8_t)data[6] & 0x04 );
-		uint8_t copyright = !!( (uint8_t)data[6] & 0x02 );
-		uint8_t original_or_copy = !!( (uint8_t)data[6] & 0x01 );
-		// 11 = both present;
-		// 01 is forbidden;
-		// 10 = only PTS;
-		// 00 = no PTS or DTS
-		uint8_t PTS_DTS_indicator = (((uint8_t)data[7] & 0xC0) >> 6);
-		// This is the Elementary Stream Clock Reference,
-		// used if the stream and system levels are not synchronized'
-		// (i.e. ESCR differs from SCR in the PACK header).
-		uint8_t ESCR_flag = (uint8_t)data[7] & 0x20;
-		// The rate at which data is delivered for this stream,
-		// in units of 50 bytes/second.
-		uint8_t ES_rate_flag = (uint8_t)data[7] & 0x10;
-		uint8_t DSM_trick_mode_flag = (uint8_t)data[7] & 0x08;
-		uint8_t additional_copy_info_flag = (uint8_t)data[7] & 0x04;
-		uint8_t CRC_flag = (uint8_t)data[7] & 0x02;
-		uint8_t extension_flag = (uint8_t)data[7] & 0x01;
-		uint8_t PES_header_length = (uint8_t)data[8];
-		// printf("%d | %d | 0x%02x\n", data_alignment_indicator, PES_header_length, PTS_DTS_indicator);
-		if ((PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS) ||
-			  (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS)) {
-			uint64_t PTS = (
-				(((uint64_t)data[9]  & 0x0E) << 32) |
-				(((uint64_t)data[10] & 0xFF) << 24) |
-				(((uint64_t)data[11] & 0xFE) << 16) |
-				(((uint64_t)data[12] & 0xFF) << 8) |
-				 ((uint64_t)data[13] & 0xFE)
-			);
-			uint64_t DTS = 0;
-			if (PTS_DTS_indicator == PES_PTS_DTS_INDICATOR_PTS_DTS) {
-				DTS = (
-					(((uint64_t)data[14]  & 0x0E) << 32) |
-					(((uint64_t)data[15] & 0xFF) << 24) |
-					(((uint64_t)data[16] & 0xFE) << 16) |
-					(((uint64_t)data[17] & 0xFF) << 8) |
-					 ((uint64_t)data[18] & 0xFE)
-				);
-			}
-
-			it->PTS = PTS;
-			it->DTS = DTS;
-		}
-
-		uint8_t *es_data = &data[9+PES_header_length];
-		int es_offset = pes_offset + PES_header_length + 9;
-		int es_length = MPEGTS_PACKET_SIZE - es_offset;
-
-		printf("PES offset G 0x%" PRIX64 " | PES offset 0x%" PRIX64 " | ES offset 0x%" PRIX64 " \n",
-			app_offset,
-			app_offset + pes_offset,
-			app_offset + es_offset);
-
-		es_parse(es_data, app_offset, es_offset, es_length);
-	}
-}
-
 typedef struct parse_worker_s ParseWorker;
 struct parse_worker_s {
 	FIFO    *fifo;
@@ -377,19 +281,18 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				goto cleanup;
 
 			int pes_offset = i + 4;
-			if (mpegts_header.adaption_field_control) {
+			if (mpegts_header.adaption_field_control)
 				pes_offset = pes_offset + mpegts_adaption.adaptation_field_length + 1;
-			}
 
-			int pes_length = 0;
-			pes_length = MPEGTS_PACKET_SIZE - pes_offset;
-
-			PES pes = { 0 };
 			MPEGTSPES mpegts_pes = { 0 };
-			pes_parse(&pes, &msg[pes_offset], it->offset, pes_offset, i);
 			if (!mpegts_pes_parse(&mpegts_pes, &msg[pes_offset])) {
 				mpegts_pes_print_humanized(&mpegts_pes);
 				mpegts_pes_print_json(&mpegts_pes);
+
+				uint8_t *es_data = &msg[pes_offset + 9 + mpegts_pes.header_length];
+				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
+				int es_length = MPEGTS_PACKET_SIZE - es_offset;
+				es_parse(es_data, it->offset, es_offset, es_length);
 			}
 
 			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
@@ -402,20 +305,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 			es_parse(&msg[es_offset], it->offset, es_offset, es_length);
 		}
-
-		// fwrite(payload, payload_length, 1, f_h264);
-		// fflush(f_h264);
-		// h264_len += payload_length;
 	}
-
-	// if (header.contains_payload) {
-	// 	printf("PAYLOAD\n");
-	// 	header_print(&header);
-	// }
-	// if (header.payload_unit_start_indicator) {
-	// 	printf("PAYLOAD START\n");
-	// 	header_print(&header);
-	// }
 
 cleanup:
 	it->offset += MPEGTS_PACKET_SIZE;
