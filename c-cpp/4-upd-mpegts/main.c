@@ -277,17 +277,17 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 
 	if (mpegts_header.contains_payload) {
 		if (mpegts_header.payload_unit_start_indicator) {
-			if (mpegts_header.PID != it->video_PID_H264)
-				goto cleanup;
-
 			int pes_offset = i + 4;
 			if (mpegts_header.adaption_field_control)
 				pes_offset = pes_offset + mpegts_adaption.adaptation_field_length + 1;
 
 			MPEGTSPES mpegts_pes = { 0 };
 			if (!mpegts_pes_parse(&mpegts_pes, &msg[pes_offset])) {
-				mpegts_pes_print_humanized(&mpegts_pes);
-				mpegts_pes_print_json(&mpegts_pes);
+				// mpegts_pes_print_humanized(&mpegts_pes);
+				// mpegts_pes_print_json(&mpegts_pes);
+
+				if (mpegts_header.PID != it->video_PID_H264)
+					goto cleanup;
 
 				uint8_t *es_data = &msg[pes_offset + 9 + mpegts_pes.header_length];
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
@@ -298,6 +298,9 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
 			// 	it->offset + pes_offset, pes.PTS, pes.DTS);
 		} else {
+			if (mpegts_header.PID != it->video_PID_H264)
+				goto cleanup;
+
 			int es_offset = i + 4;
 			if (mpegts_header.adaption_field_control) {
 				es_offset = es_offset + mpegts_adaption.adaptation_field_length + 1;
