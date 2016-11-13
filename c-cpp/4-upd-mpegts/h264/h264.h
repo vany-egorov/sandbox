@@ -2,12 +2,34 @@
 #define __H264_H264__
 
 
+#include <stdio.h>  // printf
+#include <stdint.h> // uint8_t, uint32_t
+
+
 // h264 containers
 // - Annex B
 // - AVCC
+//
+// NALU Start Codes
+//
+// A NALU does not contain is its size.
+// Therefore simply concatenating the NALUs to create a stream will not
+// work because you will not know where one stops and the next begins.
+//
+// The Annex B specification solves this by requiring ‘Start Codes’
+// to precede each NALU. A start code is 2 or 3 0x00 bytes followed with a 0x01 byte. e.g. 0x000001 or 0x00000001.
+//
+// The 4 byte variation is useful for transmission over a serial connection as it is trivial to byte align the stream
+// by looking for 31 zero bits followed by a one. If the next bit is 0 (because every NALU starts with a 0 bit),
+// it is the start of a NALU. The 4 byte variation is usually only used for signaling
+// random access points in the stream such as a SPS PPS AUD and IDR
+// Where as the 3 byte variation is used everywhere else to save space.
+#define H264_ANNEXB_START_CODE_SHORT 0x000001
+#define H264_ANNEXB_START_CODE_LONG  0x00000001
 
 
-typedef enum h264_nal_type_enum H264NALType;
+typedef enum   h264_nal_type_enum   H264NALType;
+typedef struct h264_annex_b_nal_u_s H264AnnexBNALU;
 
 // ITU-T H.264 (V9) (02/2014) - p63
 //
@@ -76,7 +98,14 @@ enum h264_nal_type_enum {
 #define NAL_TYPE_CSE3D_STR "H264 CSE3D - Coded slice extension for a depth view " \
                            "component or a 3D-AVC texture view component"
 
+struct h264_annex_b_nal_u_s {
+	uint8_t slice_type :4;
+};
+
 const char* h264_nal_type_string(H264NALType it);
+// TODO: remove extra args: app_offset, es_offset, es_length
+void        h264_annexb_parse(H264AnnexBNALU *it, const uint8_t *data,
+                              uint64_t app_offset, int es_offset, int es_length);
 
 
 #endif
