@@ -109,6 +109,20 @@ void h264_annexb_parse(H264AnnexBNALU *it, const uint8_t *data, uint64_t app_off
 		}
 
 		if (got_es_start_code) {
+			printf("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+				data[es_i+1],
+				data[es_i+2],
+				data[es_i+3],
+				data[es_i+4],
+				data[es_i+5],
+				data[es_i+6],
+				data[es_i+7],
+				data[es_i+8],
+				data[es_i+9],
+				data[es_i+10],
+				data[es_i+11]
+			);
+
 			uint8_t forbidden_zero_bit = data[es_i] & 0x80;
 			if (forbidden_zero_bit != 0) continue;
 
@@ -154,9 +168,9 @@ void h264_annexb_parse(H264AnnexBNALU *it, const uint8_t *data, uint64_t app_off
 					// printf(">>> 3 - %d\n", offset);
 					uint32_t pic_parameter_set_id = decode_u_golomb(&data[es_i+1], &offset);
 					// printf(">>> 4 - %d\n", offset);
-					uint32_t frame_num = decode_u_golomb(&data[es_i+1], &offset);
+					uint32_t frame_num = get_bits(&data[es_i+1], &offset, 9); // from SPS
 					// printf(">>> 5 - %d\n", offset);
-					uint32_t pic_order_cnt_lsb = decode_u_golomb(&data[es_i+1], &offset);
+					uint32_t pic_order_cnt_lsb = get_bits(&data[es_i+1], &offset, 10); // from SPS
 					// printf(">>> 6 - %d\n", offset);
 
 					// 0 => P-slice. Consists of P-macroblocks
@@ -181,18 +195,18 @@ void h264_annexb_parse(H264AnnexBNALU *it, const uint8_t *data, uint64_t app_off
 					switch (slice_type) {
 					case 0:
 					case 5:
-						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_CYAN "H264 P slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-							es_offset_current, nal_size, 0, frame_num, pic_order_cnt_lsb);
+						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_CYAN "H264 P slice #%d { slice-type: %d, frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+							es_offset_current, nal_size, 0, slice_type, frame_num, pic_order_cnt_lsb);
 						break;
 					case 1:
 					case 6:
-						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_GREEN "H264 B slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-							es_offset_current, nal_size, 0, frame_num, pic_order_cnt_lsb);
+						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_GREEN "H264 B slice #%d { slice-type: %d, frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+							es_offset_current, nal_size, 0, slice_type, frame_num, pic_order_cnt_lsb);
 						break;
 					case 2:
 					case 7:
-						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_RED "H264 I slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-							es_offset_current, nal_size, 0, frame_num, pic_order_cnt_lsb);
+						printf("ES 0x%08llX | %d | " COLOR_BRIGHT_RED "H264 I slice #%d { slice-type: %d, frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+							es_offset_current, nal_size, 0, slice_type, frame_num, pic_order_cnt_lsb);
 						break;
 					default:
 						printf("ES 0x%08llX | " COLOR_BRIGHT_RED "H264 slice #%d { slice-type: %d }" COLOR_RESET "\n",
