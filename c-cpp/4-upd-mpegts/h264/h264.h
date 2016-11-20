@@ -28,8 +28,13 @@
 #define H264_ANNEXB_START_CODE_LONG  0x00000001
 
 
-typedef enum   h264_nal_type_enum   H264NALType;
-typedef struct h264_annex_b_nal_u_s H264AnnexBNALU;
+typedef enum   h264_nal_type_enum       H264NALType;
+typedef struct h264_s                   H264;
+typedef struct h264_nal_sps_s           H264NALSPS;
+typedef struct h264_nal_pps_s           H264NALPPS;
+typedef struct h264_nal_aud_s           H264NALAUD;
+typedef enum   h264_nal_slice_type_enum H264NALSliceType;
+typedef struct h264_nal_slice_idr_s     H264NALSliceIDR;
 
 // ITU-T H.264 (V9) (02/2014) - p63
 //
@@ -38,73 +43,191 @@ typedef struct h264_annex_b_nal_u_s H264AnnexBNALU;
 // - VCL, or Video Coding Layer packets contain the actual visual information.
 // - Non-VCLs contain metadata that may or may not be required to decode the video.
 enum h264_nal_type_enum {
-	NAL_TYPE_UNSPECIFIED = 0,
-	NAL_TYPE_SLICE       = 1,
-	NAL_TYPE_DPA         = 2,
-	NAL_TYPE_DPB         = 3,
-	NAL_TYPE_DPC         = 4,
+	H264_NAL_TYPE_UNSPECIFIED = 0,
+	H264_NAL_TYPE_SLICE       = 1,
+	H264_NAL_TYPE_DPA         = 2,
+	H264_NAL_TYPE_DPB         = 3,
+	H264_NAL_TYPE_DPC         = 4,
 	// Instantaneous Decoder Refresh (IDR).
 	// This VCL NALU is a self contained image slice.
 	// That is, an IDR can be decoded and displayed without
 	// referencing any other NALU save SPS and PPS.
-	NAL_TYPE_IDR         = 5,
-	NAL_TYPE_SEI         = 6,
+	H264_NAL_TYPE_IDR         = 5,
+	H264_NAL_TYPE_SEI         = 6,
 	// Sequence Parameter Set (SPS).
 	// This non-VCL NALU contains information required to configure
 	// the decoder such as profile, level, resolution, frame rate.
-	NAL_TYPE_SPS         = 7,
+	H264_NAL_TYPE_SPS         = 7,
 	// Picture Parameter Set (PPS). Similar to the SPS, this non-VCL
 	// contains information on entropy coding mode, slice groups,
 	// motion prediction and deblocking filters.
-	NAL_TYPE_PPS         = 8,
+	H264_NAL_TYPE_PPS         = 8,
 	// Access Unit Delimiter (AUD).
 	// An AUD is an optional NALU that can be use to delimit frames
 	// in an elementary stream. It is not required (unless otherwise
 	// stated by the container/protocol, like TS), and is often not
 	// included in order to save space, but it can be useful to
 	// finds the start of a frame without having to fully parse each NALU.
-	NAL_TYPE_AUD         = 9,
-	NAL_TYPE_EOSEQ       = 10,
-	NAL_TYPE_EOSTREAM    = 11,
-	NAL_TYPE_FILL        = 12,
-	NAL_TYPE_SPS_EXT     = 13,
-	NAL_TYPE_PREFIX      = 14,
-	NAL_TYPE_SSPS        = 15,
-	NAL_TYPE_DPS         = 16,
-	NAL_TYPE_CSOACPWP    = 19,
-	NAL_TYPE_CSE         = 20,
-	NAL_TYPE_CSE3D       = 21,
+	H264_NAL_TYPE_AUD         = 9,
+	H264_NAL_TYPE_EOSEQ       = 10,
+	H264_NAL_TYPE_EOSTREAM    = 11,
+	H264_NAL_TYPE_FILL        = 12,
+	H264_NAL_TYPE_SPS_EXT     = 13,
+	H264_NAL_TYPE_PREFIX      = 14,
+	H264_NAL_TYPE_SSPS        = 15,
+	H264_NAL_TYPE_DPS         = 16,
+	H264_NAL_TYPE_CSOACPWP    = 19,
+	H264_NAL_TYPE_CSE         = 20,
+	H264_NAL_TYPE_CSE3D       = 21,
 };
 
-#define NAL_TYPE_UNSPECIFIED_STR "H264 slice"
-#define NAL_TYPE_DPA_STR "H264 DPA - Coded slice data partition A"
-#define NAL_TYPE_DPB_STR "H264 DPB - Coded slice data partition B"
-#define NAL_TYPE_DPC_STR "H264 DPC - Coded slice data partition C"
-#define NAL_TYPE_IDR_STR "H264 IDR - instantaneous decoding refresh access-unit/picture"
-#define NAL_TYPE_SEI_STR "H264 SEI - Supplemental enhancement information"
-#define NAL_TYPE_SPS_STR "H264 SPS - Sequence parameter set"
-#define NAL_TYPE_PPS_STR "H264 PPS - Picture parameter set"
-#define NAL_TYPE_AUD_STR "H264 AUD - Access unit delimiter"
-#define NAL_TYPE_EOSEQ_STR "H264 EOSEQ - end of sequence"
-#define NAL_TYPE_EOSTREAM_STR "H264 EOSTREAM - End of stream"
-#define NAL_TYPE_FILL_STR "H264 FILL - Filler data"
-#define NAL_TYPE_SPS_EXT_STR "H264 SPS EXT - Sequence parameter set extension"
-#define NAL_TYPE_PREFIX_STR "H264 PREFIX - Prefix NAL unit"
-#define NAL_TYPE_SSPS_STR "H264 SSPS - Subset sequence parameter set"
-#define NAL_TYPE_DPS_STR "H264 DPS - Depth parameter set"
-#define NAL_TYPE_CSOACPWP_STR "H264 CSOACPWP - Coded slice of an auxiliary" \
+#define H264_NAL_TYPE_UNSPECIFIED_STR "H264 slice"
+#define H264_NAL_TYPE_DPA_STR "H264 DPA - Coded slice data partition A"
+#define H264_NAL_TYPE_DPB_STR "H264 DPB - Coded slice data partition B"
+#define H264_NAL_TYPE_DPC_STR "H264 DPC - Coded slice data partition C"
+#define H264_NAL_TYPE_IDR_STR "H264 IDR - instantaneous decoding refresh access-unit/picture"
+#define H264_NAL_TYPE_SEI_STR "H264 SEI - Supplemental enhancement information"
+#define H264_NAL_TYPE_SPS_STR "H264 SPS - Sequence parameter set"
+#define H264_NAL_TYPE_PPS_STR "H264 PPS - Picture parameter set"
+#define H264_NAL_TYPE_AUD_STR "H264 AUD - Access unit delimiter"
+#define H264_NAL_TYPE_EOSEQ_STR "H264 EOSEQ - end of sequence"
+#define H264_NAL_TYPE_EOSTREAM_STR "H264 EOSTREAM - End of stream"
+#define H264_NAL_TYPE_FILL_STR "H264 FILL - Filler data"
+#define H264_NAL_TYPE_SPS_EXT_STR "H264 SPS EXT - Sequence parameter set extension"
+#define H264_NAL_TYPE_PREFIX_STR "H264 PREFIX - Prefix NAL unit"
+#define H264_NAL_TYPE_SSPS_STR "H264 SSPS - Subset sequence parameter set"
+#define H264_NAL_TYPE_DPS_STR "H264 DPS - Depth parameter set"
+#define H264_NAL_TYPE_CSOACPWP_STR "H264 CSOACPWP - Coded slice of an auxiliary" \
                               " coded picture without partitioning"
-#define NAL_TYPE_CSE_STR "H264 CSE - Coded slice extension"
-#define NAL_TYPE_CSE3D_STR "H264 CSE3D - Coded slice extension for a depth view " \
+#define H264_NAL_TYPE_CSE_STR "H264 CSE - Coded slice extension"
+#define H264_NAL_TYPE_CSE3D_STR "H264 CSE3D - Coded slice extension for a depth view " \
                            "component or a 3D-AVC texture view component"
 
-struct h264_annex_b_nal_u_s {
-	uint8_t slice_type :4;
+
+/* bitstream.c */
+inline uint32_t h264_bitstream_get_bits(const uint8_t * const base, uint32_t * const offset, uint8_t bits);
+uint32_t bitstream_decode_u_golomb(const uint8_t * const base, uint32_t * const offset);
+
+
+/* nal-sps.c */
+struct h264_nal_sps_s {
+	uint8_t profile_idc;
+	uint8_t
+		constraint_set0_flag :1,
+		constraint_set1_flag :1,
+		constraint_set2_flag :1,
+		constraint_set3_flag :1,
+		constraint_set4_flag :1,
+		constraint_set5_flag :1,
+		reserved_zero_2bits  :2;
+	uint8_t level_idc;
+	uint8_t seq_parameter_set_id;
+	uint8_t chroma_format_idc;
+	uint8_t
+		separate_colour_plane_flag           :1,
+		qpprime_y_zero_transform_bypass_flag :1,
+		seq_scaling_matrix_present_flag      :1,
+		pic_order_cnt_type                   :1,
+		delta_pic_order_always_zero_flag     :1;
+	uint8_t bit_depth_luma_minus8;
+	uint8_t bit_depth_chroma_minus8;
+	uint8_t log2_max_frame_num_minus4;
+	uint8_t log2_max_pic_order_cnt_lsb_minus4;
+	int8_t  offset_for_non_ref_pic;
+	int8_t  offset_for_top_to_bottom_field;
+	uint8_t num_ref_frames_in_pic_order_cnt_cycle;
+};
+
+int  h264_nal_sps_parse(H264NALSPS *it, const uint8_t *data);
+void h264_nal_sps_print_json(H264NALSPS *it);
+void h264_nal_sps_print_humanized(H264NALSPS *it);
+
+
+/* nal-pps.c */
+struct h264_nal_pps_s {
+	uint16_t pic_parameter_set_id;
+	uint16_t seq_parameter_set_id;
+	uint8_t
+		entropy_coding_mode_flag                     :1,
+		bottom_field_pic_order_in_frame_present_flag :1;
+	uint16_t num_slice_groups_minus1;
+};
+
+int  h264_nal_pps_parse(H264NALPPS *it, const uint8_t *data);
+void h264_nal_pps_print_json(H264NALPPS *it);
+void h264_nal_pps_print_humanized(H264NALPPS *it);
+
+
+/* nal-aud.c */
+struct h264_nal_aud_s {
+	uint8_t primary_pic_type;
+};
+
+int  h264_nal_pps_parse(H264NALPPS *it, const uint8_t *data);
+void h264_nal_pps_print_json(H264NALPPS *it);
+void h264_nal_pps_print_humanized(H264NALPPS *it);
+
+
+/* nal-slice-idr.c */
+enum h264_nal_slice_type_enum {
+	/// Consists of P-macroblocks
+	//  (each macro block is predicted using
+	//  one reference frame) and / or I-macroblocks.
+	H264_NAL_SLICE_TYPE_P   = 0,
+	// Consists of B-macroblocks (each
+	// macroblock is predicted using one or two
+	// reference frames) and / or I-macroblocks.
+	H264_NAL_SLICE_TYPE_B   = 1,
+	// Contains only I-macroblocks.
+	// Each macroblock is predicted from previously
+	// coded blocks of the same slice.
+	H264_NAL_SLICE_TYPE_I   = 2,
+	// SP-slice. Consists of P and / or I-macroblocks
+	// and lets you switch between encoded streams.
+	H264_NAL_SLICE_TYPE_SP  = 3,
+	// SI-slice. It consists of a special type
+	// of SI-macroblocks and lets you switch between
+	// encoded streams.
+	H264_NAL_SLICE_TYPE_SI  = 4,
+
+	H264_NAL_SLICE_TYPE_P2  = 5,
+	H264_NAL_SLICE_TYPE_B2  = 6,
+	H264_NAL_SLICE_TYPE_I2  = 7,
+	H264_NAL_SLICE_TYPE_SP2 = 8,
+	H264_NAL_SLICE_TYPE_SI2 = 9,
+};
+
+struct h264_nal_slice_idr_s {
+	H264NALType      nal_type;
+	H264NALSliceType slice_type;
+
+	uint8_t  first_mb_in_slice;
+	uint16_t pic_parameter_set_id;
+	uint16_t frame_num;
+	uint16_t pic_order_cnt_lsb;
+};
+
+int  h264_nal_slice_idr_parse(H264NALSliceIDR *it, H264NALSPS *sps, const uint8_t *data);
+void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it);
+
+
+/* h264.c */
+struct h264_s {
+	uint8_t
+		got_nal_sps :1,
+		got_nal_pps :1,
+		got_nal_aud :1;
+
+	H264NALSPS nal_sps;
+	H264NALPPS nal_pps;
+	H264NALAUD nal_aud;
+
+	H264NALSliceIDR nal_slice_idr;
 };
 
 const char* h264_nal_type_string(H264NALType it);
 // TODO: remove extra args: app_offset, es_offset, es_length
-void        h264_annexb_parse(H264AnnexBNALU *it, const uint8_t *data,
+void        h264_annexb_parse(H264 *it, const uint8_t *data,
                               uint64_t app_offset, int es_offset, int es_length);
 
 

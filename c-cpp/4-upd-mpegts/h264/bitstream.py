@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-from bitstring import BitStream, BitArray
+# pip3 install bitstream
+from bitstring import BitStream
 
 
 DATA = (
@@ -31,14 +32,6 @@ def main():
         print("slice-type: {}".format(slice_type))
         print("pic-parameter-set-id: {}".format(pic_parameter_set_id))
         print("frame-num: {}".format(frame_num.int))
-
-    # golomb_bits = 0
-    # for byte in DATA:
-    #     for bit in bits(byte):
-    #         if bit == 0:
-    #             golomb_bits += 1
-    #         elif bit == 1:
-    #             print(golomb_bits)
 
 
 if __name__ == "__main__":

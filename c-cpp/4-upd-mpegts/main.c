@@ -27,6 +27,8 @@ struct parse_worker_s {
 	FIFO    *fifo;
 
 	MPEGTS   mpegts;
+	H264     h264;
+
 	uint8_t  probe;
 	uint64_t offset; // global offset
 	uint16_t video_PID_H264;
@@ -93,10 +95,8 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
 				int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
-				if (mpegts_header.PID == it->video_PID_H264) {
-					H264AnnexBNALU nal = { 0 };
-					h264_annexb_parse(&nal, &msg[es_offset], it->offset, es_offset, es_length);
-				}
+				if (mpegts_header.PID == it->video_PID_H264)
+					h264_annexb_parse(&it->h264, &msg[es_offset], it->offset, es_offset, es_length);
 			}
 
 			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
@@ -107,10 +107,8 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				es_offset = es_offset + mpegts_adaption.adaptation_field_length + 1;
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
-			if (mpegts_header.PID == it->video_PID_H264) {
-				H264AnnexBNALU nal = { 0 };
-				h264_annexb_parse(&nal, &msg[es_offset], it->offset, es_offset, es_length);
-			}
+			if (mpegts_header.PID == it->video_PID_H264)
+				h264_annexb_parse(&it->h264, &msg[es_offset], it->offset, es_offset, es_length);
 		}
 	}
 
@@ -158,10 +156,16 @@ void* parse_worker_do(void *args) {
 		if ((it->probe) &&
 			  (it->mpegts.psi_pat) &&
 		    (it->mpegts.psi_pmt) &&
-		    (it->mpegts.psi_sdt)) {
+		    (it->mpegts.psi_sdt) &&
+		    (it->h264.got_nal_sps) &&
+		    (it->h264.got_nal_pps) &&
+		    (it->h264.got_nal_aud)) {
 			mpegts_psi_pat_print_humanized(it->mpegts.psi_pat);
 			mpegts_psi_sdt_print_humanized(it->mpegts.psi_sdt);
 			mpegts_psi_pmt_print_humanized(it->mpegts.psi_pmt);
+			h264_nal_sps_print_humanized(&it->h264.nal_sps);
+			h264_nal_pps_print_humanized(&it->h264.nal_pps);
+			h264_nal_aud_print_humanized(&it->h264.nal_aud);
 			exit(0);
 		}
 

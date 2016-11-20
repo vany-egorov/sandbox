@@ -46,6 +46,21 @@ $(OBJECTS_DIRS)/mpegts-es.o: ./mpegts/es.c
 $(OBJECTS_DIRS)/h264-h264.o: ./h264/h264.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/h264-nal-sps.o: ./h264/nal-sps.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/h264-nal-pps.o: ./h264/nal-pps.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/h264-nal-aud.o: ./h264/nal-aud.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/h264-nal-slice-idr.o: ./h264/nal-slice-idr.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/h264-bitstream.o: ./h264/bitstream.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/udp.o: ./udp.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -84,6 +99,11 @@ main: \
 	$(OBJECTS_DIRS)/mpegts-pes.o \
 	$(OBJECTS_DIRS)/mpegts-es.o \
 	$(OBJECTS_DIRS)/h264-h264.o \
+	$(OBJECTS_DIRS)/h264-nal-sps.o \
+	$(OBJECTS_DIRS)/h264-nal-pps.o \
+	$(OBJECTS_DIRS)/h264-nal-aud.o \
+	$(OBJECTS_DIRS)/h264-nal-slice-idr.o \
+	$(OBJECTS_DIRS)/h264-bitstream.o \
 	$(OBJECTS_DIRS)/fifo.o \
 	$(OBJECTS_DIRS)/config.o \
 	$(OBJECTS_DIRS)/udp.o \
