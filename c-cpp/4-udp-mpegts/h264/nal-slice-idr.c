@@ -18,21 +18,21 @@ void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it) {
 	case H264_NAL_SLICE_TYPE_P:
 	case H264_NAL_SLICE_TYPE_P2:
 		printf(COLOR_BRIGHT_CYAN "H264 P slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-			0, it->slice_type, it->frame_num, it->pic_order_cnt_lsb);
+			0, it->frame_num, it->pic_order_cnt_lsb);
 		break;
 	case H264_NAL_SLICE_TYPE_B:
 	case H264_NAL_SLICE_TYPE_B2:
 		printf(COLOR_BRIGHT_GREEN "H264 B slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-			0, it->slice_type, it->frame_num, it->pic_order_cnt_lsb);
+			0, it->frame_num, it->pic_order_cnt_lsb);
 		break;
 	case H264_NAL_SLICE_TYPE_I:
 	case H264_NAL_SLICE_TYPE_I2:
 		printf(COLOR_BRIGHT_RED "H264 I slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-			0, it->slice_type, it->frame_num, it->pic_order_cnt_lsb);
+			0, it->frame_num, it->pic_order_cnt_lsb);
 		break;
 	default:
-		printf(COLOR_BRIGHT_RED "H264 slice #%d { slice-type: %d, frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
-			0, it->slice_type, it->frame_num, it->pic_order_cnt_lsb);
+		printf(COLOR_BRIGHT_RED "H264 slice #%d { frame-num: %d, pic-order-cnt-lsb: %d }" COLOR_RESET "\n",
+			0, it->frame_num, it->pic_order_cnt_lsb);
 		break;
 	}
 }
