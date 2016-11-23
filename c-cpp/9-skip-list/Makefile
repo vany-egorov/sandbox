@@ -3,7 +3,7 @@ CXXFLAGS := -g
 
 CC:= gcc
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
-CCFLAGS :=-g -lpthread -lrt
+CCFLAGS :=-g -lpthread -lrt -lm
 
 LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 
