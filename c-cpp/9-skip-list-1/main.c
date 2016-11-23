@@ -164,6 +164,8 @@ int qsort_comp(const void *a, const void *b) {
 int main(int argc, char const *argv[]) {
 	int ret = EX_OK;
 	int i = 0;
+	uint64_t key1 = 1000000,
+	         key2 = 1200000;
 
 	uint64_t *timestamps = calloc(TIMESTAMPS_COUNT, sizeof(uint64_t));
 	SkipList *sl = NULL;
@@ -172,9 +174,13 @@ int main(int argc, char const *argv[]) {
 	new_skip_list(&sl, 20, 10240, 0.5);
 	printf("skip-list %p\n", sl);
 
-	for (i = 0; i < TIMESTAMPS_COUNT; i++) timestamps[i] = rand() % TIMESTAMPS_COUNT;
+	for (i = 0; i < TIMESTAMPS_COUNT-2; i++) timestamps[i] = rand() % TIMESTAMPS_COUNT;
+	timestamps[TIMESTAMPS_COUNT-2] = key1;
+	timestamps[TIMESTAMPS_COUNT-1] = key2;
 
+	printf("qsort-start\n");
 	qsort(timestamps, TIMESTAMPS_COUNT, sizeof(uint64_t), qsort_comp);
+	printf("qsort-finish\n");
 
 	for (i = 0; i < TIMESTAMPS_COUNT; i++)
 		skip_list_push(sl, timestamps[i]);
