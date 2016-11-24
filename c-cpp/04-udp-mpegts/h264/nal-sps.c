@@ -11,6 +11,7 @@ static int got_profile(H264NALSPS *it) {
 }
 
 int h264_nal_sps_parse(H264NALSPS *it, const uint8_t *data) {
+	uint8_t iu8 = 0;
 	uint32_t offset = 0;
 
 	it->profile_idc = h264_bitstream_get_bits(data, &offset, 8);
@@ -48,7 +49,15 @@ int h264_nal_sps_parse(H264NALSPS *it, const uint8_t *data) {
 		it->offset_for_non_ref_pic = h264_bitstream_decode_u_golomb(data, &offset);
 		it->offset_for_top_to_bottom_field = h264_bitstream_decode_u_golomb(data, &offset);
 		it->num_ref_frames_in_pic_order_cnt_cycle = h264_bitstream_decode_u_golomb(data, &offset);
+		for (iu8 = 0; iu8 < it->num_ref_frames_in_pic_order_cnt_cycle; iu8++)
+			h264_bitstream_decode_u_golomb(data, &offset);
 	}
+
+	it->max_num_ref_frames = h264_bitstream_decode_u_golomb(data, &offset);
+	it->gaps_in_frame_num_value_allowed_flag = h264_bitstream_get_bits(data, &offset, 1);
+	it->pic_width_in_mbs_minus1 = h264_bitstream_decode_u_golomb(data, &offset);
+	it->pic_height_in_map_units_minus1 = h264_bitstream_decode_u_golomb(data, &offset);
+	it->frame_mbs_only_flag = h264_bitstream_get_bits(data, &offset, 1);
 }
 
 void h264_nal_sps_print_json(H264NALSPS *it) {
@@ -91,4 +100,9 @@ void h264_nal_sps_print_humanized(H264NALSPS *it) {
 		printf("    offset-for-top-to-bottom-field: %d\n", it->offset_for_top_to_bottom_field);
 		printf("    num-ref-frames-in-pic-order-cnt-cycle: %d\n", it->num_ref_frames_in_pic_order_cnt_cycle);
 	}
+	printf("  max-num-ref-frames: %d\n", it->max_num_ref_frames);
+	printf("  gaps-in-frame-num-value-allowed-flag: %d\n", it->gaps_in_frame_num_value_allowed_flag);
+	printf("  pic-width-in-mbs-minus1: %d (%d)\n", it->pic_width_in_mbs_minus1, (it->pic_width_in_mbs_minus1+1)*16);
+	printf("  pic-height-in-map-units-minus1: %d (%d)\n", it->pic_height_in_map_units_minus1, (it->pic_height_in_map_units_minus1+1)*16);
+	printf("  frame-mbs-only-flag: %d\n", it->frame_mbs_only_flag);
 }

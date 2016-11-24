@@ -15,9 +15,9 @@
 #include "url.h"
 #include "udp.h"
 #include "file.h"
-#include "fifo.h"
 #include "color.h"
 #include "config.h"
+#include "./collections/fifo.h"
 #include "./mpegts/mpegts.h"
 #include "./h264/h264.h"
 

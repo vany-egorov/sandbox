@@ -1,5 +1,5 @@
-#ifndef __FIFO__
-#define __FIFO__
+#ifndef __COLLECTIONS_FIFO__
+#define __COLLECTIONS_FIFO__
 
 
 #include <stdio.h>     // printf
@@ -35,4 +35,4 @@ void fifo_reset(FIFO *it);
 void fifo_del(FIFO *it);
 
 
-#endif // __FIFO__
+#endif // __COLLECTIONS_FIFO__

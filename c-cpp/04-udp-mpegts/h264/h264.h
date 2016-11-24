@@ -128,7 +128,9 @@ struct h264_nal_sps_s {
 		qpprime_y_zero_transform_bypass_flag :1,
 		seq_scaling_matrix_present_flag      :1,
 		pic_order_cnt_type                   :1,
-		delta_pic_order_always_zero_flag     :1;
+		delta_pic_order_always_zero_flag     :1,
+		gaps_in_frame_num_value_allowed_flag :1,
+		frame_mbs_only_flag                  :1;
 	uint8_t bit_depth_luma_minus8;
 	uint8_t bit_depth_chroma_minus8;
 	uint8_t log2_max_frame_num_minus4;
@@ -136,6 +138,9 @@ struct h264_nal_sps_s {
 	int8_t  offset_for_non_ref_pic;
 	int8_t  offset_for_top_to_bottom_field;
 	uint8_t num_ref_frames_in_pic_order_cnt_cycle;
+	uint8_t max_num_ref_frames;
+	uint16_t pic_width_in_mbs_minus1;
+	uint16_t pic_height_in_map_units_minus1;
 };
 
 int  h264_nal_sps_parse(H264NALSPS *it, const uint8_t *data);
@@ -201,7 +206,10 @@ struct h264_nal_slice_idr_s {
 	H264NALType      nal_type;
 	H264NALSliceType slice_type;
 
-	uint8_t  first_mb_in_slice;
+	uint8_t
+		first_mb_in_slice :1,
+		field_pic_flag    :1,
+		bottom_field_flag :1;
 	uint16_t pic_parameter_set_id;
 	uint16_t frame_num;
 	uint16_t pic_order_cnt_lsb;

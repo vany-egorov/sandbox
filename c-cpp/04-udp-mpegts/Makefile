@@ -10,6 +10,15 @@ LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 OBJECTS_DIRS := ./bin
 
 
+$(OBJECTS_DIRS)/collections-slice.o: ./collections/slice.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/collections-fifo.o: ./collections/fifo.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/collections-slice-test.o: ./collections/slice-test.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/mpegts-mpegts.o: ./mpegts/mpegts.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -76,9 +85,6 @@ $(OBJECTS_DIRS)/io.o: ./io.c
 $(OBJECTS_DIRS)/util.o: ./util.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/fifo.o: ./fifo.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
-
 $(OBJECTS_DIRS)/config.o: ./config.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -87,6 +93,8 @@ $(OBJECTS_DIRS)/main.o: ./main.c
 
 
 main: \
+	$(OBJECTS_DIRS)/collections-fifo.o \
+	$(OBJECTS_DIRS)/collections-slice.o \
 	$(OBJECTS_DIRS)/mpegts-mpegts.o \
 	$(OBJECTS_DIRS)/mpegts-header.o \
 	$(OBJECTS_DIRS)/mpegts-adaption.o \
@@ -104,7 +112,6 @@ main: \
 	$(OBJECTS_DIRS)/h264-nal-aud.o \
 	$(OBJECTS_DIRS)/h264-nal-slice-idr.o \
 	$(OBJECTS_DIRS)/h264-bitstream.o \
-	$(OBJECTS_DIRS)/fifo.o \
 	$(OBJECTS_DIRS)/config.o \
 	$(OBJECTS_DIRS)/udp.o \
 	$(OBJECTS_DIRS)/file.o \
@@ -113,10 +120,15 @@ main: \
 	$(OBJECTS_DIRS)/main.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
+collections-slice-test: \
+	$(OBJECTS_DIRS)/collections-slice.o \
+	$(OBJECTS_DIRS)/collections-slice-test.o
+	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
+
 bin-dir:
 	mkdir -p $(OBJECTS_DIRS)
 
-build: bin-dir main
+build: bin-dir main collections-slice-test
 
 clean:
 	rm -rvf $(OBJECTS_DIRS)/*.o
