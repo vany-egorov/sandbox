@@ -19,6 +19,9 @@ $(OBJECTS_DIRS)/collections-fifo.o: ./collections/fifo.c
 $(OBJECTS_DIRS)/collections-slice-test.o: ./collections/slice-test.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/db-db.o: ./db/db.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/mpegts-mpegts.o: ./mpegts/mpegts.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -95,6 +98,7 @@ $(OBJECTS_DIRS)/main.o: ./main.c
 main: \
 	$(OBJECTS_DIRS)/collections-fifo.o \
 	$(OBJECTS_DIRS)/collections-slice.o \
+	$(OBJECTS_DIRS)/db-db.o \
 	$(OBJECTS_DIRS)/mpegts-mpegts.o \
 	$(OBJECTS_DIRS)/mpegts-header.o \
 	$(OBJECTS_DIRS)/mpegts-adaption.o \

@@ -28,24 +28,31 @@ struct db_s {
 };
 
 enum db_atom_kind_enum {
-	MPEGTS_TS,
-	MPEGTS_PES,
-	MPEGTS_PSI_PAT,
-	MPEGTS_PSI_PMT,
-	MPEGTS_PSI_SDT,
+	DB_MPEGTS_TS,
+	DB_MPEGTS_PES,
+	DB_MPEGTS_PSI_PAT,
+	DB_MPEGTS_PSI_PMT,
+	DB_MPEGTS_PSI_SDT,
 
-	H264_AUD,
-	H264_SEI,
-	H264_SPS,
-	H264_PPS,
-	H264_SLICE_IDR,
+	DB_H264_AUD,
+	DB_H264_SEI,
+	DB_H264_SPS,
+	DB_H264_PPS,
+	DB_H264_SLICE_IDR,
 };
 
 struct db_atom_s {
 	DBAtomKind kind;
 
+	// global offset inside stream
+	uint64_t offset;
+
 	void *data;
 };
+
+int db_new(DB **out);
+int db_h264_sps_append(DB *it);
+void db_del(DB **it);
 
 
 #endif // __DB_DB__
