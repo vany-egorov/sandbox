@@ -24,9 +24,12 @@ struct slice_s {
 };
 
 
-int  slice_new(Slice **out, size_t el_size);
-int  slice_append(Slice *it, const void *el);
-int  slice_get(Slice *it, size_t index, void *el);
+int slice_new(Slice **out, size_t el_size);
+int slice_append(Slice *it, const void *el);
+int slice_get_copy_data(Slice *it, size_t index, void *el);
+inline void *slice_get(Slice *it, size_t index);
+inline void *slice_tail(Slice *it);
+int slice_tail_copy_data(Slice *it, void *el);
 void slice_print(Slice *it);
 void slice_del(Slice *it);
 

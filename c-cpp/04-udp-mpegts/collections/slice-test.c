@@ -1,5 +1,5 @@
-#include <stdio.h>    // printf
-#include <inttypes.h> // PRIu64, PRId64
+#include <stdio.h>    /* printf */
+#include <inttypes.h> /* PRIu64, PRId64 */
 
 #include "slice.h"
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	printf("\n");
 
 	for (i = 0; i < 30; i++) {
-		slice_get(s, i, &d);
+		slice_get_copy_data(s, i, &d);
 		printf("[~] #%2d {a: %2d, b: %2d, c: %2d, d: %2" PRIu64 ", e: %2" PRId64 "}\n",
 			i, d.a, d.b, d.c, d.d, d.e);
 	}

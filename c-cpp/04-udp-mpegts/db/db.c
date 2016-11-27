@@ -4,10 +4,11 @@
 int db_new(DB **out) {
 	DB *it = NULL;
 
-	it = calloc(1, sizeof(Slice));
+	it = calloc(1, sizeof(DB));
 	*out = it;
 
-	it->atoms = NULL;
+	slice_new(&it->timestamps, sizeof(DBTimestamp));
+	slice_new(&it->atoms, sizeof(DBAtom));
 
 	it->mpegts_tss = NULL;
 	it->mpegts_pess = NULL;
@@ -22,6 +23,26 @@ int db_new(DB **out) {
 	it->h264_slice_idrs = NULL;
 
 	return 0;
+}
+
+int db_store_mpegts_pes(DB *it, MPEGTSPES *item) {
+	if (!it->start_at) time(&it->start_at);
+	if (!it->mpegts_pess) slice_new(&it->mpegts_pess, sizeof(MPEGTSPES));
+
+	slice_append(it->mpegts_pess, item);
+
+	DBAtom atom = {
+		.kind = DB_MPEGTS_PES,
+		.offset = 0,
+		.data = slice_tail(it->mpegts_pess),
+	};
+
+
+	slice_append(it->atoms, &atom);
+}
+
+int db_store_h264_sps(DB *it) {
+	printf("%lu\n", time(NULL));
 }
 
 void db_del(DB **it) {

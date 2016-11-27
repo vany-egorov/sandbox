@@ -2,15 +2,19 @@
 #define __DB_DB__
 
 
+#include "../mpegts/mpegts.h"
 #include "../collections/slice.h"
 
 
 typedef struct db_s              DB;
+typedef struct db_timestamp_s    DBTimestamp;
 typedef struct db_atom_s         DBAtom;
 typedef enum   db_atom_kind_enum DBAtomKind;
 
 struct db_s {
-	struct timespec start_at;
+	time_t start_at;
+
+	Slice *timestamps;
 
 	Slice *atoms;
 
@@ -25,6 +29,11 @@ struct db_s {
 	Slice *h264_spss;
 	Slice *h264_ppss;
 	Slice *h264_slice_idrs;
+};
+
+struct db_timestamp_s {
+	void *l; /* left */
+	void *r; /* right */
 };
 
 enum db_atom_kind_enum {
@@ -51,7 +60,8 @@ struct db_atom_s {
 };
 
 int db_new(DB **out);
-int db_h264_sps_append(DB *it);
+int db_store_mpegts_pes(DB *it, MPEGTSPES *item);
+int db_store_h264_sps(DB *it);
 void db_del(DB **it);
 
 

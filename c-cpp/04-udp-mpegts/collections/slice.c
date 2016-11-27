@@ -15,10 +15,23 @@ int slice_new(Slice **out, size_t el_size) {
 	return 0;
 }
 
+inline void *slice_tail(Slice *it) {
+	if (!it) return NULL;
+	return &(((char*)it->els)[it->el_size*it->len]);
+}
+
+int slice_tail_copy_data(Slice *it, void *el_out) {
+	void *el = NULL;
+
+	el = slice_tail(it);
+	memcpy(el_out, el, it->el_size);
+
+	return 0;
+}
+
 // TODO: handle not enought memory
 int slice_append(Slice *it, const void *el) {
 	size_t cap_new = 0;
-	void *tail = NULL;
 
 	if (it->len == it->cap) { // realloc
 		cap_new = it->cap + (size_t)(it->cap * SLICE_REALLOC_FACTOR);
@@ -26,14 +39,13 @@ int slice_append(Slice *it, const void *el) {
 		it->cap = cap_new;
 	}
 
-	tail = &(((char*)it->els)[it->el_size*it->len]);
-	memcpy(tail, el, it->el_size);
+	memcpy(slice_tail(it), el, it->el_size);
 	it->len++;
 
 	return 0;
 }
 
-int slice_get(Slice *it, size_t index, void *el_out) {
+int slice_get_copy_data(Slice *it, size_t index, void *el_out) {
 	void *el = NULL;
 
 	if (it->len <= index) return 1;
@@ -42,6 +54,11 @@ int slice_get(Slice *it, size_t index, void *el_out) {
 	memcpy(el_out, el, it->el_size);
 
 	return 0;
+}
+
+inline void *slice_get(Slice *it, size_t index) {
+	if (it->len <= index) return NULL;
+	return &(((char*)it->els)[it->el_size*index]);;
 }
 
 void slice_print(Slice *it) {

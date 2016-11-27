@@ -17,6 +17,7 @@
 #include "file.h"
 #include "color.h"
 #include "config.h"
+#include "./db/db.h"
 #include "./collections/fifo.h"
 #include "./mpegts/mpegts.h"
 #include "./h264/h264.h"
@@ -24,7 +25,9 @@
 
 typedef struct parse_worker_s ParseWorker;
 struct parse_worker_s {
-	FIFO    *fifo;
+	FIFO *fifo;
+
+	DB *db;
 
 	MPEGTS   mpegts;
 	H264     h264;
@@ -90,6 +93,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			if (!mpegts_pes_parse(&mpegts_pes, &msg[pes_offset])) {
 				// mpegts_pes_print_humanized(&mpegts_pes);
 				// mpegts_pes_print_json(&mpegts_pes);
+				db_store_mpegts_pes(it->db, &mpegts_pes);
 
 				uint8_t *es_data = &msg[pes_offset + 9 + mpegts_pes.header_length];
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
@@ -166,6 +170,12 @@ void* parse_worker_do(void *args) {
 			h264_nal_sps_print_humanized(&it->h264.nal_sps);
 			h264_nal_pps_print_humanized(&it->h264.nal_pps);
 			h264_nal_aud_print_humanized(&it->h264.nal_aud);
+
+			for (i = 0; i < it->db->mpegts_pess->len; i++) {
+				MPEGTSPES *pes = slice_get(it->db->mpegts_pess, i);
+				mpegts_pes_print_humanized(pes);
+			}
+
 			exit(0);
 		}
 
@@ -270,6 +280,7 @@ int main (int argc, char *argv[]) {
 	// parse_worker.reader = reader_fifo;
 	parse_worker.fifo = fifo;
 	parse_worker.probe = config->probe;
+	db_new(&parse_worker.db);
 	if (pthread_create(&parse_thread, NULL, parse_worker_do, (void*)&parse_worker)) {
 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
 		ret = EX_SOFTWARE; goto cleanup;
