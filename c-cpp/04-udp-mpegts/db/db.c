@@ -10,7 +10,8 @@ int db_new(DB **out) {
 	slice_new(&it->timestamps, sizeof(DBTimestamp));
 	slice_new(&it->atoms, sizeof(DBAtom));
 
-	it->mpegts_tss = NULL;
+	it->mpegts_headers = NULL;
+	it->mpegts_adaptions = NULL;
 	it->mpegts_pess = NULL;
 	it->mpegts_psi_pats = NULL;
 	it->mpegts_psi_pmts = NULL;
@@ -25,7 +26,41 @@ int db_new(DB **out) {
 	return 0;
 }
 
-int db_store_mpegts_pes(DB *it, MPEGTSPES *item) {
+int db_store_mpegts_header(DB *it, MPEGTSHeader *item, uint64_t offset) {
+	if (!it->start_at) time(&it->start_at);
+	if (!it->mpegts_headers) slice_new(&it->mpegts_headers, sizeof(MPEGTSHeader));
+
+	slice_append(it->mpegts_headers, item);
+
+	DBAtom atom = {
+		.kind = DB_MPEGTS_HEADER,
+		.offset = offset,
+		.data = slice_tail(it->mpegts_headers),
+	};
+
+	slice_append(it->atoms, &atom);
+
+	return 0;
+}
+
+int db_store_mpegts_adaption(DB *it, MPEGTSAdaption *item, uint64_t offset) {
+	if (!it->start_at) time(&it->start_at);
+	if (!it->mpegts_adaptions) slice_new(&it->mpegts_adaptions, sizeof(MPEGTSAdaption));
+
+	slice_append(it->mpegts_adaptions, item);
+
+	DBAtom atom = {
+		.kind = DB_MPEGTS_ADAPTION,
+		.offset = offset,
+		.data = slice_tail(it->mpegts_adaptions),
+	};
+
+	slice_append(it->atoms, &atom);
+
+	return 0;
+}
+
+int db_store_mpegts_pes(DB *it, MPEGTSPES *item, uint64_t offset) {
 	if (!it->start_at) time(&it->start_at);
 	if (!it->mpegts_pess) slice_new(&it->mpegts_pess, sizeof(MPEGTSPES));
 
@@ -33,12 +68,13 @@ int db_store_mpegts_pes(DB *it, MPEGTSPES *item) {
 
 	DBAtom atom = {
 		.kind = DB_MPEGTS_PES,
-		.offset = 0,
+		.offset = offset,
 		.data = slice_tail(it->mpegts_pess),
 	};
 
-
 	slice_append(it->atoms, &atom);
+
+	return 0;
 }
 
 int db_store_h264_sps(DB *it) {

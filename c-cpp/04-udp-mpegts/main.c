@@ -49,9 +49,11 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 	if (msg[0] != MPEGTS_SYNC_BYTE) return;
 
 	mpegts_header_parse(&mpegts_header, &msg[i+1]);
+	db_store_mpegts_header(it->db, &mpegts_header, it->offset+1);
 
 	if (mpegts_header.adaption_field_control) {
 		mpegts_adaption_parse(&mpegts_adaption, &msg[i+4]);
+		db_store_mpegts_adaption(it->db, &mpegts_adaption, it->offset+4);
 
 		if (mpegts_adaption.PCR_flag)
 			mpegts_pcr_print_json(&mpegts_adaption.PCR);
@@ -93,7 +95,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			if (!mpegts_pes_parse(&mpegts_pes, &msg[pes_offset])) {
 				// mpegts_pes_print_humanized(&mpegts_pes);
 				// mpegts_pes_print_json(&mpegts_pes);
-				db_store_mpegts_pes(it->db, &mpegts_pes);
+				db_store_mpegts_pes(it->db, &mpegts_pes, it->offset + pes_offset);
 
 				uint8_t *es_data = &msg[pes_offset + 9 + mpegts_pes.header_length];
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
@@ -171,9 +173,28 @@ void* parse_worker_do(void *args) {
 			h264_nal_pps_print_humanized(&it->h264.nal_pps);
 			h264_nal_aud_print_humanized(&it->h264.nal_aud);
 
-			for (i = 0; i < it->db->mpegts_pess->len; i++) {
-				MPEGTSPES *pes = slice_get(it->db->mpegts_pess, i);
-				mpegts_pes_print_humanized(pes);
+			MPEGTSHeader *mpegts_header = NULL;
+			MPEGTSAdaption *mpegts_adaption = NULL;
+			MPEGTSPES *mpegts_pes = NULL;
+
+			for (i = 0; i < it->db->atoms->len; i++) {
+				DBAtom *atom = slice_get(it->db->atoms, i);
+				switch (atom->kind) {
+				case DB_MPEGTS_HEADER:
+					mpegts_header = (MPEGTSHeader*)atom->data;
+					// mpegts_header_print_json(mpegts_header);
+					break;
+				case DB_MPEGTS_ADAPTION:
+					mpegts_adaption = (MPEGTSAdaption*)atom->data;
+					mpegts_adaption_print_json(mpegts_adaption);
+					if (mpegts_adaption->PCR_flag)
+						mpegts_pcr_print_json(&mpegts_adaption->PCR);
+					break;
+				case DB_MPEGTS_PES:
+					mpegts_pes = (MPEGTSPES*)atom->data;
+					mpegts_pes_print_humanized(mpegts_pes);
+					break;
+				}
 			}
 
 			exit(0);

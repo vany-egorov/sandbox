@@ -128,7 +128,7 @@ const char* mpegts_es_type_string(MPEGTSESType it);
 /* header.c */
 typedef struct mpegts_header_s MPEGTSHeader;
 
-struct mpegts_header_s {
+struct mpegts_header_s { // Transport Packet
 	uint8_t
 		transcport_error_indicator:1,   // TEI
 		payload_unit_start_indicator:1, // PUSI

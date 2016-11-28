@@ -18,7 +18,8 @@ struct db_s {
 
 	Slice *atoms;
 
-	Slice *mpegts_tss;
+	Slice *mpegts_headers;
+	Slice *mpegts_adaptions;
 	Slice *mpegts_pess;
 	Slice *mpegts_psi_pats;
 	Slice *mpegts_psi_pmts;
@@ -37,7 +38,8 @@ struct db_timestamp_s {
 };
 
 enum db_atom_kind_enum {
-	DB_MPEGTS_TS,
+	DB_MPEGTS_HEADER,
+	DB_MPEGTS_ADAPTION,
 	DB_MPEGTS_PES,
 	DB_MPEGTS_PSI_PAT,
 	DB_MPEGTS_PSI_PMT,
@@ -53,16 +55,25 @@ enum db_atom_kind_enum {
 struct db_atom_s {
 	DBAtomKind kind;
 
-	// global offset inside stream
+	/* global offset inside stream */
 	uint64_t offset;
 
 	void *data;
 };
 
+
 int db_new(DB **out);
-int db_store_mpegts_pes(DB *it, MPEGTSPES *item);
+
+int db_store_mpegts_header  (DB *it, MPEGTSHeader   *item, uint64_t offset);  /* TS transport packet */
+int db_store_mpegts_adaption(DB *it, MPEGTSAdaption *item, uint64_t offset);  /* TS Adaption */
+int db_store_mpegts_pes     (DB *it, MPEGTSPES      *item, uint64_t offset);  /* PES packet */
+int db_store_mpegts_psi_pat (DB *it, MPEGTSPSIPAT   *item, uint64_t offset);  /* Program Association Table */
+int db_store_mpegts_psi_pmt (DB *it, MPEGTSPSIPMT   *item, uint64_t offset);  /* Program Map Table */
+int db_store_mpegts_psi_sdt (DB *it, MPEGTSPSISDT   *item, uint64_t offset);  /* Service Description Table */
+
 int db_store_h264_sps(DB *it);
+
 void db_del(DB **it);
 
 
-#endif // __DB_DB__
+#endif /* __DB_DB__ */
