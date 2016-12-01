@@ -65,24 +65,41 @@ enum url_scheme_enum {
 #define URL_SCHEME_UNKNOWN_STR  "unk"
 
 enum url_flag_enum {
-  URL_FLAG_MULTICAST = 1, // 00000001
+  URL_FLAG_MULTICAST = 0x01,
 };
 
 struct url_s {
 	URLScheme scheme;
-	char      userinfo[100];
-	char      host[100];
 	uint16_t  port;
-	char      path[255];
-	char      query[255];
-	char      fragment[100];
-	int       flags;
+
+	char     buf[255];
+	uint16_t buf_len;
+	uint8_t
+		got_user_info       :1,
+		got_host            :1,
+		got_path            :1,
+		got_query           :1,
+		got_fragment        :1,
+		reserved_bit_fields :3;
+	uint16_t
+		pos_userinfo,
+		pos_host,
+		pos_path,
+		pos_query,
+		pos_fragment;
+	uint8_t flags;
 };
 
 
 void url_parse(URL *it, const char *raw);
 void url_sprint_json(URL *it, char *buf, size_t bufsz);
 void url_sprint(URL *it, char *buf, size_t bufsz);
+
+const char* url_user_info(URL *it);
+const char* url_host(URL *it);
+const char* url_path(URL *it);
+const char* url_query(URL *it);
+const char* url_fragment(URL *it);
 
 URLScheme url_scheme_parse(char *buf, size_t bufsz);
 const char *url_scheme_string(URLScheme it);

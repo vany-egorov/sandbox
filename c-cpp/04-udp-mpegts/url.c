@@ -1,9 +1,10 @@
 #include "url.h"
 
 
-// 224.0.0.0-224.0.0.255:     "Reserved for special 'well-known' multicast addresses."
-// 224.0.1.0-238.255.255.255: "Globally-scoped (Internet-wide) multicast addresses."
-// 239.0.0.0-239.255.255.255: "Administratively-scoped (local) multicast addresses."
+/* 224.0.0.0-224.0.0.255:     "Reserved for special 'well-known' multicast addresses."
+ * 224.0.1.0-238.255.255.255: "Globally-scoped (Internet-wide) multicast addresses."
+ * 239.0.0.0-239.255.255.255: "Administratively-scoped (local) multicast addresses."
+ */
 static char *URL_REG_PATTERN_UDP_MCAST_GROUP =
 	"2(2[4-9]|3[0-9])"
 	"(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9]))"
@@ -17,24 +18,41 @@ static inline void prepchr(char *s, const char c) {
 }
 
 
-static inline void split_host_port(const char *buf, const size_t bufsz, char *host, uint16_t *port) {
+static inline char* buf_tail(URL *it) { return &it->buf[it->buf_len]; }
+
+
+static inline void path_ensure_start_slash(URL *it) {
+	if (it->scheme == URL_SCHEME_FILE) { // add missing /
+
+		if ((it->got_path) &&                           /* path was parsed */
+		    (url_path(it)[0] != URL_SEPARATOR_PATH) &&  /* missing / */
+		    (sizeof(it->buf) > it->buf_len+1))          /* have enought space */
+			prepchr(&it->buf[it->pos_path], URL_SEPARATOR_PATH);
+
+	}
+}
+
+
+static inline void split_host_port(const char *buf, const size_t bufsz, char *host, uint8_t *got_host, uint16_t *port) {
 	char *token = NULL;
 	char port_raw[6] = { 0 };
 
-	// /221.1.1.1:5500
+	/* /221.1.1.1:5500 */
 	if (!bufsz) return;
 
+	*got_host = 1;
+
 	token = strchr(buf, URL_SEPARATOR_PORT);
-	if (token) { // host + port
+	if (token) { /* host + port */
 		strncpy(host, buf, token-buf);
 		strncpy(
 			port_raw,
 
-			token+1,      // port buffer start
+			token+1,      /* port buffer start */
 
-			              // port buffer size =
-			bufsz         //   total-buffer-size
-			- (token-buf) //   - (host-buffer-size)
+			              /* port buffer size =     */
+			bufsz         /*   total-buffer-size    */
+			- (token-buf) /*   - (host-buffer-size) */
 		);
 		*port = (uint16_t)atoi(port_raw);
 
@@ -49,7 +67,9 @@ void url_parse(URL *it, const char *raw) {
 	char copy[300];
 	char *cursor = NULL,
 	     *token = NULL;
-	regex_t reg = {0}; // UDP mcast regexp
+	uint8_t got_host = 0;
+	size_t bufsz = 0;
+	regex_t reg = { 0 }; /* UDP mcast regexp */
 
 	memset(it, 0, sizeof(*it));
 	cursor = strcpy(copy, raw);
@@ -58,56 +78,103 @@ void url_parse(URL *it, const char *raw) {
 
 	if ((token=strstr(cursor, URL_SEPARATOR_SCHEME))) {
 		it->scheme = url_scheme_parse(
-			cursor,       // scheme buffer
-			token-cursor  // scheme buffer size
+			cursor,       /* scheme buffer */
+			token-cursor  /* scheme buffer size */
 		);
 		cursor = token + strlen(URL_SEPARATOR_SCHEME);
 	}
 
 	if ((token=strchr(cursor, URL_SEPARATOR_USERINFO))) {
+		bufsz = token-cursor;
 		strncpy(
-			it->userinfo,
-			cursor,        // userinfo buffer
-			token-cursor   // userinfo buffer size
+			buf_tail(it),
+			cursor,  /* userinfo buffer */
+			bufsz    /* userinfo buffer size */
 		);
+
+		it->pos_userinfo = it->buf_len;
+		it->buf_len += (uint16_t)bufsz + 1;
+		it->got_user_info = 1;
+
 		cursor = token + 1;
 	}
 
 	if (it->scheme != URL_SCHEME_FILE) {
-		if ((token=strchr(cursor, URL_SEPARATOR_PATH))) {
+		if ((token=strchr(cursor, URL_SEPARATOR_PATH))) { /* got some data after host:[port]? */
+
+			bufsz = token-cursor;
 			split_host_port(
-				cursor,       // host[+port] buffer
-				token-cursor, // host[+port] buffer size
-				it->host,
+				cursor,  /* host[+port] buffer */
+				bufsz,   /* host[+port] buffer size */
+				buf_tail(it),
+				&got_host,
 				&it->port
 			);
+
+			if (got_host) {
+				it->pos_host = it->buf_len;
+				it->buf_len += strlen(&it->buf[it->pos_host]) + 1;
+				it->got_host = 1;
+			}
+
 			cursor = token;
 		} else {
-			split_host_port(cursor, strlen(cursor), it->host, &it->port);
+			bufsz = strlen(cursor);
+			split_host_port(cursor, bufsz, buf_tail(it), &got_host, &it->port);
+
+			if (got_host) {
+				it->pos_host = it->buf_len;
+				it->buf_len += strlen(&it->buf[it->pos_host]) + 1;
+				it->got_host = 1;
+			}
+
 			cursor = NULL;
 		}
 	}
 
 	if (cursor) {
 		if ((token=strchr(cursor, URL_SEPARATOR_QUERY))) {
+			bufsz = token-cursor;
 			strncpy(
-				it->path,
-				cursor,        // path buffer
-				token-cursor   // path buffer size
+				buf_tail(it),
+				cursor,  /* path buffer */
+				bufsz    /* path buffer size */
 			);
+
+			it->pos_path = it->buf_len;
+			it->buf_len += (uint16_t)bufsz + 1;
+			it->got_path = 1;
+			path_ensure_start_slash(it);
+
 			cursor = token + 1;
 		} else {
 
 			if ((token=strchr(cursor, URL_SEPARATOR_FRAGMENT))) {
+				bufsz = token-cursor;
 				strncpy(
-					it->path,
-					cursor,        // path buffer
-					token-cursor   // path buffer size
+					buf_tail(it),
+					cursor,   /* path buffer */
+					bufsz     /* path buffer size */
 				);
+
+				it->pos_path = it->buf_len;
+				it->buf_len += (uint16_t)bufsz + 1;
+				it->got_path = 1;
+				path_ensure_start_slash(it);
+
 				cursor = token + 1;
-				strcpy(it->fragment, cursor);
-			} else
-				strcpy(it->path, cursor);
+
+				strcpy(buf_tail(it), cursor);
+				it->pos_fragment = it->buf_len;
+				it->buf_len += (uint16_t)strlen(cursor) + 1;
+				it->got_fragment = 1;
+			} else {
+				strcpy(buf_tail(it), cursor);
+				it->pos_path = it->buf_len;
+				it->buf_len += (uint16_t)strlen(cursor) + 1;
+				it->got_path = 1;
+				path_ensure_start_slash(it);
+			}
 
 			cursor = NULL;
 		}
@@ -115,42 +182,45 @@ void url_parse(URL *it, const char *raw) {
 
 	if (cursor) {
 		if ((token=strchr(cursor, URL_SEPARATOR_FRAGMENT))) {
+			bufsz = token-cursor;
 			strncpy(
-				it->query,
-				cursor,        // fragment buffer
-				token-cursor   // fragment buffer size
+				buf_tail(it),
+				cursor,     /* query buffer */
+				bufsz       /* query buffer size */
 			);
+
+			it->pos_query = it->buf_len;
+			it->buf_len += (uint16_t)bufsz + 1;
+			it->got_query = 1;
+
 			cursor = token + 1;
-			strcpy(it->fragment, cursor);
+
+			strcpy(buf_tail(it), cursor);
+			it->pos_fragment = it->buf_len;
+			it->buf_len += (uint16_t)strlen(cursor) + 1;
+			it->got_fragment = 1;
 		} else {
-			strcpy(it->query, cursor);
+			strcpy(buf_tail(it), cursor);
+			it->pos_query = it->buf_len;
+			it->buf_len += (uint16_t)strlen(cursor) + 1;
+			it->got_query = 1;
+
 			cursor = NULL;
 		}
 	}
 
-	{ // post-processing: guess missing from context
+	{ /* post-processing: guess missing from context */
 
-		if (it->scheme == URL_SCHEME_FILE) { // add missing /
+		if (it->scheme == URL_SCHEME_UNKNOWN) { /* guess scheme from context */
 
-			if ((strlen(it->path) != 0) &&               // path was parsed
-			    (it->path[0] != URL_SEPARATOR_PATH) &&   // missing /
-			    (sizeof(it->path) > strlen(it->path)+1)) // have enought space
-				prepchr(it->path, URL_SEPARATOR_PATH);
-
-		}
-
-		if (it->scheme == URL_SCHEME_UNKNOWN) { // guess scheme from context
-
-			if ((strlen(it->host) != 0) && // host provided
-			    (it->host[0] == '2')) {
+			if ((it->got_host) && /* host provided */
+			    (url_host(it)[0] == '2'))
 				it->scheme = URL_SCHEME_UDP;
-			}
 
-			if ((strlen(it->host) == 0) && // no host provided
-				  (strlen(it->path) != 0) && // path provided
-			    (it->path[0] == '/')) {
+			if ((!it->got_host) &&  /* no host provided */
+				  (it->got_path) &&   /* path provided */
+			    (url_path(it)[0] == '/'))
 				it->scheme = URL_SCHEME_FILE;
-			}
 
 		}
 
@@ -167,12 +237,12 @@ void url_parse(URL *it, const char *raw) {
 			it->port = URL_DEFAULT_SSH_PORT;
 
 		if ((it->scheme == URL_SCHEME_UDP) &&
-			  (strlen(it->host) > 0)) {
+			  (it->got_host)) {
 
 			// must-compile
 			if (!regcomp(&reg, URL_REG_PATTERN_UDP_MCAST_GROUP, REG_EXTENDED|REG_ICASE)) {
 				// must-exec
-				if (!regexec(&reg, it->host, (size_t)0, NULL, 0))
+				if (!regexec(&reg, url_host(it), (size_t)0, NULL, 0))
 					it->flags |= URL_FLAG_MULTICAST;
 				regfree(&reg);
 			}
@@ -180,20 +250,26 @@ void url_parse(URL *it, const char *raw) {
 	}
 }
 
+const char* url_user_info(URL *it) { return it->got_user_info ? &it->buf[it->pos_userinfo] : ""; }
+const char* url_host(URL *it)      { return it->got_host ? &it->buf[it->pos_host] : ""; }
+const char* url_path(URL *it)      { return it->got_path ? &it->buf[it->pos_path] : ""; }
+const char* url_query(URL *it)     { return it->got_query ? &it->buf[it->pos_query] : ""; }
+const char* url_fragment(URL *it)  { return it->got_fragment ? &it->buf[it->pos_fragment] : ""; }
+
 void url_sprint(URL *it, char *buf, size_t bufsz) {
 	snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s%s", url_scheme_string(it->scheme), URL_SEPARATOR_SCHEME);
-	if (strlen(it->userinfo))
-		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s%c", it->userinfo, URL_SEPARATOR_USERINFO);
-	if (strlen(it->host))
-		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s", it->host);
+	if (it->got_user_info)
+		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s%c", url_user_info(it), URL_SEPARATOR_USERINFO);
+	if (it->got_host)
+		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s", url_host(it));
 	if (it->port)
 		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%c%d", URL_SEPARATOR_PORT, it->port);
-	if (strlen(it->path))
-		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s", it->path);
-	if (strlen(it->query))
-		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%c%s", URL_SEPARATOR_QUERY, it->query);
-	if (strlen(it->fragment))
-		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%c%s", URL_SEPARATOR_FRAGMENT, it->fragment);
+	if (it->got_path)
+		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s", url_path(it));
+	if (it->got_query)
+		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%c%s", URL_SEPARATOR_QUERY, url_query(it));
+	if (it->got_fragment)
+		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%c%s", URL_SEPARATOR_FRAGMENT, url_fragment(it));
 }
 
 void url_sprint_json(URL *it, char *buf, size_t bufsz) {
@@ -208,12 +284,12 @@ void url_sprint_json(URL *it, char *buf, size_t bufsz) {
 		", \"multicast?\": %d"
 		"}",
 		url_scheme_string(it->scheme),
-		it->userinfo,
-		it->host,
+		url_user_info(it),
+		url_host(it),
 		it->port,
-		it->path,
-		it->query,
-		it->fragment,
+		url_path(it),
+		url_query(it),
+		url_fragment(it),
 		it->flags & URL_FLAG_MULTICAST
 	);
 }
@@ -282,3 +358,4 @@ const char *url_scheme_string(URLScheme it) {
 
 	return URL_SCHEME_UNKNOWN_STR;
 }
+

@@ -264,7 +264,7 @@ int main (int argc, char *argv[]) {
 	io_multi_writer_push(multi, writer_file_1);
 	io_multi_writer_push(multi, writer_file_2);
 
-	if (udp_connect_i(udp_i, config->i->host, config->i->port, NULL,
+	if (udp_connect_i(udp_i, url_host(config->i), config->i->port, NULL,
 	                  ebuf, sizeof(ebuf))) {
 		fprintf(stderr, "[udp-i @ %p] connect error: \"%s\"\n", udp_i, ebuf);
 		ret = EX_SOFTWARE; goto cleanup;
@@ -274,7 +274,7 @@ int main (int argc, char *argv[]) {
 			", \"udp-multicast-group\": \"%s\""
 			", \"port\": %d"
 			", \"if\": \"%s\""
-		"}\n", udp_i, udp_i->sock, config->i->host, config->i->port, "-");
+		"}\n", udp_i, udp_i->sock, url_host(config->i), config->i->port, "-");
 
 	if (file_open(file_ts_1, "./tmp/out-1.ts", "wb",
 	              ebuf, sizeof(ebuf))) {
