@@ -235,8 +235,8 @@ int main (int argc, char *argv[]) {
 	config_parse(config, argc, argv);
 	config_print(config);
 
-	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 	if (config->help) { config_help(); goto cleanup; }
+	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 
 	udp_i = udp_new();                     // i
 	file_ts_1 = file_new();                // o
