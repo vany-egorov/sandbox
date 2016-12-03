@@ -31,10 +31,10 @@ const char* h264_nal_type_string(H264NALType it) {
 // TODO: remove debug
 static FILE *f_dump_h264 = NULL;
 static int is_dump_h264_opened = 0;
-static int nal_size = 0;
+static size_t nal_size = 0;
 
-// TODO: remove extra args: app_offset, es_offset, es_length
-void h264_annexb_parse(H264 *it, const uint8_t *data, uint64_t app_offset, int es_offset, int es_length) {
+// TODO: remove extra args: app_offset, es_offset, datasz
+void h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264NAL *nal, uint64_t app_offset, int es_offset) {
 	int es_i = 0;
 	uint64_t es_offset_current = 0;
 	uint32_t es_start_code = 0;
@@ -45,11 +45,11 @@ void h264_annexb_parse(H264 *it, const uint8_t *data, uint64_t app_offset, int e
 			f_dump_h264 = fopen("./tmp/out.h264", "wb");
 			is_dump_h264_opened = 1;
 		}
-		nal_size += es_length;
-		fwrite(data, es_length, 1, f_dump_h264);
+		nal_size += datasz;
+		fwrite(data, datasz, 1, f_dump_h264);
 	}
 
-	for (es_i = 0; es_i < es_length; es_i++) {
+	for (es_i = 0; es_i < datasz; es_i++) {
 		es_start_code = 0;
 		got_es_start_code = 0;
 
@@ -113,6 +113,7 @@ void h264_annexb_parse(H264 *it, const uint8_t *data, uint64_t app_offset, int e
 
 				if (nal_type == H264_NAL_TYPE_SPS) {
 					h264_nal_sps_parse(&it->nal_sps, &data[es_i+1]);
+					nal->sps = it->nal_sps;
 					// h264_nal_sps_print_humanized(&it->nal_sps);
 					it->got_nal_sps = 1;
 				} else if (nal_type == H264_NAL_TYPE_PPS) {

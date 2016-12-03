@@ -65,6 +65,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 		mpegts_psi_pat_del(mpegts->psi_pat);
 		mpegts->psi_pat = mpegts_psi_pat_new();
 		mpegts_psi_pat_parse(mpegts->psi_pat, &msg[i+5]);
+		db_store_mpegts_psi_pat(it->db, mpegts->psi_pat, it->offset+5);
 
 	// PSI-PMT
 	} else if ((!mpegts->psi_pmt) &&
@@ -73,6 +74,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 		mpegts_psi_pmt_del(mpegts->psi_pmt);
 		mpegts->psi_pmt = mpegts_psi_pmt_new();
 		mpegts_psi_pmt_parse(mpegts->psi_pmt, &msg[i+5]);
+		db_store_mpegts_psi_pmt(it->db, mpegts->psi_pmt, it->offset+5);
 		mpegts_psi_pmt_program_element = mpegts_psi_pmt_search_by_es_type(mpegts->psi_pmt, MPEGTS_STREAM_TYPE_VIDEO_H264);
 		if (mpegts_psi_pmt_program_element != NULL)
 			it->video_PID_H264 = mpegts_psi_pmt_program_element->elementary_PID;
@@ -82,7 +84,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 		mpegts_psi_sdt_del(mpegts->psi_sdt);
 		mpegts->psi_sdt = mpegts_psi_sdt_new();
 		mpegts_psi_sdt_parse(mpegts->psi_sdt, &msg[i+5]);
-		// printf("SDT: "); psi_print(&psi);
+		db_store_mpegts_psi_sdt(it->db, mpegts->psi_sdt, it->offset+5);
 	}
 
 	if (mpegts_header.contains_payload) {
@@ -101,8 +103,9 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
 				int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
+				H264NAL nal = { 0 };
 				if (mpegts_header.PID == it->video_PID_H264)
-					h264_annexb_parse(&it->h264, &msg[es_offset], it->offset, es_offset, es_length);
+					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nal, it->offset, es_offset);
 			}
 
 			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
@@ -113,8 +116,9 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				es_offset = es_offset + mpegts_adaption.adaptation_field_length + 1;
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
+			H264NAL nal = { 0 };
 			if (mpegts_header.PID == it->video_PID_H264)
-				h264_annexb_parse(&it->h264, &msg[es_offset], it->offset, es_offset, es_length);
+				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nal, it->offset, es_offset);
 		}
 	}
 
