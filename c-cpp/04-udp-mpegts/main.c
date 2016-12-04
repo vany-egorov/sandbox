@@ -104,25 +104,23 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
 				H264NAL nals[5] = { 0 };
-				H264NALType nal_types[5] = { 0 };
 				int nal_offsets[5] = { 0 };
 				int nal_len = 0;
 				int nal_i = 0;
 
 				if (mpegts_header.PID == it->video_PID_H264) {
-					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nals[0], &nal_types[0], &nal_offsets[0], &nal_len);
+					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nals[0], &nal_offsets[0], &nal_len);
 					if (nal_len) {
 						for (nal_i = 0; nal_i < nal_len; nal_i++) {
 							H264NAL *nal = &nals[nal_i];
-							H264NALType nal_type = nal_types[nal_i];
 							uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(nal_offsets[nal_i]);
 
-							db_store_h264(it->db, nal, nal_type, 0);
+							db_store_h264(it->db, nal, 0);
 
 							printf("ES 0x%08llX | ", nal_offset);
 
-							const char *nal_type_name = h264_nal_type_string(nal_type);
-							switch (nal_type) {
+							const char *nal_type_name = h264_nal_type_string(nal->type);
+							switch (nal->type) {
 							case H264_NAL_TYPE_AUD:
 								printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
 								break;
@@ -137,7 +135,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 								break;
 							case H264_NAL_TYPE_SLICE:
 							case H264_NAL_TYPE_IDR:
-								h264_nal_slice_idr_print_humanized_one_line(&nal->slice_idr);
+								h264_nal_slice_idr_print_humanized_one_line(&nal->u.slice_idr);
 								break;
 							}
 						}
@@ -154,25 +152,23 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
 			H264NAL nals[5] = { 0 };
-			H264NALType nal_types[5] = { 0 };
 			int nal_offsets[5] = { 0 };
 			int nal_len = 0;
 			int nal_i = 0;
 
 			if (mpegts_header.PID == it->video_PID_H264) {
-				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nals[0], &nal_types[0], &nal_offsets[0], &nal_len);
+				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nals[0], &nal_offsets[0], &nal_len);
 				if (nal_len) {
 					for (nal_i = 0; nal_i < nal_len; nal_i++) {
 						H264NAL *nal = &nals[nal_i];
-						H264NALType nal_type = nal_types[nal_i];
 						uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(nal_offsets[nal_i]);
 
-						db_store_h264(it->db, nal, nal_type, 0);
+						db_store_h264(it->db, nal, 0);
 
 						printf("ES 0x%08llX | ", nal_offset);
 
-						const char *nal_type_name = h264_nal_type_string(nal_type);
-						switch (nal_type) {
+						const char *nal_type_name = h264_nal_type_string(nal->type);
+						switch (nal->type) {
 						case H264_NAL_TYPE_AUD:
 							printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
 							break;
@@ -187,7 +183,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 							break;
 						case H264_NAL_TYPE_SLICE:
 						case H264_NAL_TYPE_IDR:
-							h264_nal_slice_idr_print_humanized_one_line(&nal->slice_idr);
+							h264_nal_slice_idr_print_humanized_one_line(&nal->u.slice_idr);
 							break;
 						}
 					}

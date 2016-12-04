@@ -31,7 +31,7 @@
 typedef enum   h264_nal_type_enum       H264NALType;
 typedef struct h264_s                   H264;
 typedef enum   h264_nal_slice_type_enum H264NALSliceType;
-typedef union  h264_nal_union           H264NAL;
+typedef struct h264_nal_s               H264NAL;
 typedef struct h264_nal_sps_s           H264NALSPS;
 typedef struct h264_nal_pps_s           H264NALPPS;
 typedef struct h264_nal_aud_s           H264NALAUD;
@@ -231,12 +231,15 @@ void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it);
 
 
 /* h264.c */
-union h264_nal_union {
-	H264NALSPS      sps;
-	H264NALPPS      pps;
-	H264NALAUD      aud;
-	H264NALSEI      sei;
-	H264NALSliceIDR slice_idr;
+struct h264_nal_s {
+	H264NALType type;
+	union {
+		H264NALSPS      sps;
+		H264NALPPS      pps;
+		H264NALAUD      aud;
+		H264NALSEI      sei;
+		H264NALSliceIDR slice_idr;
+	} u; /* NAL unit */
 };
 
 struct h264_s {
@@ -257,7 +260,7 @@ struct h264_s {
 const char* h264_nal_type_string(H264NALType it);
 // TODO: remove extra args: app_offset, es_offset
 int         h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
-                              H264NAL *out_nals, H264NALType *out_nal_types, int *out_offsets, int *out_len);
+                              H264NAL *out_nals, int *out_offsets, int *out_len);
 
 
 #endif

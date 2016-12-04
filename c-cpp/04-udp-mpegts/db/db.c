@@ -65,20 +65,20 @@ int db_store_mpegts_psi_sdt(DB *it, MPEGTSPSISDT *item, uint64_t offset) {
 	return db_store(it, &it->mpegts_psi_sdts, item, sizeof(MPEGTSPSIPMT), DB_MPEGTS_PSI_SDT, offset); }
 
 
-int db_store_h264(DB *it, H264NAL *nal, H264NALType nal_type, uint64_t offset) {
+int db_store_h264(DB *it, H264NAL *nal, uint64_t offset) {
 	int ret = 0;
 
-	switch (nal_type) {
+	switch (nal->type) {
 		case H264_NAL_TYPE_SPS: {
-			ret = db_store_h264_sps(it, &nal->sps, offset);
+			ret = db_store_h264_sps(it, &nal->u.sps, offset);
 			break;
 		}
 		case H264_NAL_TYPE_PPS: {
-			ret = db_store_h264_pps(it, &nal->pps, offset);
+			ret = db_store_h264_pps(it, &nal->u.pps, offset);
 			break;
 		}
 		case H264_NAL_TYPE_AUD: {
-			ret = db_store_h264_aud(it, &nal->aud, offset);
+			ret = db_store_h264_aud(it, &nal->u.aud, offset);
 			break;
 		}
 		case H264_NAL_TYPE_SEI: {
@@ -87,7 +87,7 @@ int db_store_h264(DB *it, H264NAL *nal, H264NALType nal_type, uint64_t offset) {
 		}
 		case H264_NAL_TYPE_SLICE:
 		case H264_NAL_TYPE_IDR:
-			ret = db_store_h264_slice_idr(it, &nal->slice_idr, offset);
+			ret = db_store_h264_slice_idr(it, &nal->u.slice_idr, offset);
 			break;
 	}
 

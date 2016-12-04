@@ -72,7 +72,7 @@ int db_store_mpegts_psi_pat (DB *it, MPEGTSPSIPAT   *item, uint64_t offset);  /*
 int db_store_mpegts_psi_pmt (DB *it, MPEGTSPSIPMT   *item, uint64_t offset);  /* Program Map Table */
 int db_store_mpegts_psi_sdt (DB *it, MPEGTSPSISDT   *item, uint64_t offset);  /* Service Description Table */
 
-int db_store_h264(DB *it, H264NAL *nal, H264NALType nal_type, uint64_t offset);
+int db_store_h264          (DB *it, H264NAL         *nal,  uint64_t offset);
 int db_store_h264_sps      (DB *it, H264NALSPS      *item, uint64_t offset); /* H264 Sequence Parameter Set */
 int db_store_h264_pps      (DB *it, H264NALPPS      *item, uint64_t offset); /* H264 Picture Parameter Set */
 int db_store_h264_aud      (DB *it, H264NALAUD      *item, uint64_t offset); /* H264 AUD */
