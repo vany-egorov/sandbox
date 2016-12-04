@@ -35,6 +35,7 @@ typedef union  h264_nal_union           H264NAL;
 typedef struct h264_nal_sps_s           H264NALSPS;
 typedef struct h264_nal_pps_s           H264NALPPS;
 typedef struct h264_nal_aud_s           H264NALAUD;
+typedef struct h264_nal_sei_s           H264NALSEI;
 typedef struct h264_nal_slice_idr_s     H264NALSliceIDR;
 
 // ITU-T H.264 (V9) (02/2014) - p63
@@ -173,6 +174,15 @@ int  h264_nal_pps_parse(H264NALPPS *it, const uint8_t *data);
 void h264_nal_pps_print_json(H264NALPPS *it);
 void h264_nal_pps_print_humanized(H264NALPPS *it);
 
+/* nal-sei.c */
+struct h264_nal_sei_s {
+	uint8_t reserved;
+};
+
+int  h264_nal_sei_parse(H264NALSEI *it, const uint8_t *data);
+void h264_nal_sei_print_json(H264NALSEI *it);
+void h264_nal_sei_print_humanized(H264NALSEI *it);
+
 
 /* nal-slice-idr.c */
 enum h264_nal_slice_type_enum {
@@ -225,6 +235,7 @@ union h264_nal_union {
 	H264NALSPS      sps;
 	H264NALPPS      pps;
 	H264NALAUD      aud;
+	H264NALSEI      sei;
 	H264NALSliceIDR slice_idr;
 };
 
@@ -238,15 +249,15 @@ struct h264_s {
 	H264NALSPS nal_sps;
 	H264NALPPS nal_pps;
 	H264NALAUD nal_aud;
+	H264NALSEI nal_sei;
 
 	H264NALSliceIDR nal_slice_idr;
 };
 
 const char* h264_nal_type_string(H264NALType it);
 // TODO: remove extra args: app_offset, es_offset
-void        h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
-                              H264NAL *nal,
-                              uint64_t app_offset, int es_offset);
+int         h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
+                              H264NAL *out_nals, H264NALType *out_nal_types, int *out_offsets, int *out_len);
 
 
 #endif

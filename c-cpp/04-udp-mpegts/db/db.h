@@ -3,6 +3,7 @@
 
 
 #include "../mpegts/mpegts.h"
+#include "../h264/h264.h"
 #include "../collections/slice.h"
 
 
@@ -25,10 +26,10 @@ struct db_s {
 	Slice *mpegts_psi_pmts;
 	Slice *mpegts_psi_sdts;
 
-	Slice *h264_auds;
-	Slice *h264_seis;
 	Slice *h264_spss;
 	Slice *h264_ppss;
+	Slice *h264_auds;
+	Slice *h264_seis;
 	Slice *h264_slice_idrs;
 };
 
@@ -45,10 +46,10 @@ enum db_atom_kind_enum {
 	DB_MPEGTS_PSI_PMT,
 	DB_MPEGTS_PSI_SDT,
 
-	DB_H264_AUD,
-	DB_H264_SEI,
 	DB_H264_SPS,
 	DB_H264_PPS,
+	DB_H264_AUD,
+	DB_H264_SEI,
 	DB_H264_SLICE_IDR,
 };
 
@@ -71,7 +72,12 @@ int db_store_mpegts_psi_pat (DB *it, MPEGTSPSIPAT   *item, uint64_t offset);  /*
 int db_store_mpegts_psi_pmt (DB *it, MPEGTSPSIPMT   *item, uint64_t offset);  /* Program Map Table */
 int db_store_mpegts_psi_sdt (DB *it, MPEGTSPSISDT   *item, uint64_t offset);  /* Service Description Table */
 
-int db_store_h264_sps(DB *it);
+int db_store_h264(DB *it, H264NAL *nal, H264NALType nal_type, uint64_t offset);
+int db_store_h264_sps      (DB *it, H264NALSPS      *item, uint64_t offset); /* H264 Sequence Parameter Set */
+int db_store_h264_pps      (DB *it, H264NALPPS      *item, uint64_t offset); /* H264 Picture Parameter Set */
+int db_store_h264_aud      (DB *it, H264NALAUD      *item, uint64_t offset); /* H264 AUD */
+int db_store_h264_sei      (DB *it, H264NALSEI      *item, uint64_t offset); /* H264 SEI */
+int db_store_h264_slice_idr(DB *it, H264NALSliceIDR *item, uint64_t offset); /* H264 I/P/B Slice */
 
 void db_del(DB **it);
 
