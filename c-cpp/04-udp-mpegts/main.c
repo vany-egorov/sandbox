@@ -37,6 +37,7 @@ struct parse_worker_s {
 	uint16_t video_PID_H264;
 };
 
+// TODO: offset, i, cursor refactoring;
 void on_msg(ParseWorker *it, uint8_t *msg) {
 	int i = 0;
 	MPEGTS *mpegts = &it->mpegts;
@@ -103,89 +104,38 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
 				int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
-				H264NAL nals[5] = { 0 };
-				int nal_offsets[5] = { 0 };
-				int nal_len = 0;
-				int nal_i = 0;
-
 				if (mpegts_header.PID == it->video_PID_H264) {
-					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nals[0], &nal_offsets[0], &nal_len);
-					if (nal_len) {
-						for (nal_i = 0; nal_i < nal_len; nal_i++) {
-							H264NAL *nal = &nals[nal_i];
-							uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(nal_offsets[nal_i]);
+					H264AnnexBParseResult h264_parse_result = { 0 };
+					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &h264_parse_result);
+					h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result, it->offset + (uint64_t)es_offset);
+					if (h264_parse_result.len) {
+						int nal_i = 0;
+						for (nal_i = 0; nal_i < h264_parse_result.len; nal_i++) {
+							H264NAL *nal = &h264_parse_result.nals[nal_i];
+							uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(h264_parse_result.offsets[nal_i]);
 
-							db_store_h264(it->db, nal, 0);
-
-							printf("ES 0x%08llX | ", nal_offset);
-
-							const char *nal_type_name = h264_nal_type_string(nal->type);
-							switch (nal->type) {
-							case H264_NAL_TYPE_AUD:
-								printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
-								break;
-							case H264_NAL_TYPE_SEI:
-								printf(COLOR_BRIGHT_BLUE "%s" COLOR_RESET "\n", nal_type_name);
-								break;
-							case H264_NAL_TYPE_SPS:
-								printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-								break;
-							case H264_NAL_TYPE_PPS:
-								printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-								break;
-							case H264_NAL_TYPE_SLICE:
-							case H264_NAL_TYPE_IDR:
-								h264_nal_slice_idr_print_humanized_one_line(&nal->u.slice_idr);
-								break;
-							}
+							db_store_h264(it->db, nal, nal_offset);
 						}
 					}
 				}
 			}
-
-			// printf("PES 0x%08llX | PTS: %" PRId64 " DTS: %" PRId64 "\n",
-			// 	it->offset + pes_offset, pes.PTS, pes.DTS);
 		} else {
 			int es_offset = i + 4;
 			if (mpegts_header.adaption_field_control)
 				es_offset = es_offset + mpegts_adaption.adaptation_field_length + 1;
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
-			H264NAL nals[5] = { 0 };
-			int nal_offsets[5] = { 0 };
-			int nal_len = 0;
-			int nal_i = 0;
-
 			if (mpegts_header.PID == it->video_PID_H264) {
-				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &nals[0], &nal_offsets[0], &nal_len);
-				if (nal_len) {
-					for (nal_i = 0; nal_i < nal_len; nal_i++) {
-						H264NAL *nal = &nals[nal_i];
-						uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(nal_offsets[nal_i]);
+				H264AnnexBParseResult h264_parse_result = { 0 };
+				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &h264_parse_result);
+				h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result, it->offset + (uint64_t)es_offset);
+				if (h264_parse_result.len) {
+					int nal_i = 0;
+					for (nal_i = 0; nal_i < h264_parse_result.len; nal_i++) {
+						H264NAL *nal = &h264_parse_result.nals[nal_i];
+						uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(h264_parse_result.offsets[nal_i]);
 
-						db_store_h264(it->db, nal, 0);
-
-						printf("ES 0x%08llX | ", nal_offset);
-
-						const char *nal_type_name = h264_nal_type_string(nal->type);
-						switch (nal->type) {
-						case H264_NAL_TYPE_AUD:
-							printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
-							break;
-						case H264_NAL_TYPE_SEI:
-							printf(COLOR_BRIGHT_BLUE "%s" COLOR_RESET "\n", nal_type_name);
-							break;
-						case H264_NAL_TYPE_SPS:
-							printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-							break;
-						case H264_NAL_TYPE_PPS:
-							printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
-							break;
-						case H264_NAL_TYPE_SLICE:
-						case H264_NAL_TYPE_IDR:
-							h264_nal_slice_idr_print_humanized_one_line(&nal->u.slice_idr);
-							break;
-						}
+						db_store_h264(it->db, nal, nal_offset);
 					}
 				}
 			}

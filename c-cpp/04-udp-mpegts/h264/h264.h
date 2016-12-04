@@ -28,15 +28,16 @@
 #define H264_ANNEXB_START_CODE_LONG  0x00000001
 
 
-typedef enum   h264_nal_type_enum       H264NALType;
-typedef struct h264_s                   H264;
-typedef enum   h264_nal_slice_type_enum H264NALSliceType;
-typedef struct h264_nal_s               H264NAL;
-typedef struct h264_nal_sps_s           H264NALSPS;
-typedef struct h264_nal_pps_s           H264NALPPS;
-typedef struct h264_nal_aud_s           H264NALAUD;
-typedef struct h264_nal_sei_s           H264NALSEI;
-typedef struct h264_nal_slice_idr_s     H264NALSliceIDR;
+typedef enum   h264_nal_type_enum         H264NALType;
+typedef struct h264_s                     H264;
+typedef enum   h264_nal_slice_type_enum   H264NALSliceType;
+typedef struct h264_nal_s                 H264NAL;
+typedef struct h264_nal_sps_s             H264NALSPS;
+typedef struct h264_nal_pps_s             H264NALPPS;
+typedef struct h264_nal_aud_s             H264NALAUD;
+typedef struct h264_nal_sei_s             H264NALSEI;
+typedef struct h264_nal_slice_idr_s       H264NALSliceIDR;
+typedef struct h264_annexb_parse_result_s H264AnnexBParseResult;
 
 // ITU-T H.264 (V9) (02/2014) - p63
 //
@@ -227,7 +228,7 @@ struct h264_nal_slice_idr_s {
 };
 
 int  h264_nal_slice_idr_parse(H264NALSliceIDR *it, H264NALSPS *sps, const uint8_t *data);
-void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it);
+void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it); /* debug */
 
 
 /* h264.c */
@@ -257,10 +258,16 @@ struct h264_s {
 	H264NALSliceIDR nal_slice_idr;
 };
 
+/* must be set to { 0 } */
+struct h264_annexb_parse_result_s {
+	int     len;         /* total nals parsed count */
+	H264NAL nals[5];     /* NALs with type */
+	int     offsets[5];  /* position of each NALu inside stream (offset from beginning) */
+};
+
 const char* h264_nal_type_string(H264NALType it);
-// TODO: remove extra args: app_offset, es_offset
-int         h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
-                              H264NAL *out_nals, int *out_offsets, int *out_len);
+int         h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264AnnexBParseResult *result);
+void        h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it, uint64_t offset); /* debug */
 
 
 #endif

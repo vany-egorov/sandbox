@@ -82,7 +82,7 @@ int db_store_h264(DB *it, H264NAL *nal, uint64_t offset) {
 			break;
 		}
 		case H264_NAL_TYPE_SEI: {
-			ret = db_store_h264_sei(it, NULL, offset);
+			ret = db_store_h264_sei(it, &nal->u.sei, offset);
 			break;
 		}
 		case H264_NAL_TYPE_SLICE:
@@ -105,7 +105,7 @@ int db_store_h264_aud(DB *it, H264NALAUD *item, uint64_t offset) {
 	return db_store(it, &it->h264_auds, item, sizeof(H264NALAUD), DB_H264_AUD, offset); }
 
 int db_store_h264_sei(DB *it, H264NALSEI *item, uint64_t offset) {
-	return 0;  /* db_store(it, &it->h264_seis, item, sizeof(H264NALSEI), DB_H264_SEI, offset); */ }
+	return db_store(it, &it->h264_seis, item, sizeof(H264NALSEI), DB_H264_SEI, offset); }
 
 int db_store_h264_slice_idr(DB *it, H264NALSliceIDR *item, uint64_t offset) {
 	return db_store(it, &it->h264_slice_idrs, item, sizeof(H264NALSliceIDR), DB_H264_SLICE_IDR, offset); }

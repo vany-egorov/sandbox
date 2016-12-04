@@ -33,11 +33,10 @@ static FILE *f_dump_h264 = NULL;
 static int is_dump_h264_opened = 0;
 // static size_t nal_size = 0;
 
-int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
-                      H264NAL *out_nals, int *out_offsets, int *out_len) {
+int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264AnnexBParseResult *result) {
 	int ret = 0;
 	int i = 0;
-	int ii = 0;
+	int offset = 0;
 	uint32_t es_start_code = 0;
 	uint8_t forbidden_zero_bit = 0;
 	uint8_t nal_ref_idc = 0;
@@ -53,7 +52,7 @@ int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
 	}
 
 	for (i = 0; i < datasz; i++) {
-		ii = i;
+		offset = i;
 		es_start_code = 0;
 		got_es_start_code = 0;
 
@@ -94,51 +93,85 @@ int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz,
 				(nal_type == H264_NAL_TYPE_SPS) ||
 				(nal_type == H264_NAL_TYPE_PPS)
 			) {
-				H264NAL *out_nal = out_nals;
-				int *out_offset = out_offsets;
-				(*out_len)++;
-				out_nals++;
-				out_offsets++;
+				H264NAL *result_nal = &result->nals[result->len];
+				result->offsets[result->len] = offset;
+				result->len++;
 
-				out_nal->type = nal_type;
-				*out_offset = ii;
+				result_nal->type = nal_type;
 
 				if (nal_type == H264_NAL_TYPE_SPS) {
 					h264_nal_sps_parse(&it->nal_sps, &data[i+1]);
 					it->got_nal_sps = 1;
 
-					out_nal->u.sps = it->nal_sps;
+					result_nal->u.sps = it->nal_sps;
 
 				} else if (nal_type == H264_NAL_TYPE_PPS) {
 					h264_nal_pps_parse(&it->nal_pps, &data[i+1]);
 					it->got_nal_pps = 1;
 
-					out_nal->u.pps = it->nal_pps;
+					result_nal->u.pps = it->nal_pps;
 
 				} else if (nal_type == H264_NAL_TYPE_AUD) {
 					h264_nal_aud_parse(&it->nal_aud, &data[i+1]);
 					it->got_nal_aud = 1;
 
-					out_nal->u.aud = it->nal_aud;
+					result_nal->u.aud = it->nal_aud;
 
 				} else if (nal_type == H264_NAL_TYPE_SEI) {
 					h264_nal_sei_parse(&it->nal_sei, &data[i+1]);
 					it->got_nal_aud = 1;
 
-					out_nal->u.sei = it->nal_sei;
+					result_nal->u.sei = it->nal_sei;
 
 				} else if ((it->got_nal_sps) &&
 				           ((nal_type == H264_NAL_TYPE_SLICE) ||
 				            (nal_type == H264_NAL_TYPE_IDR))) {
 					h264_nal_slice_idr_parse(&it->nal_slice_idr, &it->nal_sps, &data[i+1]);
 
-					out_nal->u.slice_idr = it->nal_slice_idr;
+					result_nal->u.slice_idr = it->nal_slice_idr;
 				}
 			} else {
-				fprintf(stderr, "[h264] got unexpected nal-type %0X\n", nal_type);
+				fprintf(stderr, "[h264 @ %p] got unexpected nal-type %0X\n",
+					it, nal_type);
 			}
 		}
 	}
 
 	return ret;
+}
+
+void h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it, uint64_t offset) {
+	int i = 0;
+	const char *nal_type_name = NULL;
+	H264NAL *nal = NULL;
+	uint64_t nal_offset = 0;
+
+	if (!it->len) { return; }
+
+	for (i = 0; i < it->len; i++) {
+		nal = &it->nals[i];
+		nal_offset = offset + (uint64_t)(it->offsets[i]);
+
+		printf("ES 0x%08llX | ", nal_offset);
+
+		const char *nal_type_name = h264_nal_type_string(nal->type);
+		switch (nal->type) {
+		case H264_NAL_TYPE_AUD:
+			printf(COLOR_BRIGHT_YELLOW "%s" COLOR_RESET "\n", nal_type_name);
+			break;
+		case H264_NAL_TYPE_SEI:
+			printf(COLOR_BRIGHT_BLUE "%s" COLOR_RESET "\n", nal_type_name);
+			break;
+		case H264_NAL_TYPE_SPS:
+			printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
+			break;
+		case H264_NAL_TYPE_PPS:
+			printf(COLOR_BRIGHT_WHITE "%s" COLOR_RESET "\n", nal_type_name);
+			break;
+		case H264_NAL_TYPE_SLICE:
+		case H264_NAL_TYPE_IDR:
+			h264_nal_slice_idr_print_humanized_one_line(&nal->u.slice_idr);
+			break;
+		}
+	}
 }
