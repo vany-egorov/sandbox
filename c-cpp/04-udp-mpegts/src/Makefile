@@ -7,7 +7,7 @@ CCFLAGS := -g -lpthread -lrt
 
 LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 
-OBJECTS_DIRS := ./bin
+OBJECTS_DIRS := ../bin
 
 
 $(OBJECTS_DIRS)/collections-slice.o: ./collections/slice.c
@@ -76,29 +76,32 @@ $(OBJECTS_DIRS)/h264-nal-slice-idr.o: ./h264/nal-slice-idr.c
 $(OBJECTS_DIRS)/h264-bitstream.o: ./h264/bitstream.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/udp.o: ./udp.c
+$(OBJECTS_DIRS)/url-url.o: ./url/url.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/file.o: ./file.c
+$(OBJECTS_DIRS)/io-io.o: ./io/io.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/url.o: ./url.c
+$(OBJECTS_DIRS)/io-udp.o: ./io/udp.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/io.o: ./io.c
+$(OBJECTS_DIRS)/io-file.o: ./io/file.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/util.o: ./util.c
+$(OBJECTS_DIRS)/va-parser.o: ./va/parser.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJECTS_DIRS)/config.o: ./config.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJECTS_DIRS)/main.o: ./main.c
+$(OBJECTS_DIRS)/main-1.o: ./main-1.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/main-2.o: ./main-2.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
-main: \
+main-1: \
 	$(OBJECTS_DIRS)/collections-fifo.o \
 	$(OBJECTS_DIRS)/collections-slice.o \
 	$(OBJECTS_DIRS)/db-db.o \
@@ -120,12 +123,43 @@ main: \
 	$(OBJECTS_DIRS)/h264-nal-sei.o \
 	$(OBJECTS_DIRS)/h264-nal-slice-idr.o \
 	$(OBJECTS_DIRS)/h264-bitstream.o \
+	$(OBJECTS_DIRS)/url-url.o \
+	$(OBJECTS_DIRS)/io-udp.o \
+	$(OBJECTS_DIRS)/io-file.o \
+	$(OBJECTS_DIRS)/io-io.o \
 	$(OBJECTS_DIRS)/config.o \
-	$(OBJECTS_DIRS)/udp.o \
-	$(OBJECTS_DIRS)/file.o \
-	$(OBJECTS_DIRS)/url.o \
-	$(OBJECTS_DIRS)/io.o \
-	$(OBJECTS_DIRS)/main.o
+	$(OBJECTS_DIRS)/main-1.o
+	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
+
+main-2: \
+	$(OBJECTS_DIRS)/collections-fifo.o \
+	$(OBJECTS_DIRS)/collections-slice.o \
+	$(OBJECTS_DIRS)/db-db.o \
+	$(OBJECTS_DIRS)/mpegts-mpegts.o \
+	$(OBJECTS_DIRS)/mpegts-header.o \
+	$(OBJECTS_DIRS)/mpegts-adaption.o \
+	$(OBJECTS_DIRS)/mpegts-psi.o \
+	$(OBJECTS_DIRS)/mpegts-psi-cat.o \
+	$(OBJECTS_DIRS)/mpegts-psi-nit.o \
+	$(OBJECTS_DIRS)/mpegts-psi-pat.o \
+	$(OBJECTS_DIRS)/mpegts-psi-pmt.o \
+	$(OBJECTS_DIRS)/mpegts-psi-sdt.o \
+	$(OBJECTS_DIRS)/mpegts-pes.o \
+	$(OBJECTS_DIRS)/mpegts-es.o \
+	$(OBJECTS_DIRS)/h264-h264.o \
+	$(OBJECTS_DIRS)/h264-nal-sps.o \
+	$(OBJECTS_DIRS)/h264-nal-pps.o \
+	$(OBJECTS_DIRS)/h264-nal-aud.o \
+	$(OBJECTS_DIRS)/h264-nal-sei.o \
+	$(OBJECTS_DIRS)/h264-nal-slice-idr.o \
+	$(OBJECTS_DIRS)/h264-bitstream.o \
+	$(OBJECTS_DIRS)/url-url.o \
+	$(OBJECTS_DIRS)/io-udp.o \
+	$(OBJECTS_DIRS)/io-file.o \
+	$(OBJECTS_DIRS)/io-io.o \
+	$(OBJECTS_DIRS)/va-parser.o \
+	$(OBJECTS_DIRS)/config.o \
+	$(OBJECTS_DIRS)/main-2.o
 	$(CC) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
 collections-slice-test: \
@@ -136,13 +170,13 @@ collections-slice-test: \
 bin-dir:
 	mkdir -p $(OBJECTS_DIRS)
 
-build: bin-dir main collections-slice-test
+build: bin-dir main-1 main-2 collections-slice-test
 
 clean:
 	rm -rvf $(OBJECTS_DIRS)/*.o
 	rm -rvf $(OBJECTS_DIRS)/main
 
-# tsplay ./tmp/hd.ts 239.1.1.1:5500 -loop
+# tsplay ../tmp/hd.ts 239.1.1.1:5500 -loop
 run:
 	# $(OBJECTS_DIRS)/main 2>&1 >out.log
 	$(OBJECTS_DIRS)/main -i 239.1.1.1:5500

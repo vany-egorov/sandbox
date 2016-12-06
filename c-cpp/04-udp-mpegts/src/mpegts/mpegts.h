@@ -2,11 +2,11 @@
 #define __MPEGTS_MPEGTS__
 
 
-#include <stdio.h>    // printf
-#include <stdint.h>   // uint8_t
-#include <string.h>   // memcpy
-#include <stdlib.h>   // calloc, realloc
-#include <inttypes.h> // PRIu64
+#include <stdio.h>    /* printf */
+#include <stdint.h>   /* uint8_t */
+#include <string.h>   /* memcpy */
+#include <stdlib.h>   /* calloc, realloc */
+#include <inttypes.h> /* PRIu64 */
 
 
 #define MPEGTS_SYNC_BYTE    0x47

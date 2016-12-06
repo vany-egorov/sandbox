@@ -2,9 +2,9 @@
 #define __IO__
 
 
-#include <stddef.h> // size_t
-#include <stdint.h> // uint8_t
-#include <stdlib.h> // calloc
+#include <stddef.h> /* size_t */
+#include <stdint.h> /* uint8_t */
+#include <stdlib.h> /* calloc */
 
 
 /* reader */
@@ -12,7 +12,7 @@ typedef struct io_reader_s IOReader;
 typedef int (*io_reader_read_func) (void *ctx, uint8_t *buf, size_t bufsz, size_t *n);
 
 struct io_reader_s {
-	void *w; // wrapped
+	void *w; /* wrapped */
 
 	io_reader_read_func read;
 };
@@ -36,7 +36,7 @@ typedef struct io_writer_s IOWriter;
 typedef int (*io_writer_write_func) (void *ctx, uint8_t *buf, size_t bufsz, size_t *n);
 
 struct io_writer_s {
-	void *w; // wrapped
+	void *w; /* wrapped */
 
 	io_writer_write_func write;
 };
@@ -56,7 +56,7 @@ struct io_multi_writer_s {
 
 IOMultiWriter *io_multi_writer_new(IOWriter **writers, size_t len);
 int io_multi_writer_push(IOMultiWriter *it, IOWriter *w);
-// impl Writer for MultiWriter
+/* impl Writer for MultiWriter */
 int io_multi_writer_write(void *ctx, uint8_t *buf, size_t bufsz, size_t *written);
 
 

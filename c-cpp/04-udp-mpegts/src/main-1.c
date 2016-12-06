@@ -2,7 +2,7 @@
 #include <errno.h>      // errno
 #include <sysexits.h>   // EX_OK, EX_SOFTWARE
 #include <inttypes.h>   // PRId64
-#include <unistd.h>     // close
+#include <unistd.h>     // close, pause
 #include <fcntl.h>      // open
 #include <string.h>     // memcpy, memset, size_t
 #include <sys/types.h>
@@ -11,16 +11,17 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
-#include "io.h"
-#include "url.h"
-#include "udp.h"
-#include "file.h"
-#include "color.h"
-#include "config.h"
+#include "./io/io.h"
+#include "./url/url.h"
+#include "./io/udp.h"
+#include "./io/file.h"
 #include "./db/db.h"
 #include "./collections/fifo.h"
 #include "./mpegts/mpegts.h"
 #include "./h264/h264.h"
+
+#include "color.h"
+#include "config.h"
 
 
 typedef struct parse_worker_s ParseWorker;
