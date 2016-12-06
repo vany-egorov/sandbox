@@ -11,7 +11,13 @@ int va_parser_new(VAParser **out) {
 }
 
 int va_parser_open(VAParser *it, VAParserOpenArgs *args) {
-	return 0;
+	int ret = 0;
+
+	if (!args) { ret = 1; goto cleanup; }
+	url_parse(&it->i, args->i_url_raw);
+
+cleanup:
+	return ret;
 }
 
 int va_parser_go(VAParser *it) {

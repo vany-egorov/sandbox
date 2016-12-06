@@ -55,7 +55,7 @@ int main (int argc, char *argv[]) {
 	int ret = EX_OK;
 	VAParser *va_parser = NULL;
 	VAParserOpenArgs va_parser_open_args = {
-		.url_raw = "udp://239.1.1.1:5500",
+		.i_url_raw = "udp://239.1.1.1:5500",
 		.cb = va_parser_parse_cb,
 	};
 
