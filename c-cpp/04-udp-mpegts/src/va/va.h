@@ -7,6 +7,7 @@
 
 #include "../url/url.h"
 #include "../io/io.h"
+#include "../io/udp.h"
 #include "../collections/fifo.h"
 #include "../mpegts/mpegts.h"
 #include "../h264/h264.h"
@@ -16,31 +17,53 @@
 
 typedef struct va_parser_s              VAParser;
 typedef struct va_parser_open_args_s    VAParserOpenArgs;
-typedef struct va_parser_read_worker_s  VAParserReadWorker;
-typedef struct va_parser_parse_worker_s VAParserParseWorker;
+typedef struct va_parser_worker_read_s  VAParserWorkerRead;
+typedef struct va_parser_worker_parse_s VAParserWorkerParse;
 typedef int (*va_parser_parse_cb_func) (void *ctx);
 
-/* parser.c */
-struct va_parser_read_worker_s {
+
+/* parser-worker-read.c */
+struct va_parser_worker_read_s {
 	IOReader *reader;
 	IOWriter *writer;
+
+	pthread_t thread;
 };
 
-struct va_parser_parse_worker_s {
+void* parser_worker_read_do(void *args);
+
+
+/* parser-worker-parse.c */
+struct va_parser_worker_parse_s {
 	FIFO *fifo;
 
 	MPEGTS mpegts;
 	H264   h264;
 
+	va_parser_parse_cb_func cb;
+
 	uint64_t offset;
 	uint16_t video_PID_H264;
+
+	pthread_t thread;
 };
 
+void* parser_worker_parse_do(void *args);
+
+/* parser.c */
 struct va_parser_s {
 	URL i; /* i / input */
 
-	VAParserReadWorker  read_worker;
-	VAParserParseWorker parse_worker;
+	UDP *udp;              /* i */
+	FIFO *fifo;            /* o */
+	IOMultiWriter *multi;
+	IOReader *reader_udp,
+	         *reader_fifo;
+	IOWriter *writer_fifo,
+	         *writer_multi;
+
+	VAParserWorkerRead  worker_read;
+	VAParserWorkerParse worker_parse;
 };
 
 struct va_parser_open_args_s {
@@ -51,7 +74,9 @@ struct va_parser_open_args_s {
 int va_parser_new(VAParser **out);
 int va_parser_open(VAParser *it, VAParserOpenArgs *args);
 int va_parser_go(VAParser *it);
-int va_parser_del(VAParser **it);
+int va_parser_close(VAParser *it);
+int va_parser_del1(VAParser *it);
+int va_parser_del2(VAParser **it);
 
 
 #endif /* __VA_VA__ */

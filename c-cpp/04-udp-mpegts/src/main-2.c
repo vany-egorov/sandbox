@@ -47,23 +47,20 @@ static int signal_wait(void) {
 }
 
 static int va_parser_parse_cb(void *ctx) {
-	printf("va_parser_parse_cb\n");
+	// printf("va_parser_parse_cb\n");
 	return 0;
 }
 
 int main (int argc, char *argv[]) {
 	int ret = EX_OK;
-	VAParser *va_parser = NULL;
+	VAParser va_parser_s = { 0 },
+	        *va_parser = &va_parser_s;
 	VAParserOpenArgs va_parser_open_args = {
 		.i_url_raw = "udp://239.1.1.1:5500",
 		.cb = va_parser_parse_cb,
 	};
 
 	if (ret=signal_init()) goto cleanup;
-
-	if (va_parser_new(&va_parser)) {
-		ret = EX_SOFTWARE; goto cleanup;
-	}
 
 	if (va_parser_open(va_parser, &va_parser_open_args)) {
 		ret = EX_SOFTWARE; goto cleanup;
@@ -74,5 +71,6 @@ int main (int argc, char *argv[]) {
 	signal_wait();
 
 cleanup:
+	va_parser_close(va_parser);
 	return ret;
 }

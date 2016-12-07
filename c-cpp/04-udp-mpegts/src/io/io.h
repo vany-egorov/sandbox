@@ -43,7 +43,7 @@ struct io_writer_s {
 
 IOWriter *io_writer_new(void *w, io_writer_write_func write);
 int io_writer_write(IOWriter *it, uint8_t *buf, size_t bufsz, size_t *n);
-void writer_del(IOWriter *it);
+void io_writer_del(IOWriter *it);
 
 
 /* multi-writer */

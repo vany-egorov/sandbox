@@ -45,7 +45,7 @@ int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264An
 
 	if (1) {
 		if (!is_dump_h264_opened) {
-			f_dump_h264 = fopen("./tmp/out.h264", "wb");
+			f_dump_h264 = fopen("../tmp/out.h264", "wb");
 			is_dump_h264_opened = 1;
 		}
 		fwrite(data, datasz, 1, f_dump_h264);
