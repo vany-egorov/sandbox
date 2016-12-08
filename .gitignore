@@ -5,6 +5,8 @@ tmp
 **/target/*
 Cargo.lock
 
+**/lib/*
+
 libmill
 mongoose
 libwebsockets
