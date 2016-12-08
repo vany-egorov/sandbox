@@ -1,10 +1,13 @@
 extern crate libc;
+#[macro_use]
+extern crate chan;
+extern crate chan_signal;
 
 use libc::{sockaddr_in};
 use libc::{size_t, sem_t, pthread_t, pthread_mutex_t};
 use libc::{c_char, c_int, c_uint, c_void};
-use std::thread;
-use std::time::Duration;
+
+use chan_signal::Signal;
 
 
 #[repr(C)]
@@ -33,7 +36,7 @@ pub struct MPEGTSPSI {
 pub struct MPEGTSPSIPAT {
     pub psi: MPEGTSPSI,
     pub program_number: u16,
-    pub program_map_PID: u16,
+    pub program_map_pid: u16,
 }
 
 #[repr(C)]
@@ -75,10 +78,10 @@ pub struct MPEGTS {
 #[repr(C)]
 pub struct IOReader {
     pub w: *mut c_void,
-    pub read: io_reader_read_func,
+    pub read: IOReaderReadFunc,
 }
 
-pub type io_reader_read_func =
+pub type IOReaderReadFunc =
     ::std::option::Option<unsafe extern "C" fn(
         ctx: *mut c_void,
         buf: *mut u8,
@@ -92,7 +95,7 @@ pub struct IOMultiWriter {
     pub len: size_t,
 }
 
-pub type io_writer_write_func =
+pub type IOWriterWriteFunc =
     ::std::option::Option<unsafe extern "C" fn(
         ctx: *mut c_void,
         buf: *mut u8,
@@ -103,7 +106,7 @@ pub type io_writer_write_func =
 #[repr(C)]
 pub struct IOWriter {
     pub w: *mut c_void,
-    pub write: io_writer_write_func,
+    pub write: IOWriterWriteFunc,
 }
 
 #[repr(C)]
@@ -170,9 +173,9 @@ pub struct VAParserWorkerParse {
     pub fifo: *mut FIFO,
     pub mpegts: MPEGTS,
     pub h264: H264,
-    pub cb: va_parser_parse_cb_func,
+    pub cb: VAParserParseCBFunc,
     pub offset: u64,
-    pub video_PID_H264: u16,
+    pub video_pid_h264: u16,
     pub thread: pthread_t,
 }
 
@@ -194,12 +197,12 @@ impl Default for VAParser {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 
-pub type va_parser_parse_cb_func = ::std::option::Option<unsafe extern "C" fn(ctx: *mut c_void) -> c_int>;
+pub type VAParserParseCBFunc = ::std::option::Option<unsafe extern "C" fn(ctx: *mut c_void) -> c_int>;
 
 #[repr(C)]
 pub struct VAParserOpenArgs {
     pub i_url_raw: *const c_char,
-    pub cb: va_parser_parse_cb_func,
+    pub cb: VAParserParseCBFunc,
 }
 
 impl Default for VAParserOpenArgs {
@@ -208,22 +211,24 @@ impl Default for VAParserOpenArgs {
 
 #[link(name = "va", kind = "static")]
 extern {
-    fn va_parser_new(it: *mut VAParser);
     fn va_parser_open(it: *mut VAParser, args: *const VAParserOpenArgs);
     fn va_parser_go(it: *mut VAParser);
-    fn va_parser_del1(it: *mut VAParser);
 }
 
 
-fn main() {
-    println!("=>");
+unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void) -> c_int {
+    println!("I'm called from C in Rust!");
+    return 0;
+}
 
+fn main() {
+    let signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
     let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
 
     let mut va_parser: VAParser = Default::default();
-    let mut va_parser_open_args = VAParserOpenArgs{
+    let va_parser_open_args = VAParserOpenArgs{
         i_url_raw : raw.as_ptr(),
-        ..Default::default()
+        cb : Some(va_parser_parse_cb),
     };
 
     unsafe {
@@ -231,5 +236,9 @@ fn main() {
         va_parser_go(&mut va_parser);
     }
 
-    thread::sleep(Duration::from_secs(120));
+    chan_select! {
+        signal.recv() -> signal => {
+            println!("received signal: {:?}", signal)
+        }
+    }
 }
