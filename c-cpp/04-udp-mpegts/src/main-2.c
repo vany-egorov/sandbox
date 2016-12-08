@@ -60,6 +60,11 @@ int main (int argc, char *argv[]) {
 		.cb = va_parser_parse_cb,
 	};
 
+	printf("sizes:\n");
+	printf("  H264: %zu\n", sizeof(H264));
+	printf("  MPEGTS: %zu\n", sizeof(MPEGTS));
+	printf("  MPEGTSPSI: %zu\n", sizeof(MPEGTSPSI));
+
 	if (ret=signal_init()) goto cleanup;
 
 	if (va_parser_open(va_parser, &va_parser_open_args)) {

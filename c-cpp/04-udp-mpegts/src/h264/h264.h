@@ -248,7 +248,7 @@ struct h264_s {
 		got_nal_sps         :1,
 		got_nal_pps         :1,
 		got_nal_aud         :1,
-		reserved_bit_fields :7;
+		reserved_bit_fields :5;
 
 	H264NALSPS nal_sps;
 	H264NALPPS nal_pps;

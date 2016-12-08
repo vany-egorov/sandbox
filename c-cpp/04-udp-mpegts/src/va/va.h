@@ -4,6 +4,7 @@
 
 #include <stddef.h>  /* NULL */
 #include <stdlib.h>  /* calloc, realloc */
+#include <stdarg.h>  /* __gnuc_va_list, __builtin_va_list */
 
 #include "../url/url.h"
 #include "../io/io.h"
