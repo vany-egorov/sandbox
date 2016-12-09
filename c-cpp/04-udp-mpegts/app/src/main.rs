@@ -1,4 +1,5 @@
 extern crate libc;
+extern crate mio;
 #[macro_use]
 extern crate chan;
 extern crate chan_signal;
@@ -7,6 +8,14 @@ use libc::{c_int, c_void};
 use chan_signal::Signal;
 
 mod va;
+
+
+struct WebSocketServer;
+
+impl mio::Handler for WebSocketServer {
+    type Timeout = usize;
+    type Message = ();
+}
 
 
 unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, atom_kind: u32, offset: u64) -> c_int {
@@ -24,6 +33,10 @@ fn main() {
         i_url_raw : raw.as_ptr(),
         cb : Some(va_parser_parse_cb),
     };
+
+    let mut event_loop = mio::EventLoop::new().unwrap();
+    let mut handler = WebSocketServer;
+    event_loop.run(&mut handler).unwrap();
 
     unsafe {
         va::va_parser_open(&mut va_parser, &va_parser_open_args);
