@@ -9,8 +9,9 @@ use chan_signal::Signal;
 mod va;
 
 
-unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void) -> c_int {
-    println!("I'm called from C in Rust!");
+unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, atom_kind: u32, offset: u64) -> c_int {
+    if atom_kind == 0 { return 0; }
+    println!("0x{:08X} | {:p} | {:p} | {}", offset, ctx, atom, atom_kind);
     return 0;
 }
 

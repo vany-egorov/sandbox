@@ -90,6 +90,9 @@ $(OBJS_DIR)/io-udp.o: ./io/udp.c
 $(OBJS_DIR)/io-file.o: ./io/file.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS_DIR)/va-atom-kind.o: ./va/atom-kind.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJS_DIR)/va-parser-worker-read.o: ./va/parser-worker-read.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -165,6 +168,7 @@ main-2: \
 	$(OBJS_DIR)/io-udp.o \
 	$(OBJS_DIR)/io-file.o \
 	$(OBJS_DIR)/io-io.o \
+	$(OBJS_DIR)/va-atom-kind.o \
 	$(OBJS_DIR)/va-parser.o \
 	$(OBJS_DIR)/va-parser-worker-read.o \
 	$(OBJS_DIR)/va-parser-worker-parse.o \
@@ -197,6 +201,7 @@ static: \
 	$(OBJS_DIR)/io-udp.o \
 	$(OBJS_DIR)/io-file.o \
 	$(OBJS_DIR)/io-io.o \
+	$(OBJS_DIR)/va-atom-kind.o \
 	$(OBJS_DIR)/va-parser.o \
 	$(OBJS_DIR)/va-parser-worker-read.o \
 	$(OBJS_DIR)/va-parser-worker-parse.o
@@ -228,6 +233,7 @@ dynamic: \
 	$(OBJS_DIR)/io-udp.o \
 	$(OBJS_DIR)/io-file.o \
 	$(OBJS_DIR)/io-io.o \
+	$(OBJS_DIR)/va-atom-kind.o \
 	$(OBJS_DIR)/va-parser.o \
 	$(OBJS_DIR)/va-parser-worker-read.o \
 	$(OBJS_DIR)/va-parser-worker-parse.o

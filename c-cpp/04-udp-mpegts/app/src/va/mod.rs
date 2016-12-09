@@ -46,7 +46,13 @@ impl Default for Parser {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 
-pub type ParserParseCBFunc = ::std::option::Option<unsafe extern "C" fn(ctx: *mut c_void) -> c_int>;
+pub type ParserParseCBFunc =
+    ::std::option::Option<unsafe extern "C" fn(
+        ctx: *mut c_void,
+        atom: *mut c_void,
+        atom_kind: u32,
+        offset: u64
+    ) -> c_int>;
 
 #[repr(C)]
 pub struct ParserOpenArgs {

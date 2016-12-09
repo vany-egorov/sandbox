@@ -1,5 +1,8 @@
-#ifndef __VA_VA__
-#define __VA_VA__
+#ifndef __VA_ATOM_KIND__
+#define __VA_ATOM_KIND__
+
+
+#include "../h264/h264.h"
 
 
 typedef enum va_atom_kind_enum VAAtomKind;
@@ -20,4 +23,7 @@ enum va_atom_kind_enum {
 };
 
 
-#endif /* __VA_VA__ */
+VAAtomKind va_atom_kind_from_h264_nal_type(H264NALType nal_type);
+
+
+#endif /* __VA_ATOM_KIND__ */

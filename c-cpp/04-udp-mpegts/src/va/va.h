@@ -13,14 +13,14 @@
 #include "../mpegts/mpegts.h"
 #include "../h264/h264.h"
 
-#include "atom-kind.h"
+#include "./atom-kind.h"
 
 
 typedef struct va_parser_s              VAParser;
 typedef struct va_parser_open_args_s    VAParserOpenArgs;
 typedef struct va_parser_worker_read_s  VAParserWorkerRead;
 typedef struct va_parser_worker_parse_s VAParserWorkerParse;
-typedef int (*va_parser_parse_cb_func) (void *ctx);
+typedef int (*va_parser_parse_cb_func) (void *ctx, void *atom, VAAtomKind atom_kind, uint64_t offset);
 
 
 /* parser-worker-read.c */
