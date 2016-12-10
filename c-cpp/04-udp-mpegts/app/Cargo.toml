@@ -9,6 +9,7 @@ libc = "0.2.0"
 chan = "0.1.18"
 chan-signal = "0.1.7"
 mio = "0.5"
+http-muncher = "0.2.0"
 
 [build-dependencies]
 bindgen = "0.19.0"
