@@ -16,6 +16,7 @@ use libc::{c_int, c_void};
 use chan_signal::Signal;
 
 mod va;
+mod http;
 
 
 const ADDR_RAW: &'static str = "0.0.0.0:8000";
@@ -29,6 +30,8 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
 }
 
 fn main() {
+    // let r = http::Request::new();
+    let r: va::Parser = Default::default();
     let signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
     let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
 
