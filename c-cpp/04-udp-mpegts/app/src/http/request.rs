@@ -1,19 +1,14 @@
-pub enum Method {
-    GET,
-    POST,
-    PUT,
-    DELETE,
-}
+use http::method;
+
 
 pub struct Request {
-    pub method: Method,
+    pub method: method::Method,
 }
-
 
 impl Request {
     pub fn new() -> Request {
         Request {
-            method: Method::GET,
+            method: method::Method::GET,
         }
     }
 }

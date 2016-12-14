@@ -4,8 +4,12 @@ extern crate libc;
 extern crate chan;
 extern crate chan_signal;
 
-use std::io::Read;
-use std::io::Write;
+use std::io::{
+      Read
+    , Write
+    , BufReader
+    , BufRead
+};
 use std::os::unix::io::AsRawFd;
 use std::collections::HashMap;
 
@@ -30,8 +34,9 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
 }
 
 fn main() {
-    // let r = http::Request::new();
-    let r: va::Parser = Default::default();
+    println!("{:?} {}", http::Method::GET, http::Method::POST);
+    println!("{:?} {:?} {}", http::Status::OK, http::Status::BadRequest, http::Status::BadRequest);
+
     let signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
     let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
 
@@ -150,7 +155,6 @@ fn main() {
                         }
                         token => {
                             let mut client_tcp_stream = &clients[&token];
-                            let mut buf = [0; 2048];
                             println!("[<-] [r] {{\
                                     \"fd\": {}\
                                     , \"token\": {}\
@@ -160,28 +164,51 @@ fn main() {
                                 usize::from(token),
                                 ready
                             );
-                            match client_tcp_stream.read(&mut buf) {
-                                Err(e) => {
-                                    println!("read error: {}", e);
-                                    return
-                                },
-                                Ok(len) => {
-                                    if len != 0 {
-                                        println!("len: {}, data: \n{}", len, std::str::from_utf8(&buf[0..len]).unwrap());
-                                        match mio_poll.reregister(
-                                              client_tcp_stream
-                                            , token
-                                            , Ready::writable() | Ready::hup()
-                                            ,   PollOpt::edge()
-                                              | PollOpt::oneshot()
-                                        ) {
-                                            Err(e) => println!("error register client socket: {}", e),
-                                            Ok(..) => {}
+
+                            let mut buf = Vec::new();
+                            let mut buf_reader = BufReader::new(client_tcp_stream);
+                            loop {
+                                match buf_reader.read_until(0xA, &mut buf) {
+                                    Err(e) => {
+                                        println!("read header error: {}", e);
+                                        break;
+                                    },
+                                    Ok(len) => {
+                                        println!("> {:?}", std::str::from_utf8(&buf).unwrap());
+                                        if len == 2 && buf[0] == 0xD && buf[1] == 0xA {
+                                            break;
                                         }
-                                    } else {
-                                        println!("[<-] [r] {{\"data\": \"-\", \"ready\": \"{:?}\"}}", ready);
+                                        buf.clear();
                                     }
                                 }
+                            }
+
+                            buf.clear();
+                            match buf_reader.read_to_end(&mut buf) {
+                                Err(e) => {
+                                    match e.kind() {
+                                        std::io::ErrorKind::WouldBlock => println!("{:?}", std::str::from_utf8(&buf).unwrap()),
+                                        _ => {
+                                            println!("{:?} {:?}", e, e.kind());
+                                            continue;
+                                        }
+                                    }
+                                },
+                                Ok(len) => {
+                                    println!("{} {:?}", len, std::str::from_utf8(&buf).unwrap());
+                                    buf.clear();
+                                }
+                            }
+
+                            match mio_poll.reregister(
+                                  client_tcp_stream
+                                , token
+                                , Ready::writable() | Ready::hup()
+                                ,   PollOpt::edge()
+                                  | PollOpt::oneshot()
+                            ) {
+                                Err(e) => println!("error register client socket: {}", e),
+                                Ok(..) => {}
                             }
                         }
                     }
@@ -194,12 +221,19 @@ fn main() {
                     }}", client_tcp_stream.as_raw_fd(), usize::from(token), ready);
 
                     let resp_body = "{\"foo\":\"bar\"}";
-                    let resp_raw = std::fmt::format(format_args!(
-                        "HTTP/1.1 200 OK\r\n\
-                        Content-Type: application/json\r\n\
-                        Content-Length: {1:}\r\n\
-                        \r\n\
-                        {0:}", resp_body, resp_body.as_bytes().len()));
+                    let resp_raw = std::fmt::format(
+                        format_args!(
+                            "HTTP/1.1 {http_status_code} {http_status_text}\r\n\
+                            Content-Type: application/json\r\n\
+                            Content-Length: {content_length}\r\n\
+                            \r\n\
+                            {body}",
+                            http_status_code=http::Status::OK as u16,
+                            http_status_text=http::Status::OK,
+                            content_length=resp_body.as_bytes().len(),
+                            body=resp_body
+                        )
+                    );
                     match client_tcp_stream.write(resp_raw.as_bytes()) {
                         Err(e) => println!("[->] [w] write error: {}", e),
                         Ok(len) => {

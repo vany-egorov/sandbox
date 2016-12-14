@@ -7,6 +7,9 @@ Cargo.lock
 
 **/lib/*
 
+curl.sh
+curl.json
+
 libmill
 mongoose
 libwebsockets
