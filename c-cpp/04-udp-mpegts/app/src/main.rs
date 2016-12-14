@@ -88,7 +88,7 @@ fn main() {
                         let client_tcp_stream = &clients[&token];
                         println!("[<-] [h] {{\
                             \"fd\": {}\
-                            , \"server-token\": {}\
+                            , \"token\": {}\
                             , \"ready\": \"{:?}\"\
                         }}", client_tcp_stream.as_raw_fd(), usize::from(token), ready);
 
@@ -128,10 +128,15 @@ fn main() {
                             let client_token = Token(token_id);
                             token_id += 1;
                             clients.insert(client_token, client_tcp_stream);
+                            println!("[<-] [+] {{\
+                                \"fd\": {}\
+                                , \"token\": {}\
+                                , \"ready\": \"{:?}\"\
+                            }}", &clients[&client_token].as_raw_fd(), usize::from(client_token), ready);
                             match mio_poll.register(
                                   &clients[&client_token]
                                 , client_token
-                                , Ready::readable()
+                                , Ready::readable() | Ready::hup()
                                 , PollOpt::edge() // trigger event only once;
                                                   // "level" will trigger (spam) event until
                                                   // got data to read in socket;
@@ -166,7 +171,7 @@ fn main() {
                                         match mio_poll.reregister(
                                               client_tcp_stream
                                             , token
-                                            , Ready::writable()
+                                            , Ready::writable() | Ready::hup()
                                             ,   PollOpt::edge()
                                               | PollOpt::oneshot()
                                         ) {
@@ -181,41 +186,38 @@ fn main() {
                         }
                     }
                 } else if ready.is_writable() {
-                    {
-                        let mut client_tcp_stream = &clients[&token];
-                        println!("[<-] [w] {{\
-                            \"fd\": {}\
-                            , \"token\": {}\
-                            , \"ready\": \"{:?}\"\
-                        }}", client_tcp_stream.as_raw_fd(), usize::from(token), ready);
+                    let mut client_tcp_stream = &clients[&token];
+                    println!("[<-] [w] {{\
+                        \"fd\": {}\
+                        , \"token\": {}\
+                        , \"ready\": \"{:?}\"\
+                    }}", client_tcp_stream.as_raw_fd(), usize::from(token), ready);
 
-                        let resp_body = "{\"foo\":\"bar\"}";
-                        let resp_raw = std::fmt::format(format_args!(
-                            "HTTP/1.1 200 OK\r\n\
-                            Content-Type: application/json\r\n\
-                            Content-Length: {1:}\r\n\
-                            \r\n\
-                            {0:}", resp_body, resp_body.as_bytes().len()));
-                        match client_tcp_stream.write(resp_raw.as_bytes()) {
-                            Err(e) => println!("[->] [w] write error: {}", e),
-                            Ok(len) => {
-                                println!("[->] [w] {{\
-                                    \"fd\": {}\
-                                    , \"token\": {}\
-                                    , \"written\": {}\
-                                }}", client_tcp_stream.as_raw_fd(), usize::from(token), len);
+                    let resp_body = "{\"foo\":\"bar\"}";
+                    let resp_raw = std::fmt::format(format_args!(
+                        "HTTP/1.1 200 OK\r\n\
+                        Content-Type: application/json\r\n\
+                        Content-Length: {1:}\r\n\
+                        \r\n\
+                        {0:}", resp_body, resp_body.as_bytes().len()));
+                    match client_tcp_stream.write(resp_raw.as_bytes()) {
+                        Err(e) => println!("[->] [w] write error: {}", e),
+                        Ok(len) => {
+                            println!("[->] [w] {{\
+                                \"fd\": {}\
+                                , \"token\": {}\
+                                , \"written\": {}\
+                            }}", client_tcp_stream.as_raw_fd(), usize::from(token), len);
 
-                                match mio_poll.reregister(
-                                      client_tcp_stream
-                                    , token
-                                    ,   Ready::readable()
-                                      | Ready::hup()
-                                    ,   PollOpt::edge()
-                                      | PollOpt::oneshot()
-                                ) {
-                                    Err(e) => println!("error register client socket: {}", e),
-                                    Ok(..) => {}
-                                }
+                            match mio_poll.reregister(
+                                  client_tcp_stream
+                                , token
+                                ,   Ready::readable() | Ready::none() | Ready::hup()
+                                ,   PollOpt::edge()
+                                  | PollOpt::oneshot()
+                            ) {
+                                Err(e) => println!("error register client socket: {}", e),
+                                Ok(..) => {}
                             }
                         }
                     }
