@@ -2,6 +2,8 @@ extern crate mio;
 extern crate libc;
 #[macro_use]
 extern crate chan;
+#[macro_use]
+extern crate lazy_static;
 extern crate chan_signal;
 
 use std::io::{
@@ -34,9 +36,6 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
 }
 
 fn main() {
-    println!("{:?} {}", http::Method::GET, http::Method::POST);
-    println!("{:?} {:?} {}", http::Status::OK, http::Status::BadRequest, http::Status::BadRequest);
-
     let signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
     let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
 
@@ -165,29 +164,36 @@ fn main() {
                                 ready
                             );
 
-                            let mut buf = Vec::new();
-                            let mut buf_reader = BufReader::new(client_tcp_stream);
-                            loop {
-                                match buf_reader.read_until(0xA, &mut buf) {
-                                    Err(e) => {
-                                        println!("read header error: {}", e);
-                                        break;
-                                    },
-                                    Ok(len) => {
-                                        println!("> {:?}", std::str::from_utf8(&buf).unwrap());
-                                        if len == 2 && buf[0] == 0xD && buf[1] == 0xA {
-                                            break;
-                                        }
-                                        buf.clear();
-                                    }
-                                }
-                            }
+                            let mut req = http::Request::new();
+                            req.decode_from(&mut client_tcp_stream);
+                            print!("{}", req);
 
+                            // let mut buf = Vec::new();
+                            // let mut buf_reader = BufReader::new(client_tcp_stream);
+                            // loop {
+                            //     match buf_reader.read_until(0xA, &mut buf) {
+                            //         Err(e) => {
+                            //             println!("read header error: {}", e);
+                            //             break;
+                            //         },
+                            //         Ok(len) => {
+                            //             println!("> {:?}", std::str::from_utf8(&buf).unwrap());
+                            //             if len == 2 && buf[0] == 0xD && buf[1] == 0xA {
+                            //                 buf.clear();
+                            //                 break;
+                            //             }
+                            //             buf.clear();
+                            //         }
+                            //     }
+                            // }
+
+                            let mut buf = Vec::new();
                             buf.clear();
+                            let mut buf_reader = BufReader::new(client_tcp_stream);
                             match buf_reader.read_to_end(&mut buf) {
                                 Err(e) => {
                                     match e.kind() {
-                                        std::io::ErrorKind::WouldBlock => println!("{:?}", std::str::from_utf8(&buf).unwrap()),
+                                        std::io::ErrorKind::WouldBlock => println!("> {:?}", std::str::from_utf8(&buf).unwrap()),
                                         _ => {
                                             println!("{:?} {:?}", e, e.kind());
                                             continue;
@@ -195,7 +201,7 @@ fn main() {
                                     }
                                 },
                                 Ok(len) => {
-                                    println!("{} {:?}", len, std::str::from_utf8(&buf).unwrap());
+                                    println!("> {} {:?}", len, std::str::from_utf8(&buf).unwrap());
                                     buf.clear();
                                 }
                             }
