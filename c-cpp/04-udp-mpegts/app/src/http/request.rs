@@ -11,6 +11,7 @@ use self::regex::Regex;
 
 use http::method;
 use http::header;
+use http::request_error::RequestError;
 
 
 const CR: u8 = 0x0D;
@@ -37,11 +38,6 @@ lazy_static! {
 }
 
 
-#[derive(Debug)]
-pub enum HeaderError {
-}
-
-
 #[derive(Default)]
 pub struct Request {
     pub method: method::Method,
@@ -54,6 +50,11 @@ pub struct Request {
     pub header: header::Header,
     pub content_length: usize,
 
+    // TODO: body as reader (reader, closer) trait
+    // see src/libstd/io/error.rs.html
+    // Box<error::Error+Send+Sync>
+    // Into<Box<error::Error+Send+Sync>>
+    // error.into()
     pub body: Vec<u8>,
 }
 
@@ -70,7 +71,7 @@ impl Request {
         }
     }
 
-    pub fn decode_from(&mut self, src: &mut Read) {
+    pub fn decode_from(&mut self, src: &mut Read) -> Result<(), RequestError> {
         let mut i = -1;
         let mut buf = Vec::new();
         let mut reader = BufReader::new(src);
@@ -79,29 +80,28 @@ impl Request {
             buf.clear();
 
             match reader.read_until(LF, &mut buf) {
-                Err(e) => {
-                    println!("read header error: {}", e);
-                    break;
-                },
+                Err(e) => return Err(RequestError::from(e)),
                 Ok(len) => {
-                    let s = std::str::from_utf8(&buf).unwrap();
+                    let s = try!(std::str::from_utf8(&buf));
                     if len == 2 && buf == [CR, LF] {
                         break;
                     }
 
                     if i == 0 {
-                        let caps = RE_REQUEST_LINE.captures(s).unwrap();
+                        let caps = try!(RE_REQUEST_LINE
+                            .captures(s)
+                            .ok_or(RequestError::RequestLineMissing));
                         self.method = method::Method::from(caps.name("method").unwrap());
                         self.url_raw = caps.name("url_raw").unwrap().to_string();
-                        self.proto_major = caps.name("proto_major").unwrap().parse::<u8>().unwrap();
-                        self.proto_minor = caps.name("proto_minor").unwrap().parse::<u8>().unwrap();
+                        self.proto_major = try!(caps.name("proto_major").unwrap().parse::<u8>());
+                        self.proto_minor = try!(caps.name("proto_minor").unwrap().parse::<u8>());
                     } else {
                         match RE_HEADER.captures(s) {
                             Some(caps) => {
                                 let k = caps.name("k").unwrap().to_string();
                                 let v = caps.name("v").unwrap().to_string();
                                 if k == "Content-Length" {
-                                    self.content_length = v.parse::<usize>().unwrap();
+                                    self.content_length = try!(v.parse::<usize>());
                                 }
                                 self.header.add(k, v);
                             },
@@ -117,14 +117,15 @@ impl Request {
             match reader.read_to_end(&mut self.body) {
                 Err(e) => {
                     match e.kind() {
-                        std::io::ErrorKind::WouldBlock => {},
-                        _ => {}
+                        std::io::ErrorKind::WouldBlock => {}, // ok
+                        _ => return Err(RequestError::from(e)),
                     }
                 },
-                Ok(len) => {
-                }
+                Ok(..) => {} // ok
             }
         }
+
+        Ok(())
     }
 }
 
