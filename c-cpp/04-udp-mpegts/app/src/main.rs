@@ -18,6 +18,8 @@ use chan_signal::Signal;
 
 mod va;
 mod http;
+mod client;
+mod server;
 
 
 const ADDR_RAW: &'static str = "0.0.0.0:8000";
@@ -82,7 +84,7 @@ fn main() {
             for event in events.iter() {
                 let token = event.token();
                 let ready = event.kind();
-                if ready.is_hup() {
+                if ready.is_hup() || ready.is_error() {
                     {
                         let client_tcp_stream = &clients[&token];
                         println!("[<-] [h] {{\
@@ -160,8 +162,13 @@ fn main() {
                             );
 
                             let mut req = http::Request::new();
-                            req.decode_from(&mut client_tcp_stream);
-                            print!("{}", req);
+                            match req.decode_from(&mut client_tcp_stream) {
+                                Err(e) => println!("error decoding request: {}", e),
+                                Ok(..) => {
+                                    println!("[<-] {} {}", req.method, req.url_raw);
+                                    println!("{}", req);
+                                }
+                            }
 
                             match mio_poll.reregister(
                                   client_tcp_stream
