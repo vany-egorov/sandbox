@@ -1,9 +1,19 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Iter;
 
 
 #[derive(Default)]
 pub struct Header {
     m: HashMap<String, Vec<String>>,
+}
+
+impl<'a> IntoIterator for &'a Header {
+    type Item = (&'a String, &'a Vec<String>);
+    type IntoIter = Iter<'a, String, Vec<String>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.m.iter()
+    }
 }
 
 impl Header {
@@ -16,28 +26,20 @@ impl Header {
     // Add adds the key, value pair to the header.
     // It appends to any existing values associated with key.
     pub fn add(&mut self, k: String, v: String) {
-        if !self.m.contains_key(&k) {
-            let mut vec = Vec::new();
-            vec.push(v);
-            self.m.insert(k, vec);
-        } else {
-            let mut vec = self.m.get_mut(&k).unwrap();
-            vec.push(v);
-        }
+        self.m
+            .entry(k)
+            .or_insert(Vec::new())
+            .push(v);
     }
 
     // Set sets the header entries associated with key to the single element value.
     // It replaces any existing values associated with key.
     pub fn set(&mut self, k: String, v: String) {
-        if !self.m.contains_key(&k) {
-            let mut vec = Vec::new();
-            vec.push(v);
-            self.m.insert(k, vec);
-        } else {
-            let mut vec = self.m.get_mut(&k).unwrap();
-            vec.clear();
-            vec.push(v);
-        }
+        let vec = self.m
+            .entry(k)
+            .or_insert(Vec::new());
+        vec.clear();
+        vec.push(v);
     }
 
     pub fn get_first(&mut self, k: String) -> Option<&String> {
@@ -46,6 +48,4 @@ impl Header {
             None => None,
         }
     }
-
-    pub fn data(&self) -> &HashMap<String, Vec<String>> { return &self.m }
 }

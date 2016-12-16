@@ -6,12 +6,7 @@ extern crate chan;
 extern crate lazy_static;
 extern crate chan_signal;
 
-use std::io::{
-      Read
-    , Write
-    , BufReader
-    , BufRead
-};
+use std::io::Write;
 use std::os::unix::io::AsRawFd;
 use std::collections::HashMap;
 
@@ -167,44 +162,6 @@ fn main() {
                             let mut req = http::Request::new();
                             req.decode_from(&mut client_tcp_stream);
                             print!("{}", req);
-
-                            // let mut buf = Vec::new();
-                            // let mut buf_reader = BufReader::new(client_tcp_stream);
-                            // loop {
-                            //     match buf_reader.read_until(0xA, &mut buf) {
-                            //         Err(e) => {
-                            //             println!("read header error: {}", e);
-                            //             break;
-                            //         },
-                            //         Ok(len) => {
-                            //             println!("> {:?}", std::str::from_utf8(&buf).unwrap());
-                            //             if len == 2 && buf[0] == 0xD && buf[1] == 0xA {
-                            //                 buf.clear();
-                            //                 break;
-                            //             }
-                            //             buf.clear();
-                            //         }
-                            //     }
-                            // }
-
-                            let mut buf = Vec::new();
-                            buf.clear();
-                            let mut buf_reader = BufReader::new(client_tcp_stream);
-                            match buf_reader.read_to_end(&mut buf) {
-                                Err(e) => {
-                                    match e.kind() {
-                                        std::io::ErrorKind::WouldBlock => println!("> {:?}", std::str::from_utf8(&buf).unwrap()),
-                                        _ => {
-                                            println!("{:?} {:?}", e, e.kind());
-                                            continue;
-                                        }
-                                    }
-                                },
-                                Ok(len) => {
-                                    println!("> {} {:?}", len, std::str::from_utf8(&buf).unwrap());
-                                    buf.clear();
-                                }
-                            }
 
                             match mio_poll.reregister(
                                   client_tcp_stream

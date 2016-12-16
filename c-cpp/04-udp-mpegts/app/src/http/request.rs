@@ -37,6 +37,11 @@ lazy_static! {
 }
 
 
+#[derive(Debug)]
+pub enum HeaderError {
+}
+
+
 #[derive(Default)]
 pub struct Request {
     pub method: method::Method,
@@ -47,7 +52,9 @@ pub struct Request {
     pub proto_minor: u8, // 0
 
     pub header: header::Header,
-    pub content_length: u64,
+    pub content_length: usize,
+
+    pub body: Vec<u8>,
 }
 
 impl Request {
@@ -59,6 +66,7 @@ impl Request {
             proto_minor: 0,
             header: header::Header::new(),
             content_length: 0,
+            body: Vec::new(),
         }
     }
 
@@ -93,7 +101,7 @@ impl Request {
                                 let k = caps.name("k").unwrap().to_string();
                                 let v = caps.name("v").unwrap().to_string();
                                 if k == "Content-Length" {
-                                    self.content_length = v.parse::<u64>().unwrap();
+                                    self.content_length = v.parse::<usize>().unwrap();
                                 }
                                 self.header.add(k, v);
                             },
@@ -103,22 +111,40 @@ impl Request {
                 }
             }
         }
+
+        if self.content_length != 0 {
+            self.body = Vec::with_capacity(self.content_length);
+            match reader.read_to_end(&mut self.body) {
+                Err(e) => {
+                    match e.kind() {
+                        std::io::ErrorKind::WouldBlock => {},
+                        _ => {}
+                    }
+                },
+                Ok(len) => {
+                }
+            }
+        }
     }
 }
 
-impl fmt::Debug for Request {
+impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{method} {url_raw} HTTP/{proto_major}.{proto_minor}\n",
+        try!(write!(f, "{method} {url_raw} HTTP/{proto_major}.{proto_minor}\n",
             method=self.method,
             url_raw=self.url_raw,
             proto_major=self.proto_major,
             proto_minor=self.proto_minor
-        ).unwrap();
+        ));
 
-        for (k, vs) in self.header.data() {
+        for (k, vs) in &self.header {
             for v in vs {
-                write!(f, "{k}: {v}\n", k=k, v=v).unwrap();
+                try!(write!(f, "{k}: {v}\n", k=k, v=v));
             }
+        }
+
+        if self.content_length != 0 {
+            try!(write!(f, "{}", std::str::from_utf8(&self.body).unwrap()));
         }
 
         Ok(())
