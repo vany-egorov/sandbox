@@ -9,13 +9,10 @@ use std::io::{
 };
 use self::regex::Regex;
 
+use http::{CR, LF};
 use http::method;
 use http::header;
 use http::request_error::RequestError;
-
-
-const CR: u8 = 0x0D;
-const LF: u8 = 0x0A;
 
 
 lazy_static! {

@@ -4,7 +4,7 @@
 use std::fmt;
 
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Status {
     Continue           = 100, // RFC 7231, 6.2.1
     SwitchingProtocols = 101, // RFC 7231, 6.2.2
