@@ -22,4 +22,6 @@ impl Client {
     pub fn http_request_read(&mut self) -> Result<(), http::RequestError> {
         self.http_request.decode_from(&mut self.conn)
     }
+
+    pub fn http_request_reset(&mut self) { self.http_request = http::Request::new(); }
 }

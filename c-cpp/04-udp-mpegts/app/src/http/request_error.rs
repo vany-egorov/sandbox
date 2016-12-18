@@ -22,6 +22,7 @@ pub enum RequestError {
     Utf8(Utf8Error),
     ParseInt(ParseIntError),
     RequestLineMissing,
+    NoData,
 }
 
 impl fmt::Display for RequestError {
@@ -31,6 +32,7 @@ impl fmt::Display for RequestError {
             RequestError::Utf8(ref err) => write!(f, "decoding buffer into utf8: {}", err),
             RequestError::ParseInt(ref err) => write!(f, "parsing int: {}", err),
             RequestError::RequestLineMissing => write!(f, "missing request-line in TCP payload"),
+            RequestError::NoData => write!(f, "missing data in TCP stream to parse"),
         }
     }
 }
@@ -42,6 +44,7 @@ impl error::Error for RequestError {
             RequestError::Utf8(ref err) => err.description(),
             RequestError::ParseInt(ref err) => err.description(),
             RequestError::RequestLineMissing => "missing request-line in TCP payload",
+            RequestError::NoData => "missing data in TCP stream to parse",
         }
     }
 
@@ -51,6 +54,7 @@ impl error::Error for RequestError {
             RequestError::Utf8(ref err) => Some(err),
             RequestError::ParseInt(ref err) => Some(err),
             RequestError::RequestLineMissing => None,
+            RequestError::NoData => None,
         }
     }
 }

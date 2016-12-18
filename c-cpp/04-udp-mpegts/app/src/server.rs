@@ -71,27 +71,7 @@ impl Server {
             for event in events.iter() {
                 let token = event.token();
                 let ready = event.kind();
-                if ready.is_hup() || ready.is_error() {
-                    {
-                        let client = &self.clients[&token];
-                        let conn = &client.conn;
-                        println!("[<-] [h] {{\
-                            \"fd\": {}\
-                            , \"token\": {}\
-                            , \"ready\": \"{:?}\"\
-                        }}", conn.as_raw_fd(), usize::from(token), ready);
-
-                        match mio_poll.deregister(conn) {
-                            Err(e) => println!("[->] [h] deregister error: {}", e),
-                            Ok(..) => println!("[->] [h] deregister OK")
-                        };
-                        match conn.shutdown(Shutdown::Both) {
-                            Err(e) => println!("[->] [h] shutdown error: {}", e),
-                            Ok(..) => println!("[->] [h] shutdown OK")
-                        }
-                    }
-                    self.clients.remove(&token);
-                } else if ready.is_readable() {
+                if ready.is_readable() {
                     if token == self.token { // event on server listening socket
                         // creates a new connected socket
                         // and returns a new file descriptor
@@ -152,24 +132,28 @@ impl Server {
 
                         match client.http_request_read() {
                             Err(e) => {
-                                println!("error reading HTTP request: {}", e);
-                                continue;
+                                match e {
+                                    http::RequestError::NoData => {}, // ok
+                                    _ => println!("error reading HTTP request: {}", e),
+                                }
                             },
-                            Ok(..) => {}
-                        }
-
-                        match mio_poll.reregister(
-                              &client.conn
-                            , token
-                            , Ready::writable() | Ready::hup()
-                            ,   PollOpt::edge()
-                              | PollOpt::oneshot()
-                        ) {
-                            Err(e) => println!("error register client socket: {}", e),
-                            Ok(..) => {}
+                            Ok(..) => {
+                                match mio_poll.reregister(
+                                      &client.conn
+                                    , token
+                                    , Ready::writable() | Ready::hup()
+                                    ,   PollOpt::edge()
+                                      | PollOpt::oneshot()
+                                ) {
+                                    Err(e) => println!("error register client socket: {}", e),
+                                    Ok(..) => {}
+                                }
+                            }
                         }
                     }
-                } else if ready.is_writable() {
+                }
+
+                if ready.is_writable() {
                     {
                         let client = &self.clients[&token];
                         let mut conn = &client.conn;
@@ -247,28 +231,34 @@ impl Server {
                                     Err(e) => println!("error register client socket: {}", e),
                                     Ok(..) => {}
                                 }
-
-                                // println!("[<-] [h] {{\
-                                //     \"fd\": {}\
-                                //     , \"token\": {}\
-                                //     , \"ready\": \"{:?}\"\
-                                // }}", conn.as_raw_fd(), usize::from(token), ready);
-
-                                // match mio_poll.deregister(conn) {
-                                //     Err(e) => println!("[->] [h] deregister error: {}", e),
-                                //     Ok(..) => println!("[->] [h] deregister OK")
-                                // };
-                                // match conn.shutdown(Shutdown::Both) {
-                                //     Err(e) => println!("[->] [h] shutdown error: {}", e),
-                                //     Ok(..) => println!("[->] [h] shutdown OK")
-                                // }
                             }
                         }
                     }
 
-                    // self.clients.remove(&token);
-                } else {
-                    panic!("{:?} {:?}", ready, token);
+                    let client = self.clients.get_mut(&token).unwrap();
+                    client.http_request_reset();
+                }
+
+                if ready.is_hup() || ready.is_error() {
+                    {
+                        let client = &self.clients[&token];
+                        let conn = &client.conn;
+                        println!("[<-] [h] {{\
+                            \"fd\": {}\
+                            , \"token\": {}\
+                            , \"ready\": \"{:?}\"\
+                        }}", conn.as_raw_fd(), usize::from(token), ready);
+
+                        match mio_poll.deregister(conn) {
+                            Err(e) => println!("[->] [h] deregister error: {}", e),
+                            Ok(..) => println!("[->] [h] deregister OK")
+                        };
+                        match conn.shutdown(Shutdown::Both) {
+                            Err(e) => println!("[->] [h] shutdown error: {}", e),
+                            Ok(..) => println!("[->] [h] shutdown OK")
+                        }
+                    }
+                    self.clients.remove(&token);
                 }
             }
         }

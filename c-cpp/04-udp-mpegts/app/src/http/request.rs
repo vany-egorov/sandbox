@@ -80,14 +80,18 @@ impl Request {
                 Err(e) => return Err(RequestError::from(e)),
                 Ok(len) => {
                     let s = try!(std::str::from_utf8(&buf));
+
+                    if s == "" { return Err(RequestError::NoData); }
+
                     if len == 2 && buf == [CR, LF] {
                         break;
                     }
 
                     if i == 0 {
-                        let caps = try!(RE_REQUEST_LINE
-                            .captures(s)
-                            .ok_or(RequestError::RequestLineMissing));
+                        let caps = match RE_REQUEST_LINE.captures(s) {
+                            Some(c) => c,
+                            None => return Err(RequestError::RequestLineMissing),
+                        };
                         self.method = method::Method::from(caps.name("method").unwrap());
                         self.url_raw = caps.name("url_raw").unwrap().to_string();
                         self.proto_major = try!(caps.name("proto_major").unwrap().parse::<u8>());
