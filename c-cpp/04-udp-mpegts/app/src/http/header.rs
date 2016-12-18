@@ -42,7 +42,7 @@ impl Header {
         vec.push(v);
     }
 
-    pub fn get_first(&mut self, k: String) -> Option<&String> {
+    pub fn get_first(&self, k: String) -> Option<&String> {
         match self.m.get(&k) {
             Some(vec) => vec.first(),
             None => None,

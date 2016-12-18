@@ -1,3 +1,6 @@
+extern crate sha1;
+extern crate rustc_serialize;
+
 use std;
 use std::fs::File;
 use std::io::{Write, Read};
@@ -6,6 +9,7 @@ use std::os::unix::io::AsRawFd;
 
 use mio::{Poll, Token, Ready, PollOpt, Events};
 use mio::tcp::{TcpListener, Shutdown};
+use self::rustc_serialize::base64::ToBase64;
 
 use http;
 use client;
@@ -20,6 +24,17 @@ pub enum ServerError {
 pub struct Server {
     pub token: Token,
     pub clients: HashMap<Token, client::Client>,
+}
+
+// TODO: move somewhere
+fn gen_key(key: &String) -> String {
+    let mut m = sha1::Sha1::new();
+    println!("key \"{}\"", key);
+
+    m.update(key.as_bytes());
+    m.update("258EAFA5-E914-47DA-95CA-C5AB0DC85B11".as_bytes());
+
+    return m.digest().bytes().to_base64(rustc_serialize::base64::STANDARD);
 }
 
 impl Server {
@@ -175,7 +190,12 @@ impl Server {
                                         http_resp.header_mut().set("Content-Type".to_string(), "text/html; charset=UTF-8".to_string());
                                     },
                                     "/ws/v1" => {
-                                        println!("websocket!");
+                                        let response_key = gen_key(&client.http_request.header.get_first("Sec-WebSocket-Key".to_string()).unwrap());
+
+                                        http_resp.set_status(http::Status::SwitchingProtocols);
+                                        http_resp.header_mut().set("Upgrade".to_string(), "websocket".to_string());
+                                        http_resp.header_mut().set("Connection".to_string(), "Upgrade".to_string());
+                                        http_resp.header_mut().set("Sec-WebSocket-Accept".to_string(), response_key);
                                     },
 
                                     "/static/app.js" => {
