@@ -16,7 +16,7 @@ impl fmt::Display for ParseError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Method {
     GET,
     HEAD,

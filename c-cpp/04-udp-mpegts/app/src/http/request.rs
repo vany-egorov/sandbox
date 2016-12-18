@@ -124,6 +124,9 @@ impl Request {
 
         Ok(())
     }
+
+    pub fn path(&self) -> &String { &self.url_raw }
+    pub fn method(&self) -> method::Method { self.method }
 }
 
 impl fmt::Display for Request {

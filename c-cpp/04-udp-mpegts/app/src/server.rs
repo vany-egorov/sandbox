@@ -1,5 +1,6 @@
 use std;
-use std::io::Write;
+use std::fs::File;
+use std::io::{Write, Read};
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 
@@ -169,52 +170,103 @@ impl Server {
                         }
                     }
                 } else if ready.is_writable() {
-                    let client = &self.clients[&token];
-                    let mut conn = &client.conn;
-                    println!("[<-] [w] {{\
-                        \"fd\": {}\
-                        , \"token\": {}\
-                        , \"ready\": \"{:?}\"\
-                    }}", conn.as_raw_fd(), usize::from(token), ready);
+                    {
+                        let client = &self.clients[&token];
+                        let mut conn = &client.conn;
+                        println!("[<-] [w] {{\
+                            \"fd\": {}\
+                            , \"token\": {}\
+                            , \"ready\": \"{:?}\"\
+                        }}", conn.as_raw_fd(), usize::from(token), ready);
 
-                    let resp_body = "{\"foo\":\"bar\"}";
-                    let resp_raw = std::fmt::format(
-                        format_args!(
-                            "HTTP/1.1 {http_status_code} {http_status_text}\r\n\
-                            Content-Type: application/json\r\n\
-                            Content-Length: {content_length}\r\n\
-                            \r\n\
-                            {body}",
-                            http_status_code=http::Status::OK as u16,
-                            http_status_text=http::Status::OK,
-                            content_length=resp_body.as_bytes().len(),
-                            body=resp_body
-                        )
-                    );
-                    match conn.write(resp_raw.as_bytes()) {
-                        Err(e) => println!("[->] [w] write error: {}", e),
-                        Ok(len) => {
-                            println!("[->] [w] {{\
-                                \"fd\": {}\
-                                , \"token\": {}\
-                                , \"written\": {}\
-                            }}", conn.as_raw_fd(), usize::from(token), len);
+                        let mut http_resp = http::Response::new();
+                        let mut http_resp_body = String::new();
 
-                            println!("[<-] {} {}", client.http_request.method, client.http_request.url_raw);
-                            println!("{}", client.http_request);
+                        match client.http_request.method() {
+                            http::Method::GET => {
+                                match client.http_request.path().as_ref() {
+                                    "/" => {
+                                        let mut f = File::open("./static/index.html").unwrap();
+                                        f.read_to_string(&mut http_resp_body).unwrap();
+                                        http_resp.header_mut().set("Content-Type".to_string(), "text/html; charset=UTF-8".to_string());
+                                    },
+                                    "/ws/v1" => {
+                                        println!("websocket!");
+                                    },
 
-                            match mio_poll.reregister(
-                                  conn
-                                , token
-                                ,   Ready::readable() | Ready::none() | Ready::hup()
-                                ,   PollOpt::edge()
-                                  | PollOpt::oneshot()
-                            ) {
-                                Err(e) => println!("error register client socket: {}", e),
-                                Ok(..) => {}
+                                    "/static/app.js" => {
+                                        let mut f = File::open("./static/app.js").unwrap();
+                                        f.read_to_string(&mut http_resp_body).unwrap();
+                                        http_resp.header_mut().set("Content-Type".to_string(), "text/javascript; charset=UTF-8".to_string());
+                                    },
+                                    "/static/app.css" => {
+                                        let mut f = File::open("./static/app.css").unwrap();
+                                        f.read_to_string(&mut http_resp_body).unwrap();
+                                        http_resp.header_mut().set("Content-Type".to_string(), "text/css; charset=UTF-8".to_string());
+                                    },
+
+                                    _ => {
+                                        let mut f = File::open("./static/404.html").unwrap();
+                                        f.read_to_string(&mut http_resp_body).unwrap();
+                                        http_resp.set_status(http::Status::NotFound);
+                                        http_resp.header_mut().set("Content-Type".to_string(), "text/html; charset=UTF-8".to_string());
+                                    }
+                                }
+                            }
+                            _ => {
+                                let mut f = File::open("./static/405.html").unwrap();
+                                f.read_to_string(&mut http_resp_body).unwrap();
+                                http_resp.set_status(http::Status::MethodNotAllowed);
+                                http_resp.header_mut().set("Content-Type".to_string(), "text/html; charset=UTF-8".to_string());
+                            }
+                        }
+
+                        http_resp.set_content_length(http_resp_body.as_bytes().len());
+
+                        match conn
+                            .write(http_resp.to_string().as_bytes())
+                            .and_then(|_| conn.write(http_resp_body.as_bytes())) {
+                            Err(e) => println!("[->] [w] write error: {}", e),
+                            Ok(len) => {
+                                println!("[->] [w] {{\
+                                    \"fd\": {}\
+                                    , \"token\": {}\
+                                    , \"written\": {}\
+                                }}", conn.as_raw_fd(), usize::from(token), len);
+
+                                println!("[<-] {} {}", client.http_request.method, client.http_request.url_raw);
+                                println!("{}", client.http_request);
+
+                                match mio_poll.reregister(
+                                      conn
+                                    , token
+                                    ,   Ready::readable() | Ready::none() | Ready::hup()
+                                    ,   PollOpt::edge()
+                                      | PollOpt::oneshot()
+                                ) {
+                                    Err(e) => println!("error register client socket: {}", e),
+                                    Ok(..) => {}
+                                }
+
+                                // println!("[<-] [h] {{\
+                                //     \"fd\": {}\
+                                //     , \"token\": {}\
+                                //     , \"ready\": \"{:?}\"\
+                                // }}", conn.as_raw_fd(), usize::from(token), ready);
+
+                                // match mio_poll.deregister(conn) {
+                                //     Err(e) => println!("[->] [h] deregister error: {}", e),
+                                //     Ok(..) => println!("[->] [h] deregister OK")
+                                // };
+                                // match conn.shutdown(Shutdown::Both) {
+                                //     Err(e) => println!("[->] [h] shutdown error: {}", e),
+                                //     Ok(..) => println!("[->] [h] shutdown OK")
+                                // }
                             }
                         }
                     }
+
+                    // self.clients.remove(&token);
                 } else {
                     panic!("{:?} {:?}", ready, token);
                 }

@@ -1,6 +1,6 @@
 use std::string::ToString;
 
-use http::{CR, LF};
+use http::{CCR, CLF, HEADER_CONTENT_LENGTH};
 use http::header;
 use http::status;
 
@@ -14,7 +14,7 @@ pub struct Response {
     pub proto_minor: u8, // 0
 
     pub header: header::Header,
-    pub content_length: usize,
+    content_length: usize,
 }
 
 impl Response {
@@ -31,6 +31,15 @@ impl Response {
     }
 }
 
+impl Response {
+    pub fn content_length(&self) -> usize { self.content_length }
+    pub fn set_content_length(&mut self, v: usize) { self.content_length = v; }
+
+    pub fn header_mut(&mut self) -> &mut header::Header { &mut self.header }
+
+    pub fn set_status(&mut self, v: status::Status) { self.status = v; }
+}
+
 impl ToString for Response {
     fn to_string(&self) -> String {
         let mut s = String::new();
@@ -41,17 +50,31 @@ impl ToString for Response {
             proto_minor=self.proto_minor,
             http_status_code=self.status as u16,
             http_status_text=self.status,
-            CR=CR, LF=LF
+            CR=CCR, LF=CLF
         ));
 
         for (k, vs) in &self.header {
             for v in vs {
-                s.push_str(&format!("{k}: {v}{CR}{LF}", k=k, v=v, CR=CR, LF=LF));
+                if v == HEADER_CONTENT_LENGTH {
+                    continue
+                }
+
+                s.push_str(&format!("{k}: {v}{CR}{LF}", k=k, v=v, CR=CCR, LF=CLF));
             }
         }
 
-        s.push(CR as char);
-        s.push(LF as char);
+        if self.content_length != 0 {
+            s.push_str(&format!(
+                "{k}: {v}{CR}{LF}",
+                k=HEADER_CONTENT_LENGTH,
+                v=self.content_length,
+                CR=CCR,
+                LF=CLF
+            ));
+        }
+
+        s.push(CCR);
+        s.push(CLF);
 
         s
     }
