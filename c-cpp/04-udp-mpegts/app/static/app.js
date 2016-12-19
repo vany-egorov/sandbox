@@ -1,6 +1,7 @@
 (function() {
   var observer = new MutationObserver(function() {
     if (document.body) {
+      observer.disconnect();
 
 
       var location = window.location;
@@ -11,11 +12,11 @@
         + location.port
         + ws_path;
 
-      console.log(ws_url);
       var socket = new WebSocket(ws_url);
 
-
-      observer.disconnect();
+      setInterval(function(){
+        socket.send(navigator.userAgent);
+      }, 2000);
     }
   });
   observer.observe(document.documentElement, {childList: true});

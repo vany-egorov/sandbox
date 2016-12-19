@@ -29,7 +29,6 @@ pub struct Server {
 // TODO: move somewhere
 fn gen_key(key: &String) -> String {
     let mut m = sha1::Sha1::new();
-    println!("key \"{}\"", key);
 
     m.update(key.as_bytes());
     m.update("258EAFA5-E914-47DA-95CA-C5AB0DC85B11".as_bytes());
@@ -145,24 +144,66 @@ impl Server {
                             ready
                         );
 
-                        match client.http_request_read() {
-                            Err(e) => {
-                                match e {
-                                    http::RequestError::NoData => {}, // ok
-                                    _ => println!("error reading HTTP request: {}", e),
+                        match client.state  {
+                            client::State::Accepted | client::State::HTTPRs => {
+                                match client.http_request_read() {
+                                    Err(e) => {
+                                        match e {
+                                            http::RequestError::NoData => {}, // ok
+                                            _ => {
+                                                println!("error reading HTTP request: {}", e);
+
+                                                client.state = client::State::TCP;
+                                                match mio_poll.reregister(
+                                                      &client.conn
+                                                    , token
+                                                    , Ready::readable() | Ready::hup()
+                                                    ,   PollOpt::edge()
+                                                      | PollOpt::oneshot()
+                                                ) {
+                                                    Err(e) => println!("error register client socket: {}", e),
+                                                    Ok(..) => {}
+                                                }
+                                            },
+                                        }
+                                    },
+                                    Ok(..) => {
+                                        client.state = client::State::HTTPRq;
+
+                                        match mio_poll.reregister(
+                                              &client.conn
+                                            , token
+                                            , Ready::writable() | Ready::hup()
+                                            ,   PollOpt::edge()
+                                              | PollOpt::oneshot()
+                                        ) {
+                                            Err(e) => println!("error register client socket: {}", e),
+                                            Ok(..) => {}
+                                        }
+                                    }
                                 }
-                            },
-                            Ok(..) => {
+                            }
+                            client::State::WS => {
+                                let mut buf = Vec::new();
+                                client.conn.read_to_end(&mut buf);
+                                let s = unsafe {
+                                    std::str::from_utf8_unchecked(&buf)
+                                };
+                                println!("[<-] WS {}", s);
+
                                 match mio_poll.reregister(
                                       &client.conn
                                     , token
-                                    , Ready::writable() | Ready::hup()
+                                    , Ready::readable() | Ready::hup()
                                     ,   PollOpt::edge()
                                       | PollOpt::oneshot()
                                 ) {
                                     Err(e) => println!("error register client socket: {}", e),
                                     Ok(..) => {}
                                 }
+                            },
+                            _ => {
+                                println!("read {:?}", client.state);
                             }
                         }
                     }
@@ -170,7 +211,7 @@ impl Server {
 
                 if ready.is_writable() {
                     {
-                        let client = &self.clients[&token];
+                        let client = self.clients.get_mut(&token).unwrap();
                         let mut conn = &client.conn;
                         println!("[<-] [w] {{\
                             \"fd\": {}\
@@ -181,6 +222,10 @@ impl Server {
                         let mut http_resp = http::Response::new();
                         let mut http_resp_body = String::new();
 
+                        if client.state == client::State::HTTPRq {
+                            client.state = client::State::HTTPRs;
+                        }
+
                         match client.http_request.method() {
                             http::Method::GET => {
                                 match client.http_request.path().as_ref() {
@@ -190,6 +235,7 @@ impl Server {
                                         http_resp.header_mut().set("Content-Type".to_string(), "text/html; charset=UTF-8".to_string());
                                     },
                                     "/ws/v1" => {
+                                        client.state = client::State::WS;
                                         let response_key = gen_key(&client.http_request.header.get_first("Sec-WebSocket-Key".to_string()).unwrap());
 
                                         http_resp.set_status(http::Status::SwitchingProtocols);
