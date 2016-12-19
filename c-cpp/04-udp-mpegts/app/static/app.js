@@ -13,10 +13,12 @@
         + ws_path;
 
       var socket = new WebSocket(ws_url);
-
-      setInterval(function(){
-        socket.send(navigator.userAgent);
-      }, 2000);
+      socket.onopen = function() {
+        setInterval(function(){
+          var timestamp = + new Date();
+          socket.send("[" + timestamp + "] " + navigator.userAgent);
+        }, 2000);
+      };
     }
   });
   observer.observe(document.documentElement, {childList: true});

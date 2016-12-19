@@ -1,9 +1,10 @@
 extern crate sha1;
+extern crate ws;
 extern crate rustc_serialize;
 
 use std;
 use std::fs::File;
-use std::io::{Write, Read};
+use std::io::{Write, Read, Cursor};
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 
@@ -27,11 +28,12 @@ pub struct Server {
 }
 
 // TODO: move somewhere
+static WS_GUID: &'static str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 fn gen_key(key: &String) -> String {
     let mut m = sha1::Sha1::new();
 
     m.update(key.as_bytes());
-    m.update("258EAFA5-E914-47DA-95CA-C5AB0DC85B11".as_bytes());
+    m.update(WS_GUID.as_bytes());
 
     return m.digest().bytes().to_base64(rustc_serialize::base64::STANDARD);
 }
@@ -184,12 +186,23 @@ impl Server {
                                 }
                             }
                             client::State::WS => {
-                                let mut buf = Vec::new();
-                                client.conn.read_to_end(&mut buf);
-                                let s = unsafe {
-                                    std::str::from_utf8_unchecked(&buf)
-                                };
-                                println!("[<-] WS {}", s);
+                                let mut data = Vec::new();
+                                client.conn.read_to_end(&mut data);
+
+                                let mut buf = Cursor::new(data);
+
+                                while let Some(mut frame) = ws::Frame::parse(&mut buf).unwrap() {
+                                    frame.remove_mask();
+                                    if frame.is_final() {
+                                        match frame.opcode() {
+                                            ws::OpCode::Text => {
+                                                let s = String::from_utf8(frame.into_data()).unwrap();
+                                                println!("[<-] [ws] {}", s);
+                                            },
+                                            _ => { println!("!!!!!!!!!!!!!!"); }
+                                        }
+                                    }
+                                }
 
                                 match mio_poll.reregister(
                                       &client.conn

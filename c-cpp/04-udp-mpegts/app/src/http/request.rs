@@ -68,7 +68,8 @@ impl Request {
         }
     }
 
-    pub fn decode_from(&mut self, src: &mut Read) -> Result<(), RequestError> {
+    pub fn decode_from<S>(&mut self, src: &mut S) -> Result<(), RequestError>
+            where S: Read {
         let mut i = -1;
         let mut buf = Vec::new();
         let mut reader = BufReader::new(src);
