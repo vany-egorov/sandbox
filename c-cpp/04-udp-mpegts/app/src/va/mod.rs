@@ -10,6 +10,23 @@ extern crate libc;
 use libc::pthread_t;
 use libc::{c_char, c_int, c_void};
 
+#[repr(i32)]
+#[derive(PartialEq, Debug)]
+pub enum AtomKind {
+    MPEGTSHeader,
+    MPEGTSAdaption,
+    MPEGTSPES,
+    MPEGTSPSIPAT,
+    MPEGTSPSIPMT,
+    MPEGTSPSISDT,
+
+    H264SPS,
+    H264PPS,
+    H264AUD,
+    H264SEI,
+    H264SliceIDR,
+}
+
 #[repr(C)]
 pub struct ParserWorkerRead {
     pub reader: *mut io::IOReader,
@@ -22,6 +39,7 @@ pub struct ParserWorkerParse {
     pub fifo: *mut io::FIFO,
     pub mpegts: mpegts::MPEGTS,
     pub h264: h264::H264,
+    pub cb_ctx: *mut c_void,
     pub cb: ParserParseCBFunc,
     pub offset: u64,
     pub video_pid_h264: u16,
@@ -50,13 +68,15 @@ pub type ParserParseCBFunc =
     ::std::option::Option<unsafe extern "C" fn(
         ctx: *mut c_void,
         atom: *mut c_void,
-        atom_kind: u32,
+        atom_kind: AtomKind,
         offset: u64
     ) -> c_int>;
 
 #[repr(C)]
 pub struct ParserOpenArgs {
     pub i_url_raw: *const c_char,
+
+    pub cb_ctx: *mut c_void,
     pub cb: ParserParseCBFunc,
 }
 

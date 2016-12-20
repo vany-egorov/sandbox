@@ -41,6 +41,7 @@ struct va_parser_worker_parse_s {
 	MPEGTS mpegts;
 	H264   h264;
 
+	void *cb_ctx;
 	va_parser_parse_cb_func cb;
 
 	uint64_t offset;
@@ -63,12 +64,15 @@ struct va_parser_s {
 	IOWriter *writer_fifo,
 	         *writer_multi;
 
+
 	VAParserWorkerRead  worker_read;
 	VAParserWorkerParse worker_parse;
 };
 
 struct va_parser_open_args_s {
 	const char             *i_url_raw;
+
+	void *cb_ctx;
 	va_parser_parse_cb_func cb;
 };
 

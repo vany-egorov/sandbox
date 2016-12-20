@@ -13,12 +13,12 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 	if (msg[0] != MPEGTS_SYNC_BYTE) return;
 
 	mpegts_header_parse(&mpegts_header, &msg[i+1]);
-	if (it->cb) it->cb(NULL, &mpegts_header, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+1);
+	if (it->cb) it->cb(it->cb_ctx, &mpegts_header, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+1);
 	// db_store_mpegts_header(it->db, &mpegts_header, it->offset+1);
 
 	if (mpegts_header.adaption_field_control) {
 		mpegts_adaption_parse(&mpegts_adaption, &msg[i+4]);
-		if (it->cb) it->cb(NULL, NULL, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+4);
+		if (it->cb) it->cb(it->cb_ctx, &mpegts_adaption, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+4);
 		// db_store_mpegts_adaption(it->db, &mpegts_adaption, it->offset+4);
 
 		if (mpegts_adaption.PCR_flag)
@@ -31,7 +31,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 		mpegts_psi_pat_del(mpegts->psi_pat);
 		mpegts->psi_pat = mpegts_psi_pat_new();
 		mpegts_psi_pat_parse(mpegts->psi_pat, &msg[i+5]);
-		if (it->cb) it->cb(NULL, mpegts->psi_pat, VA_ATOM_KIND_MPEGTS_PSI_PAT, it->offset+5);
+		if (it->cb) it->cb(it->cb_ctx, mpegts->psi_pat, VA_ATOM_KIND_MPEGTS_PSI_PAT, it->offset+5);
 		// db_store_mpegts_psi_pat(it->db, mpegts->psi_pat, it->offset+5);
 
 	// PSI-PMT
@@ -41,7 +41,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 		mpegts_psi_pmt_del(mpegts->psi_pmt);
 		mpegts->psi_pmt = mpegts_psi_pmt_new();
 		mpegts_psi_pmt_parse(mpegts->psi_pmt, &msg[i+5]);
-		if (it->cb) it->cb(NULL, mpegts->psi_pmt, VA_ATOM_KIND_MPEGTS_PSI_PMT, it->offset+5);
+		if (it->cb) it->cb(it->cb_ctx, mpegts->psi_pmt, VA_ATOM_KIND_MPEGTS_PSI_PMT, it->offset+5);
 		// db_store_mpegts_psi_pmt(it->db, mpegts->psi_pmt, it->offset+5);
 		mpegts_psi_pmt_program_element = mpegts_psi_pmt_search_by_es_type(mpegts->psi_pmt, MPEGTS_STREAM_TYPE_VIDEO_H264);
 		if (mpegts_psi_pmt_program_element != NULL)
@@ -52,7 +52,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 		mpegts_psi_sdt_del(mpegts->psi_sdt);
 		mpegts->psi_sdt = mpegts_psi_sdt_new();
 		mpegts_psi_sdt_parse(mpegts->psi_sdt, &msg[i+5]);
-		if (it->cb) it->cb(NULL, mpegts->psi_sdt, VA_ATOM_KIND_MPEGTS_PSI_SDT, it->offset+5);
+		if (it->cb) it->cb(it->cb_ctx, mpegts->psi_sdt, VA_ATOM_KIND_MPEGTS_PSI_SDT, it->offset+5);
 		// db_store_mpegts_psi_sdt(it->db, mpegts->psi_sdt, it->offset+5);
 	}
 
@@ -67,7 +67,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 				// mpegts_pes_print_humanized(&mpegts_pes);
 				// mpegts_pes_print_json(&mpegts_pes);
 				// db_store_mpegts_pes(it->db, &mpegts_pes, it->offset + pes_offset);
-				if (it->cb) it->cb(NULL, &mpegts_pes, VA_ATOM_KIND_MPEGTS_PES, it->offset + pes_offset);
+				if (it->cb) it->cb(it->cb_ctx, &mpegts_pes, VA_ATOM_KIND_MPEGTS_PES, it->offset + pes_offset);
 
 				uint8_t *es_data = &msg[pes_offset + 9 + mpegts_pes.header_length];
 				int es_offset = pes_offset + 9 + mpegts_pes.header_length;
@@ -84,7 +84,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 							uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(h264_parse_result.offsets[nal_i]);
 
 							// db_store_h264(it->db, nal, nal_offset);
-							if (it->cb) it->cb(NULL, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
+							if (it->cb) it->cb(it->cb_ctx, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
 						}
 					}
 				}
@@ -106,7 +106,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 						uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(h264_parse_result.offsets[nal_i]);
 
 						// db_store_h264(it->db, nal, nal_offset);
-						if (it->cb) it->cb(NULL, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
+						if (it->cb) it->cb(it->cb_ctx, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
 					}
 				}
 			}

@@ -52,6 +52,7 @@ int va_parser_open(VAParser *it, VAParserOpenArgs *args) {
 
 	it->worker_parse.fifo = it->fifo;
 	it->worker_parse.cb = args->cb;
+	it->worker_parse.cb_ctx = args->cb_ctx;
 
 cleanup:
 	return ret;

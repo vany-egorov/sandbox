@@ -61,6 +61,7 @@ int main (int argc, char *argv[]) {
 	VAParserOpenArgs va_parser_open_args = {
 		.i_url_raw = "udp://239.1.1.1:5500",
 		.cb = va_parser_parse_cb,
+		.cb_ctx = NULL,
 	};
 
 	printf("sizes:\n");

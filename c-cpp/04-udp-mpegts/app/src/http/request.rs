@@ -12,7 +12,7 @@ use self::regex::Regex;
 use http::{CR, LF};
 use http::method;
 use http::header;
-use http::request_error::RequestError;
+use http::request_error::{RequestError, RequestResult};
 
 
 lazy_static! {
@@ -68,7 +68,7 @@ impl Request {
         }
     }
 
-    pub fn decode_from<S>(&mut self, src: &mut S) -> Result<(), RequestError>
+    pub fn decode_from<S>(&mut self, src: &mut S) -> RequestResult<()>
             where S: Read {
         let mut i = -1;
         let mut buf = Vec::new();

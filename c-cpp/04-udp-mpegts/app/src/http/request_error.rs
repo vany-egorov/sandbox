@@ -3,6 +3,10 @@ use std::fmt;
 use std::error;
 use std::str::Utf8Error;
 use std::num::ParseIntError;
+use std::result::Result as StdResult;
+
+
+pub type RequestResult<T> = StdResult<T, RequestError>;
 
 
 macro_rules! from {
