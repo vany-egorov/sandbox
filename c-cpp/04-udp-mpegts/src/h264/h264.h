@@ -157,7 +157,8 @@ struct h264_nal_pps_s {
 	uint16_t seq_parameter_set_id;
 	uint8_t
 		entropy_coding_mode_flag                     :1,
-		bottom_field_pic_order_in_frame_present_flag :1;
+		bottom_field_pic_order_in_frame_present_flag :1,
+		reserved_bit_fields                          :6;
 	uint16_t num_slice_groups_minus1;
 };
 
@@ -215,13 +216,13 @@ enum h264_nal_slice_type_enum {
 };
 
 struct h264_nal_slice_idr_s {
-	H264NALType      nal_type;
 	H264NALSliceType slice_type;
 
 	uint8_t
-		first_mb_in_slice :1,
-		field_pic_flag    :1,
-		bottom_field_flag :1;
+		first_mb_in_slice   :1,
+		field_pic_flag      :1,
+		bottom_field_flag   :1,
+		reserved_bit_fields :5;
 	uint16_t pic_parameter_set_id;
 	uint16_t frame_num;
 	uint16_t pic_order_cnt_lsb;

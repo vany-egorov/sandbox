@@ -66,6 +66,13 @@ int main (int argc, char *argv[]) {
 
 	printf("sizes:\n");
 	printf("  H264: %zu\n", sizeof(H264));
+	printf("  H264NAL: %zu\n", sizeof(H264NAL));
+	printf("  H264NALType: %zu\n", sizeof(H264NALType));
+	printf("  H264NALSPS: %zu\n", sizeof(H264NALSPS));
+	printf("  H264NALPPS: %zu\n", sizeof(H264NALPPS));
+	printf("  H264NALAUD: %zu\n", sizeof(H264NALAUD));
+	printf("  H264NALSEI: %zu\n", sizeof(H264NALSEI));
+	printf("  H264NALSliceIDR: %zu\n", sizeof(H264NALSliceIDR));
 	printf("  MPEGTS: %zu\n", sizeof(MPEGTS));
 	printf("  MPEGTSPSI: %zu\n", sizeof(MPEGTSPSI));
 

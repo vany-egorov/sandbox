@@ -34,9 +34,14 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
         return 0;
     }
 
+    if atom_kind == va::AtomKind::H264SliceIDR {
+        let h264_slice_idr: &mut va::h264::H264NALSliceIDR = unsafe { &mut *(atom as *mut va::h264::H264NALSliceIDR) };
+        println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
+    }
+
     let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
     cb_ctx.tx.send(server::Command{token: mio::Token(535325), signal: server::Signal::A}).unwrap();
-    println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
+    // println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
     return 0;
 }
 
