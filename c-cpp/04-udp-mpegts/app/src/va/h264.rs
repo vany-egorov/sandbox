@@ -10,7 +10,7 @@ pub struct H264 {
 
 
 #[repr(i32)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub enum H264NALType {
     Unspecified = 0,
     Slice       = 1,
@@ -41,7 +41,7 @@ pub struct H264NAL { // 24 bytes
 }
 
 #[repr(i32)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub enum H264NALSliceType {
     P   = 0,
     B   = 1,
@@ -56,6 +56,7 @@ pub enum H264NALSliceType {
 }
 
 #[repr(C)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub struct H264NALSliceIDR { // 4 bytes + 12 bytes = 16 bytes
     pub nt: H264NALType, // from H264NAL
 

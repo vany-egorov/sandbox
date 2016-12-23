@@ -19,6 +19,7 @@
           socket.send("[" + timestamp + "] " + navigator.userAgent);
         }, 2000);
       };
+      socket.onmessage = function(event) {};
     }
   });
   observer.observe(document.documentElement, {childList: true});

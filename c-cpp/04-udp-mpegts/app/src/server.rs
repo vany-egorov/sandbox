@@ -25,20 +25,17 @@ const TIMER:  Token = Token(std::usize::MAX - 4);
 
 #[derive(Debug, Clone)]
 pub enum Signal {
-    A
+    A,
+    B
 }
 
 #[derive(Debug, Clone)]
 pub struct Command {
-    pub token: Token,
+    pub data: Vec<u8>,
     pub signal: Signal,
 }
 
 impl Command {
-    pub fn token(&self) -> Token {
-        self.token
-    }
-
     pub fn into_signal(self) -> Signal {
         self.signal
     }
@@ -194,7 +191,24 @@ impl Server {
                     QUEUE => {
                         for _ in 0..256 { // 256 == MESSAGES_PER_TICK
                             match self.rx.try_recv() {
-                                Ok(cmd) => println!("queue {:?}", cmd),
+                                Ok(cmd) => {
+                                    match cmd.signal {
+                                        Signal::A => {
+                                            // println!("[->] [ws] {:?}", cmd.data);
+                                            let mut frame = ws::Frame::message(cmd.data.into(), ws::OpCode::Binary, true);
+                                            let mut encoded = Vec::new();
+                                            frame.format(&mut encoded);
+
+                                            for (token, client) in self.clients.iter_mut() {
+                                                if client.state == client::State::WS {
+                                                    // println!("[->] [ws] {:?}", token);
+                                                    client.conn.write(encoded.as_slice());
+                                                }
+                                            };
+                                        },
+                                        Signal::B => println!("queue {:?}", cmd),
+                                    }
+                                }
                                 _ => break
                             }
                         }

@@ -6,8 +6,13 @@ extern crate chan;
 extern crate lazy_static;
 extern crate chan_signal;
 
+extern crate rmp_serialize as msgpack;
+extern crate rustc_serialize;
+
 use libc::{c_int, c_void};
 use chan_signal::Signal;
+use rustc_serialize::{Encodable, Decodable};
+use msgpack::{Encoder, Decoder};
 
 mod va;
 mod http;
@@ -34,13 +39,19 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
         return 0;
     }
 
+    let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
+
     if atom_kind == va::AtomKind::H264SliceIDR {
         let h264_slice_idr: &mut va::h264::H264NALSliceIDR = unsafe { &mut *(atom as *mut va::h264::H264NALSliceIDR) };
-        println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
+        // println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
+        let mut encoded = Vec::new();
+        {
+            let mut encoder = Encoder::new(&mut encoded);
+            h264_slice_idr.encode(&mut encoder);
+        }
+        // println!("{:?}", encoded);
+        cb_ctx.tx.send(server::Command{data: encoded, signal: server::Signal::A}).unwrap();
     }
-
-    let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
-    cb_ctx.tx.send(server::Command{token: mio::Token(535325), signal: server::Signal::A}).unwrap();
     // println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
     return 0;
 }
@@ -65,7 +76,7 @@ fn main() {
     std::thread::spawn(move || {
         loop {
             std::thread::sleep_ms(2000);
-            tx1.send(server::Command{token: mio::Token(1213), signal: server::Signal::A}).unwrap();
+            tx1.send(server::Command{data: Vec::new(), signal: server::Signal::B}).unwrap();
         }
     });
 
