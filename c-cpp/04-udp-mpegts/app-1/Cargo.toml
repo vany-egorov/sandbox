@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
 build = "build.rs"
 
+[dependencies]
+mio-tcp = { version = "*", path = "../mio-tcp" }
+
 [build-dependencies]
 bindgen = "0.19.0"
-va-http = { path = "../va-http" }
