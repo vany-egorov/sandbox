@@ -4,19 +4,24 @@ use std::net::{
     ToSocketAddrs
 };
 
+use mio::Token;
+
 use result::Result;
 use server_builder::ServerBuilder;
+use handler::Handler;
+use connection::Connection;
 
 
-pub fn listen<A, F>(addr_spec: A, factory: F) -> Result<()>
+pub fn listen<A, F, H>(addr_spec: A, factory: F) -> Result<()>
     where
         A: ToSocketAddrs + fmt::Debug,
-        F: FnMut(),
+        F: FnMut(Token) -> H,
+        H: Handler,
 {
     let addr = try!(addr_spec.to_socket_addrs())
         .nth(0)    // first
         .unwrap(); // TODO: handle error
-    let mut server = try!(ServerBuilder::new().finalize());
+    let mut server = try!(ServerBuilder::new().finalize(factory));
     try!(server.listen_and_serve(&addr));
 
     Ok(())

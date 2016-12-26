@@ -6,6 +6,7 @@ build = "build.rs"
 
 [dependencies]
 mio-tcp = { version = "*", path = "../mio-tcp" }
+env_logger = "0.3"
 
 [build-dependencies]
 bindgen = "0.19.0"

@@ -4,6 +4,7 @@ use mio::Poll;
 
 use server::Server;
 use result::Result;
+use factory::Factory;
 use server_settings::ServerSettings;
 
 
@@ -18,8 +19,10 @@ impl ServerBuilder {
         }
     }
 
-    pub fn finalize(&self) -> Result<Server> {
-        Server::new(self.settings)
+    pub fn finalize<F>(&self, factory: F) -> Result<Server<F>>
+        where F: Factory
+    {
+        Server::new(self.settings, factory)
     }
 
     pub fn with_settings(&mut self, settings: ServerSettings) -> &mut ServerBuilder {

@@ -14,8 +14,13 @@ use slab::Slab;
 
 use tokens;
 use result::Result;
+use error::{Error, Kind as ErrorKind};
+use factory::Factory;
 use connection::Connection;
 use server_settings::ServerSettings;
+
+
+type Conn<F> = Connection<<F as Factory>::Handler>;
 
 
 #[derive(Debug, PartialEq, Eq)]
@@ -35,9 +40,13 @@ impl ServerState {
 }
 
 
-pub struct Server {
+pub struct Server<F>
+    where F: Factory
+{
     poll: Poll,
-    connections: Slab<Connection, Token>,
+    connections: Slab<Conn<F>, Token>,
+
+    factory: F,
 
     listener: Option<TcpListener>,
 
@@ -49,13 +58,17 @@ pub struct Server {
     state: ServerState,
 }
 
-impl Server {
-    pub fn new(settings: ServerSettings) -> Result<Server> {
+impl<F> Server<F>
+    where F: Factory
+{
+    pub fn new(settings: ServerSettings, factory: F) -> Result<Server<F>> {
         let (tx, rx) = mio::channel::sync_channel(settings.sync_channel_bound);
 
         Ok(Server {
             poll: try!(Poll::new()),
             connections: Slab::with_capacity(settings.max_connections),
+
+            factory: factory,
 
             listener: None,
 
@@ -76,10 +89,10 @@ impl Server {
     }
 
     pub fn listen(&mut self, addr: &SocketAddr) -> Result<()> {
-        let c = try!(TcpListener::bind(&addr));
+        let sock = try!(TcpListener::bind(&addr));
 
         try!(self.poll.register(
-              &c
+              &sock
             , tokens::SERVER
             , Ready::readable()
             , PollOpt::level()
@@ -92,7 +105,9 @@ impl Server {
             , PollOpt::edge() | PollOpt::oneshot()
         ));
 
-        self.listener = Some(c);
+        self.listener = Some(sock);
+
+        info!("TCP server starting on {}", &addr);
 
         Ok(())
     }
@@ -119,6 +134,66 @@ impl Server {
     }
 
     fn on_event(&mut self, token: Token, events: Ready) {
-        println!("[+]");
+        match token {
+            tokens::SERVER => {
+                if events.is_readable() {
+                    match self.accept() {
+                        Err(err)  => error!("Unable to accept client connection: {:?}", err),
+                        Ok(token) => {
+                            debug!("[+] {{\"event\": \"accept\", \"token\": {token}}}",
+                                token=usize::from(token));
+
+                        },
+                    }
+                }
+            },
+            tokens::BUS => {},
+            _ => {
+                if events.is_readable() {
+                    println!("[r]");
+                }
+
+                if events.is_writable() {
+                   println!("[w]");
+                }
+            },
+        }
+    }
+
+    fn accept(&mut self) -> Result<Token> {
+        let token = match self.listener.as_ref() {
+            Some(server_sock) => {
+                let (sock, _) = try!(server_sock.accept());
+
+                let token = {
+                    if let Some(entry) = self.connections.vacant_entry() {
+                        let token = entry.index();
+                        let handler = self.factory.produce(token);
+                        entry.insert(Connection::new(token, sock, handler));
+                        token
+                    } else {
+                        return Err(Error::new(ErrorKind::Capacity, "Unable to add another TCP connection to the event loop"));
+                    }
+                };
+
+                if let Err(err) = {
+                    let conn = &self.connections[token];
+                    self.poll.register(
+                          &conn.sock
+                        , conn.token
+                        , Ready::readable() | Ready::hup()
+                        , PollOpt::edge() | PollOpt::oneshot()
+                    )
+                } {
+                    self.connections.remove(token);
+                    return Err(Error::from(err));
+                }
+
+                token
+            },
+            None => return Err(Error::new(ErrorKind::NoListenerProvided, "while accepting TCP connection")),
+        };
+
+        Ok(token)
     }
 }
