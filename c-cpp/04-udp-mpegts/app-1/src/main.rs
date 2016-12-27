@@ -11,6 +11,18 @@ fn main() {
     match listen("0.0.0.0:8000", |token| {
         println!("someone connected: {:?}", token);
 
+        // Some(TCP(|| {
+
+        // }))
+
+        // Some(HTTP(|| {
+
+        // }))
+
+        // Some(WS(|| {
+
+        // }))
+
         || {
 
         }

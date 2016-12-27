@@ -9,7 +9,10 @@ use mio::{
     PollOpt,
     Events,
 };
-use mio::tcp::TcpListener;
+use mio::tcp::{
+    TcpListener,
+    Shutdown
+};
 use slab::Slab;
 
 use tokens;
@@ -126,41 +129,80 @@ impl<F> Server<F>
 
             for i in 0..nevents {
                 let evt = self.events.get(i).unwrap();
-                self.on_event(evt.token(), evt.kind());
+                if let Err(err) = self.on_event(evt.token(), evt.kind()) {
+                    error!("Failed handle event: {:?}", err);
+                }
             }
         }
 
         Ok(())
     }
 
-    fn on_event(&mut self, token: Token, events: Ready) {
+    fn on_event(&mut self, token: Token, events: Ready) -> Result<()> {
         match token {
             tokens::SERVER => {
                 if events.is_readable() {
-                    match self.accept() {
-                        Err(err)  => error!("Unable to accept client connection: {:?}", err),
-                        Ok(token) => {
-                            debug!("[+] {{\"event\": \"accept\", \"token\": {token}}}",
-                                token=usize::from(token));
+                    let token = try!(self.do_accept());
+                    let conn = try!(
+                        self.connections
+                            .get_mut(token)
+                            .ok_or(Error::new(ErrorKind::NoConnectionAssociatedWithToken, ""))
+                    );
 
-                        },
-                    }
+                    conn.on_tcp_accept();
                 }
             },
             tokens::BUS => {},
             _ => {
-                if events.is_readable() {
-                    println!("[r]");
+                {
+                    let conn = try!(
+                        self.connections
+                            .get_mut(token)
+                            .ok_or(Error::new(ErrorKind::NoConnectionAssociatedWithToken, ""))
+                    );
+
+                    if events.is_readable() {
+                        try!(conn.do_read());
+
+                        try!(self.poll.reregister(
+                              conn.sock()
+                            , conn.token()
+                            , Ready::writable() | Ready::error() | Ready::hup()
+                            , PollOpt::edge() | PollOpt::oneshot()
+                        ))
+                    }
+
+                    if events.is_writable() {
+                       try!(conn.do_write());
+
+                       try!(self.poll.reregister(
+                              conn.sock()
+                            , conn.token()
+                            , Ready::readable() | Ready::error() | Ready::hup()
+                            , PollOpt::edge() | PollOpt::oneshot()
+                        ))
+                    }
+
+                    if events.is_error() {
+                        info!("[<] error");
+                    }
                 }
 
-                if events.is_writable() {
-                   println!("[w]");
+                if events.is_hup() {
+                    try!(self.do_hup(token));
+
+                    self.factory.on_hup();
+
+                    // TODO: trigger handler on-tcp-hup
+                    // TODO: trigger factory on-tcp-hup
                 }
             },
         }
+
+        Ok(())
     }
 
-    fn accept(&mut self) -> Result<Token> {
+    fn do_accept(&mut self) -> Result<Token> {
         let token = match self.listener.as_ref() {
             Some(server_sock) => {
                 let (sock, _) = try!(server_sock.accept());
@@ -168,19 +210,19 @@ impl<F> Server<F>
                 let token = {
                     if let Some(entry) = self.connections.vacant_entry() {
                         let token = entry.index();
-                        let handler = self.factory.produce(token);
+                        let handler = self.factory.on_accept(token);
                         entry.insert(Connection::new(token, sock, handler));
                         token
                     } else {
-                        return Err(Error::new(ErrorKind::Capacity, "Unable to add another TCP connection to the event loop"));
+                        return Err(Error::new(ErrorKind::Capacity, "Unable to add another TCP connection to the event loop while accepting TCP connection"));
                     }
                 };
 
                 if let Err(err) = {
                     let conn = &self.connections[token];
                     self.poll.register(
-                          &conn.sock
-                        , conn.token
+                          conn.sock()
+                        , conn.token()
                         , Ready::readable() | Ready::hup()
                         , PollOpt::edge() | PollOpt::oneshot()
                     )
@@ -195,5 +237,16 @@ impl<F> Server<F>
         };
 
         Ok(token)
+    }
+
+    fn do_hup(&mut self, token: Token) -> Result<()> {
+        if let Some(conn) = self.connections.get_mut(token) {
+            try!(self.poll.deregister(conn.sock()));
+            try!(conn.sock().shutdown(Shutdown::Both));
+        }
+
+        self.connections.remove(token);
+
+        Ok(())
     }
 }

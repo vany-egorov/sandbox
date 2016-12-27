@@ -4,12 +4,16 @@ use std::borrow::Cow;
 use std::convert::Into;
 use std::error::Error as StdError;
 
+use http::RequestError as HTTPRequestError;
+
 
 #[derive(Debug)]
 pub enum Kind {
     NoListenerProvided,
     Capacity,
+    NoConnectionAssociatedWithToken,
     Io(io::Error),
+    HTTP(HTTPRequestError),
 }
 
 pub struct Error {
@@ -48,17 +52,21 @@ impl StdError for Error {
 
     fn description(&self) -> &str {
         match self.kind {
-            Kind::NoListenerProvided => "No listener provided",
-            Kind::Capacity           => "Out of capacity",
-            Kind::Io(ref err)        => err.description(),
+            Kind::NoListenerProvided              => "No listener provided",
+            Kind::Capacity                        => "Out of capacity",
+            Kind::NoConnectionAssociatedWithToken => "No connection associated with token",
+            Kind::Io(ref err)                     => err.description(),
+            Kind::HTTP(ref err)                   => err.description(),
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         match self.kind {
-            Kind::NoListenerProvided => None,
-            Kind::Capacity           => None,
-            Kind::Io(ref err)        => Some(err),
+            Kind::NoListenerProvided              => None,
+            Kind::Capacity                        => None,
+            Kind::NoConnectionAssociatedWithToken => None,
+            Kind::Io(ref err)                     => Some(err),
+            Kind::HTTP(ref err)                   => Some(err),
         }
     }
 }
@@ -68,3 +76,10 @@ impl From<io::Error> for Error {
         Error::new(Kind::Io(err), "")
     }
 }
+
+impl From<HTTPRequestError> for Error {
+    fn from(err: HTTPRequestError) -> Error {
+        Error::new(Kind::HTTP(err), "")
+    }
+}
+

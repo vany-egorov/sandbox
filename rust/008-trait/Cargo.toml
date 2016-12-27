@@ -1,0 +1,4 @@
+[package]
+name = "trait"
+version = "0.1.0"
+authors = ["Ivan Egorov <vany.egorov@gmail.com>"]

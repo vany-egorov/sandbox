@@ -26,17 +26,17 @@ pub enum RequestError {
     Utf8(Utf8Error),
     ParseInt(ParseIntError),
     RequestLineMissing,
-    NoData,
+    // NoData,
 }
 
 impl fmt::Display for RequestError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             RequestError::IoReadUntil(ref err) => write!(f, "reader->read-until: {}", err),
-            RequestError::Utf8(ref err) => write!(f, "decoding buffer into utf8: {}", err),
+            RequestError::Utf8(ref err) => write!(f, "decoding buffer into utf8: {} => not a HTTP request", err),
             RequestError::ParseInt(ref err) => write!(f, "parsing int: {}", err),
-            RequestError::RequestLineMissing => write!(f, "missing request-line in TCP payload"),
-            RequestError::NoData => write!(f, "missing data in TCP stream to parse"),
+            RequestError::RequestLineMissing => write!(f, "missing request-line in TCP payload => not a HTTP request"),
+            // RequestError::NoData => write!(f, "missing data in TCP stream to parse"),
         }
     }
 }
@@ -47,8 +47,8 @@ impl error::Error for RequestError {
             RequestError::IoReadUntil(ref err) => err.description(),
             RequestError::Utf8(ref err) => err.description(),
             RequestError::ParseInt(ref err) => err.description(),
-            RequestError::RequestLineMissing => "missing request-line in TCP payload",
-            RequestError::NoData => "missing data in TCP stream to parse",
+            RequestError::RequestLineMissing => "missing request-line in TCP payload => not a HTTP requst",
+            // RequestError::NoData => "missing data in TCP stream to parse",
         }
     }
 
@@ -58,7 +58,7 @@ impl error::Error for RequestError {
             RequestError::Utf8(ref err) => Some(err),
             RequestError::ParseInt(ref err) => Some(err),
             RequestError::RequestLineMissing => None,
-            RequestError::NoData => None,
+            // RequestError::NoData => None,
         }
     }
 }

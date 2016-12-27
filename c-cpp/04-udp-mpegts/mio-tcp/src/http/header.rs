@@ -48,4 +48,6 @@ impl Header {
             None => None,
         }
     }
+
+    pub fn into_inner(self) -> HashMap<String, Vec<String>> { self.m }
 }
