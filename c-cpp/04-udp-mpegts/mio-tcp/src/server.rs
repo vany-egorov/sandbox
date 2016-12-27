@@ -23,9 +23,6 @@ use connection::Connection;
 use server_settings::ServerSettings;
 
 
-type Conn<F> = Connection<<F as Factory>::Handler>;
-
-
 #[derive(Debug, PartialEq, Eq)]
 enum ServerState {
     On,
@@ -47,7 +44,7 @@ pub struct Server<F>
     where F: Factory
 {
     poll: Poll,
-    connections: Slab<Conn<F>, Token>,
+    connections: Slab<Connection, Token>,
 
     factory: F,
 

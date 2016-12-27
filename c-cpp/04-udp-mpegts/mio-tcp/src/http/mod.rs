@@ -4,6 +4,7 @@ mod request;
 mod request_error;
 mod response;
 mod header;
+mod handler;
 
 
 const CR: u8 = 0x0D;
@@ -20,3 +21,4 @@ pub use self::request::Request;
 pub use self::request_error::RequestError;
 pub use self::response::Response;
 pub use self::header::Header;
+pub use self::handler::Handler;

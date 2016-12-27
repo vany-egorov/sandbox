@@ -56,12 +56,10 @@ pub enum State {
 }
 
 
-pub struct Connection<H>
-    where H: Handler
-{
+pub struct Connection {
     pub token: Token,
     pub sock: TcpStream,
-    pub handler: H,
+    pub handler: Handler,
 
     pub state: State,
 
@@ -69,10 +67,8 @@ pub struct Connection<H>
 }
 
 
-impl<H> Connection<H>
-    where H: Handler
-{
-    pub fn new(token: Token, sock: TcpStream, handler: H) -> Connection<H> {
+impl Connection {
+    pub fn new(token: Token, sock: TcpStream, handler: Handler) -> Connection {
         Connection {
             token: token,
             sock: sock,
@@ -123,6 +119,10 @@ impl<H> Connection<H>
         let mut http_resp = HTTPResponse::new();
         let mut http_resp_body = String::new();
 
+        if let State::HTTP(Some(ref http_req), _) = self.state {
+            self.handler.on_http_response(http_req, &mut http_resp);
+        }
+
         let mut f = File::open("./static/index.html").unwrap();
         f.read_to_string(&mut http_resp_body).unwrap();
 
@@ -146,14 +146,16 @@ impl<H> Connection<H>
     pub fn on_tcp_read(&mut self) {
         // conn: trigger tcp-read
         self.state = State::TCP;
+        self.handler.on_tcp_read();
     }
 
     pub fn on_http_request(&mut self, req: HTTPRequest) {
-        // conn: trigger http-request
         self.state = State::HTTP(Some(req), None);
         if let State::HTTP(Some(ref req), _) = self.state {
-            println!("{}", req);
+            // println!("{}", req);
         }
+
+        self.handler.on_http_request();
     }
 
     pub fn on_http_response(&mut self, req: HTTPRequest) {

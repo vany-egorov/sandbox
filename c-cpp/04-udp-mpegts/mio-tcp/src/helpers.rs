@@ -13,11 +13,10 @@ use handler::Handler;
 use connection::Connection;
 
 
-pub fn listen<A, F, H>(addr_spec: A, factory: F) -> Result<()>
+pub fn listen<A, F>(addr_spec: A, factory: F) -> Result<()>
     where
         A: ToSocketAddrs + fmt::Debug,
-        F: FnMut(Token) -> H,
-        H: Handler,
+        F: FnMut(Token) -> Handler
 {
     let addr = try!(addr_spec.to_socket_addrs())
         .nth(0)    // first
