@@ -179,19 +179,16 @@ impl<F> Server<F>
                             , PollOpt::edge() | PollOpt::oneshot()
                         ))
                     }
-
-                    if events.is_error() {
-                        info!("[<] error");
-                    }
                 }
 
                 if events.is_hup() {
                     try!(self.do_hup(token));
-
                     self.factory.on_hup();
+                }
 
-                    // TODO: trigger handler on-tcp-hup
-                    // TODO: trigger factory on-tcp-hup
+                if events.is_error() {
+                    try!(self.do_error(token));
+                    self.factory.on_error();
                 }
             },
         }
@@ -241,6 +238,21 @@ impl<F> Server<F>
             try!(self.poll.deregister(conn.sock()));
             try!(conn.sock().shutdown(Shutdown::Both));
         }
+
+        // TODO: trigger handler on-tcp-hup
+
+        self.connections.remove(token);
+
+        Ok(())
+    }
+
+    fn do_error(&mut self, token: Token) -> Result<()> {
+        if let Some(conn) = self.connections.get_mut(token) {
+            try!(self.poll.deregister(conn.sock()));
+            try!(conn.sock().shutdown(Shutdown::Both));
+        }
+
+        // TODO: trigger handler on-tcp-error
 
         self.connections.remove(token);
 

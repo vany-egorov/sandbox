@@ -31,7 +31,17 @@ pub enum Method {
 
 impl fmt::Display for Method {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match *self {
+            Method::GET     => write!(f, "GET"),
+            Method::HEAD    => write!(f, "HEAD"),
+            Method::POST    => write!(f, "POST"),
+            Method::PUT     => write!(f, "PUT"),
+            Method::DELETE  => write!(f, "DELETE"),
+            Method::TRACE   => write!(f, "TRACE"),
+            Method::CONNECT => write!(f, "CONNECT"),
+            Method::PATCH   => write!(f, "PATCH"),
+            Method::OPTIONS => write!(f, "OPTIONS"),
+        }
     }
 }
 

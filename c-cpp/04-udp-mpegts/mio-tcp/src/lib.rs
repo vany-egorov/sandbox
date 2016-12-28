@@ -14,17 +14,19 @@ mod tokens;
 mod factory;
 mod handler;
 mod handler_tcp;
+mod handler_http;
+mod handler_ws;
 
-mod http;
-mod ws;
+pub mod http;
+pub mod ws;
 
-
+pub use mio::Token;
 pub use helpers::listen;
 pub use handler::Handler;
 pub use handler_tcp::HandlerTCP;
+pub use handler_http::HandlerHTTP;
+pub use handler_ws::HandlerWS;
 pub use http::{
-    Handler as HandlerHTTP,
     Request as HTTPRequest,
     Response as HTTPResponse,
 };
-pub use ws::Handler as HandlerWS;

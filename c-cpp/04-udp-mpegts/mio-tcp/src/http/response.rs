@@ -36,6 +36,11 @@ impl Response {
     pub fn set_content_length(&mut self, v: usize) { self.content_length = v; }
 
     pub fn header_mut(&mut self) -> &mut header::Header { &mut self.header }
+    pub fn header_set<S>(&mut self, k: S, v: S)
+        where S: Into<String>
+    {
+        self.header.set(k.into(), v.into())
+    }
 
     pub fn set_status(&mut self, v: status::Status) { self.status = v; }
 }

@@ -10,6 +10,9 @@ pub trait Factory {
     fn on_hup(&mut self) {
         debug!("factory -> on-hup;")
     }
+    fn on_error(&mut self) {
+        debug!("factory -> on-error;")
+    }
 }
 
 impl<F> Factory for F

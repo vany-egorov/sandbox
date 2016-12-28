@@ -1,22 +1,57 @@
 extern crate mio_tcp;
 extern crate env_logger;
 
+use std::io::{
+    Write,
+    copy
+};
+use std::fs::File;
 
-use mio_tcp::listen;
-use mio_tcp::Handler;
-use mio_tcp::HTTPRequest;
-use mio_tcp::HTTPResponse;
-use mio_tcp::HandlerHTTP;
+use mio_tcp::{
+    listen,
+    Handler,
+    HandlerHTTP,
+    HTTPRequest,
+    HTTPResponse,
+};
+use mio_tcp::http;
 
 
-struct DefaultHandler {
-}
+struct DefaultHandler {}
 
 impl HandlerHTTP for DefaultHandler {
-    fn on_http_response(&mut self, req: &HTTPRequest, _: &mut HTTPResponse) {
-        println!("~~~~~~~~~~~~~~~~~~~");
-        print!("{}", req);
-        println!("~~~~~~~~~~~~~~~~~~~");
+    fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) {
+        match req.path().as_ref() {
+            "/" => {
+                copy(&mut File::open("./static/index.html").unwrap(), w).unwrap();
+
+                resp.header_set("Content-Type",
+                    "text/html; charset=UTF-8");
+            },
+            "/static/app.css" => {
+                copy(&mut File::open("./static/app.css").unwrap(), w).unwrap();
+
+                resp.header_set("Content-Type",
+                    "text/css; charset=UTF-8");
+            },
+            "/static/app.js" => {
+                copy(&mut File::open("./static/app.js").unwrap(), w).unwrap();
+
+                resp.header_set("Content-Type",
+                    "text/javascript; charset=UTF-8");
+            },
+            "/ws/v1" => { resp.set_status(http::Status::NotFound); },
+            _ => { resp.set_status(http::Status::NotFound); }
+        }
+    }
+
+    fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
+        println!("[#{}] {} {:5} {:15} [<- {}+{}] [-> {}]",
+            id,
+            resp.status as u32, req.method, req.url_raw,
+            req.header_length, req.content_length,
+            resp.content_length(),
+        );
     }
 }
 
@@ -24,18 +59,10 @@ impl HandlerHTTP for DefaultHandler {
 fn main() {
     env_logger::init().unwrap();
 
-    match listen("0.0.0.0:8000", |token| {
-        println!("someone connected: {:?}", token);
+    match listen("0.0.0.0:8000", |_| {
+        // println!("[#{}] [+]", usize::from(token));
 
         Handler::HTTP(Box::new(DefaultHandler{}))
-
-        // Some(HTTP(|| {
-
-        // }))
-
-        // Some(WS(|| {
-
-        // }))
     }) {
         Err(e) => println!("error => {}", e),
         Ok(..) => {},
