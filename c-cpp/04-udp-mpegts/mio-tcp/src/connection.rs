@@ -72,6 +72,14 @@ impl State {
             _ => false,
         }
     }
+
+    #[inline]
+    pub fn is_ws(&self) -> bool {
+        match *self {
+            State::WS => true,
+            _ => false,
+        }
+    }
 }
 
 
