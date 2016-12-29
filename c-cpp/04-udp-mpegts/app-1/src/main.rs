@@ -13,13 +13,14 @@ use mio_tcp::{
     HandlerHTTP,
     HTTPRequest,
     HTTPResponse,
+    HTTPRouter,
 };
 use mio_tcp::http;
 
 
-struct DefaultHandler {}
+struct IndexHandler {}
 
-impl HandlerHTTP for DefaultHandler {
+impl HandlerHTTP for IndexHandler {
     fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) {
         match req.path().as_ref() {
             "/" => {
@@ -56,13 +57,22 @@ impl HandlerHTTP for DefaultHandler {
 }
 
 
+struct Router {}
+
+impl HTTPRouter for Router {
+    fn route(&self, req: &HTTPRequest) -> Handler {
+        Handler::HTTP(Box::new(IndexHandler{}))
+    }
+}
+
+
 fn main() {
     env_logger::init().unwrap();
 
     match listen("0.0.0.0:8000", |_| {
         // println!("[#{}] [+]", usize::from(token));
 
-        Handler::HTTP(Box::new(DefaultHandler{}))
+        Handler::HTTPRouter(Box::new(Router{}))
     }) {
         Err(e) => println!("error => {}", e),
         Ok(..) => {},

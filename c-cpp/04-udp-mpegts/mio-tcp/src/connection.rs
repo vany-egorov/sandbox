@@ -175,7 +175,13 @@ impl Connection {
 
     pub fn on_http_request(&mut self, req: HTTPRequest) {
         self.state = State::HTTP(Some(req), None);
-        self.handler.on_http_request();
+
+        if let State::HTTP(Some(ref req), _) = self.state {
+            if self.handler.is_http_router() {
+                self.handler = self.handler.route(&req).unwrap();
+            }
+            self.handler.on_http_request(&req);
+        }
     }
 
     pub fn on_http_response(&mut self) -> Result<()> {
