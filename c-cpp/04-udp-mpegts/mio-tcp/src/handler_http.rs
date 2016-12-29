@@ -14,3 +14,11 @@ pub trait HandlerHTTP {
 
     fn on_tcp_hup(&mut self) { /* */ }
 }
+
+impl<F> HandlerHTTP for F
+    where F: FnMut(u64, &Request, &mut Response, &mut Write)
+{
+    fn on_http_response(&mut self, id: u64, req: &Request, resp: &mut Response, w: &mut Write) {
+        self(id, req, resp, w)
+    }
+}
