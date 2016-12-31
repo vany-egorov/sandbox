@@ -11,16 +11,18 @@ use mio_tcp::{
     listen,
     Handler,
     HandlerHTTP,
+    HandlerWS,
     HTTPRequest,
     HTTPResponse,
+    Result as MIOTCPResult
 };
 use mio_tcp::http;
 
 
-struct IndexHandler {}
+struct RootHandler {}
 
-impl HandlerHTTP for IndexHandler {
-    fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) {
+impl HandlerHTTP for RootHandler {
+    fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> MIOTCPResult<()> {
         match req.path().as_ref() {
             "/" => {
                 copy(&mut File::open("./static/index.html").unwrap(), w).unwrap();
@@ -40,9 +42,10 @@ impl HandlerHTTP for IndexHandler {
                 resp.header_set("Content-Type",
                     "text/javascript; charset=UTF-8");
             },
-            "/ws/v1" => { resp.set_status(http::Status::NotFound); },
             _ => { resp.set_status(http::Status::NotFound); }
         }
+
+        Ok(())
     }
 
     fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
@@ -56,8 +59,25 @@ impl HandlerHTTP for IndexHandler {
 }
 
 
-fn route(_: &HTTPRequest) -> Handler {
-    Handler::HTTP(Box::new(IndexHandler{}))
+struct WSHandler { }
+
+impl HandlerWS for WSHandler {
+    fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
+        println!("[#{}] {} {:5} {:15} [<- {}+{}] [-> {}]",
+            id,
+            resp.status as u32, req.method, req.url_raw,
+            req.header_length, req.content_length,
+            resp.content_length(),
+        );
+    }
+}
+
+
+fn route(req: &HTTPRequest) -> Handler {
+    match req.path().as_ref() {
+        "/ws/v1" => Handler::WS(Box::new(WSHandler{})),
+        _        => Handler::HTTP(Box::new(RootHandler{})),
+    }
 }
 
 

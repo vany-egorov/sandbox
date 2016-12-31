@@ -1,8 +1,22 @@
 use std::string::ToString;
 
-use http::{CCR, CLF, HEADER_CONTENT_LENGTH};
-use http::header;
-use http::status;
+use result::Result;
+use http::{
+    CCR, CLF,
+
+    HEADER_CONTENT_LENGTH,
+    HEADER_UPGRADE,
+    HEADER_CONNECTION,
+    HEADER_SEC_WEBSOCKET_ACCEPT,
+
+    HEADER_V_WEBSOCKET,
+    HEADER_V_UPGRADE,
+
+    header,
+    status,
+    Request
+};
+use ws::{gen_key as ws_gen_key};
 
 
 #[derive(Default)]
@@ -36,13 +50,30 @@ impl Response {
     pub fn set_content_length(&mut self, v: usize) { self.content_length = v; }
 
     pub fn header_mut(&mut self) -> &mut header::Header { &mut self.header }
-    pub fn header_set<S>(&mut self, k: S, v: S)
+    pub fn header_set<S>(&mut self, k: S, v: S) -> &mut Response
         where S: Into<String>
     {
-        self.header.set(k.into(), v.into())
+        self.header.set(k.into(), v.into());
+        self
     }
 
-    pub fn set_status(&mut self, v: status::Status) { self.status = v; }
+    pub fn set_status(&mut self, v: status::Status) -> &mut Response {
+        self.status = v;
+        self
+    }
+
+    pub fn ws_upgrade(&mut self, req: &Request) -> Result<()> {
+        // TODO: error handling
+        let response_key = ws_gen_key(req.header.get_first("Sec-WebSocket-Key").unwrap().as_ref());
+
+        self
+            .set_status(status::Status::SwitchingProtocols)
+            .header_set(HEADER_UPGRADE, HEADER_V_WEBSOCKET)
+            .header_set(HEADER_CONNECTION, HEADER_V_UPGRADE)
+            .header_set(HEADER_SEC_WEBSOCKET_ACCEPT, response_key.as_ref());
+
+        Ok(())
+    }
 }
 
 impl ToString for Response {

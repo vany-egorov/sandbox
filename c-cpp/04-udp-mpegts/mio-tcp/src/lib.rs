@@ -2,6 +2,8 @@ extern crate mio;
 extern crate slab;
 #[macro_use] extern crate log; /* error! */
 #[macro_use] extern crate lazy_static; /* lazy_static! */
+extern crate sha1;
+extern crate rustc_serialize;
 
 mod error;
 mod result;
@@ -21,6 +23,7 @@ pub mod http;
 pub mod ws;
 
 pub use mio::Token;
+pub use result::Result;
 pub use helpers::listen;
 pub use handler::Handler;
 pub use handler_tcp::HandlerTCP;

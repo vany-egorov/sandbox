@@ -2,6 +2,7 @@ use std::io::Write;
 
 use http::Request;
 use http::Response;
+use result::Result;
 
 
 pub trait HandlerWS {
@@ -9,8 +10,18 @@ pub trait HandlerWS {
     fn on_tcp_read(&mut self) { /* */ }
 
     fn on_http_request(&mut self, _: &Request) { /* */ }
-    fn on_http_response(&mut self, id: u64, req: &Request, resp: &mut Response, w: &mut Write);
+    fn on_http_response(&mut self, _: u64, req: &Request, resp: &mut Response, _: &mut Write) -> Result<()> {
+        resp.ws_upgrade(req)
+    }
     fn on_http_response_after(&mut self, _: u64, _: &Request, _: &Response) { /* */ }
 
     fn on_tcp_hup(&mut self) { /* */ }
+}
+
+impl<F> HandlerWS for F
+    where F: FnMut(u64, &Request, &mut Response, &mut Write) -> Result<()>
+{
+    fn on_http_response(&mut self, id: u64, req: &Request, resp: &mut Response, w: &mut Write) -> Result<()> {
+        self(id, req, resp, w)
+    }
 }

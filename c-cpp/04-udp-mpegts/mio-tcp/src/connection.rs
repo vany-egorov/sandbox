@@ -103,41 +103,63 @@ impl Connection {
     pub fn token_u64(&self) -> u64 { self.token_usz() as u64 }
     pub fn sock(&self) -> &TcpStream { &self.sock }
 
+    #[inline]
+    fn is_handler_http(&self) -> bool {
+        if let Some(ref handler) = self.handler {
+            if handler.is_http() {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    #[inline]
+    fn is_handler_ws(&self) -> bool {
+        if let Some(ref handler) = self.handler {
+            if handler.is_ws() {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn do_read<R>(&mut self, router: &mut R) -> Result<()>
         where R: Router
     {
-        // <~~~>
-        // TODO: refactor cursor + vec-buffer
-        // TODO: refactor state switching
-        self.buf.set_position(0);
-        self.buf.get_mut().clear();
-        self.state = State::Accepted;
-        // </~~~>
-
         let sz = try!(map_non_block(self.sock.read_to_end(&mut self.buf.get_mut())))
             .unwrap_or_else(|| self.buf.get_ref().len());
 
-        debug!("[<] {{\"token\": {token}, \"event\": \"{size} bytes readen\"}}",
-            token=self.token_usz(), size=sz);
-
-        match HTTPRequest::decode_from(&mut self.buf) {
-            Err(err) => {
-                match err {
-                    HTTPRequestError::RequestLineMissing | HTTPRequestError::Utf8(..) => { // plain TCP data
-                        self.on_tcp_read();
+        match self.state {
+            State::Accepted => {
+                match HTTPRequest::decode_from(&mut self.buf) {
+                    Err(err) => {
+                        match err {
+                            HTTPRequestError::RequestLineMissing | HTTPRequestError::Utf8(..) => { // plain TCP data
+                                self.on_tcp_read(sz);
+                            },
+                            _ => { return Err(Error::from(err)); },
+                        }
                     },
-                    _ => { return Err(Error::from(err)); },
+                    Ok(opt) => {
+                        match opt {
+                            Some(req) => { // got HTTP request
+                                self.on_tcp_read(sz);
+                                self.buf.set_position(req.header_length as u64); // move cursor forward
+                                self.on_http_request(router, req);
+                            },
+                            None => {},
+                        }
+                    }
                 }
             },
-            Ok(opt) => {
-                match opt {
-                    Some(req) => { // got HTTP request
-                        self.on_tcp_read();
-                        self.buf.set_position(req.header_length as u64); // move cursor forward
-                        self.on_http_request(router, req);
-                    },
-                    None => {},
-                }
+            State::WS => {
+                println!("[#{}] [ws] [<] {}", self.token_usz(), sz);
+                self.reset_buffer()
+            },
+            _ => {
+                // TODO: handler error - bad state
             }
         }
 
@@ -147,6 +169,14 @@ impl Connection {
     pub fn do_write(&mut self) -> Result<()> {
         if self.state.is_http_request() {
             self.on_http_response();
+
+            if self.is_handler_http() {
+                self.reset();
+            } else if self.is_handler_ws() {
+                self.state = State::WS;
+                // clear HTTP request header + HTTP request body
+                self.reset_buffer();
+            }
         }
 
         Ok(())
@@ -159,11 +189,32 @@ impl Connection {
             token=self.token_usz());
     }
 
-    pub fn on_tcp_read(&mut self) {
-        self.state = State::TCP;
+    // reset connection state and buffers
+    // between HTTP Request/Response calls
+    fn reset(&mut self) {
+        self.reset_buffer();
+
+        // TCP accept state
+        self.state = State::Accepted;
+
+        // drop previously routed handler
+        self.handler = None;
     }
 
-    pub fn on_http_request<R>(&mut self, router: &mut R, req: HTTPRequest)
+    fn reset_buffer(&mut self) {
+        // clear TCP/HTTP buffer
+        self.buf.set_position(0);
+        self.buf.get_mut().clear();
+    }
+
+    fn on_tcp_read(&mut self, sz: usize) {
+        self.state = State::TCP;
+
+        debug!("[<] {{\"token\": {token}, \"event\": \"{size} bytes readen\"}}",
+            token=self.token_usz(), size=sz);
+    }
+
+    fn on_http_request<R>(&mut self, router: &mut R, req: HTTPRequest)
         where R: Router
     {
         self.state = State::HTTP(Some(req), None);
@@ -175,7 +226,7 @@ impl Connection {
         }
     }
 
-    pub fn on_http_response(&mut self) -> Result<()> {
+    fn on_http_response(&mut self) -> Result<()> {
         let id = self.token_u64();
         let mut resp = HTTPResponse::new();
         let mut resp_body = Cursor::new(Vec::with_capacity(1024));
@@ -188,9 +239,11 @@ impl Connection {
 
         resp.set_content_length(resp_body.position() as usize);
 
-        self.sock
+        try!(
+            self.sock
             .write(resp.to_string().as_bytes())
-            .and_then(|_| self.sock.write(&resp_body.into_inner()));
+            .and_then(|_| self.sock.write(&resp_body.into_inner()))
+        );
 
         if let State::HTTP(Some(ref req), ref mut _resp) = self.state {
             if let Some(ref mut handler) = self.handler {

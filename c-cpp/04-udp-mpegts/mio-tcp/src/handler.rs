@@ -6,6 +6,7 @@ use http::{
     Request as HTTPRequest,
     Response as HTTPResponse,
 };
+use result::Result;
 
 
 pub enum Handler {
@@ -45,7 +46,7 @@ impl Handler {
         }
     }
 
-    pub fn on_http_response(&mut self, id: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) {
+    pub fn on_http_response(&mut self, id: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> Result<()> {
         match *self {
             Handler::HTTP(ref mut h) => h.on_http_response(id, req, resp, w),
             Handler::WS(ref mut h) => h.on_http_response(id, req, resp, w),

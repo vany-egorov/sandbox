@@ -42,8 +42,10 @@ impl Header {
         vec.push(v);
     }
 
-    pub fn get_first(&self, k: String) -> Option<&String> {
-        match self.m.get(&k) {
+    pub fn get_first<S>(&self, k: S) -> Option<&String>
+        where S: Into<String>
+    {
+        match self.m.get(&k.into()) {
             Some(vec) => vec.first(),
             None => None,
         }

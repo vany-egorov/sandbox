@@ -11,7 +11,13 @@ const LF: u8 = 0x0A;
 const CCR: char = CR as char;
 const CLF: char = LF as char;
 
-const HEADER_CONTENT_LENGTH : &'static str = "Content-Length";
+pub const HEADER_CONTENT_LENGTH       : &'static str = "Content-Length";
+pub const HEADER_UPGRADE              : &'static str = "Upgrade";
+pub const HEADER_CONNECTION           : &'static str = "Connection";
+pub const HEADER_SEC_WEBSOCKET_ACCEPT : &'static str = "Sec-WebSocket-Accept";
+
+pub const HEADER_V_WEBSOCKET : &'static str = "websocket";
+pub const HEADER_V_UPGRADE   : &'static str = "Upgrade";
 
 
 pub use self::method::Method;
