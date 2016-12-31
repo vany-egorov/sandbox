@@ -1,26 +1,17 @@
-use std;
-use std::fs::File;
 use std::io::{
     Read,
     Write,
     Result as IoResult,
     ErrorKind as IoErrorKind,
     Cursor,
-    Seek,
-    SeekFrom,
-    copy
 };
 
-use mio::{
-    Poll,
-    Token,
-    Ready,
-    PollOpt,
-};
+use mio::Token;
 use mio::tcp::TcpStream;
 
 use result::Result;
 use error::Error;
+use router::Router;
 use handler::Handler;
 use http::{
     Request as HTTPRequest,
@@ -86,7 +77,7 @@ impl State {
 pub struct Connection {
     pub token: Token,
     pub sock: TcpStream,
-    pub handler: Handler,
+    pub handler: Option<Handler>,
 
     pub state: State,
 
@@ -95,13 +86,13 @@ pub struct Connection {
 
 
 impl Connection {
-    pub fn new(token: Token, sock: TcpStream, handler: Handler) -> Connection {
+    pub fn new(token: Token, sock: TcpStream) -> Connection {
         Connection {
             token: token,
             sock: sock,
-            handler: handler,
 
             state: State::Pending,
+            handler: None,
 
             buf: Cursor::new(Vec::with_capacity(2048)),
         }
@@ -112,7 +103,9 @@ impl Connection {
     pub fn token_u64(&self) -> u64 { self.token_usz() as u64 }
     pub fn sock(&self) -> &TcpStream { &self.sock }
 
-    pub fn do_read(&mut self) -> Result<()> {
+    pub fn do_read<R>(&mut self, router: &mut R) -> Result<()>
+        where R: Router
+    {
         // <~~~>
         // TODO: refactor cursor + vec-buffer
         // TODO: refactor state switching
@@ -141,7 +134,7 @@ impl Connection {
                     Some(req) => { // got HTTP request
                         self.on_tcp_read();
                         self.buf.set_position(req.header_length as u64); // move cursor forward
-                        self.on_http_request(req);
+                        self.on_http_request(router, req);
                     },
                     None => {},
                 }
@@ -152,7 +145,7 @@ impl Connection {
     }
 
     pub fn do_write(&mut self) -> Result<()> {
-        if self.handler.is_http() && self.state.is_http_request() {
+        if self.state.is_http_request() {
             self.on_http_response();
         }
 
@@ -160,7 +153,6 @@ impl Connection {
     }
 
     pub fn on_tcp_accept(&mut self) {
-        // conn: trigger tcp-accept
         self.state = State::Accepted;
 
         debug!("[+] {{\"token\": {token}, \"event\": \"accept\"}}",
@@ -168,19 +160,18 @@ impl Connection {
     }
 
     pub fn on_tcp_read(&mut self) {
-        // conn: trigger tcp-read
         self.state = State::TCP;
-        self.handler.on_tcp_read();
     }
 
-    pub fn on_http_request(&mut self, req: HTTPRequest) {
+    pub fn on_http_request<R>(&mut self, router: &mut R, req: HTTPRequest)
+        where R: Router
+    {
         self.state = State::HTTP(Some(req), None);
 
         if let State::HTTP(Some(ref req), _) = self.state {
-            if self.handler.is_http_router() {
-                self.handler = self.handler.route(&req).unwrap();
-            }
-            self.handler.on_http_request(&req);
+            let mut handler = router.route(&req);
+            handler.on_http_request(&req);
+            self.handler = Some(handler);
         }
     }
 
@@ -190,7 +181,9 @@ impl Connection {
         let mut resp_body = Cursor::new(Vec::with_capacity(1024));
 
         if let State::HTTP(Some(ref req), _) = self.state {
-            self.handler.on_http_response(id, req, &mut resp, &mut resp_body);
+            if let Some(ref mut handler) = self.handler {
+                handler.on_http_response(id, req, &mut resp, &mut resp_body);
+            }
         }
 
         resp.set_content_length(resp_body.position() as usize);
@@ -200,8 +193,10 @@ impl Connection {
             .and_then(|_| self.sock.write(&resp_body.into_inner()));
 
         if let State::HTTP(Some(ref req), ref mut _resp) = self.state {
-            self.handler.on_http_response_after(id, req, &resp);
-            *_resp = Some(resp);
+            if let Some(ref mut handler) = self.handler {
+                handler.on_http_response_after(id, req, &resp);
+                *_resp = Some(resp);
+            }
         }
 
         Ok(())

@@ -1,4 +1,3 @@
-use std::usize;
 use std::net::SocketAddr;
 
 use mio;
@@ -18,7 +17,7 @@ use slab::Slab;
 use tokens;
 use result::Result;
 use error::{Error, Kind as ErrorKind};
-use factory::Factory;
+use router::Router;
 use connection::Connection;
 use server_settings::ServerSettings;
 
@@ -40,13 +39,13 @@ impl ServerState {
 }
 
 
-pub struct Server<F>
-    where F: Factory
+pub struct Server<R>
+    where R: Router
 {
     poll: Poll,
     connections: Slab<Connection, Token>,
 
-    factory: F,
+    router: R,
 
     listener: Option<TcpListener>,
 
@@ -58,17 +57,17 @@ pub struct Server<F>
     state: ServerState,
 }
 
-impl<F> Server<F>
-    where F: Factory
+impl<R> Server<R>
+    where R: Router
 {
-    pub fn new(settings: ServerSettings, factory: F) -> Result<Server<F>> {
+    pub fn new(settings: ServerSettings, router: R) -> Result<Server<R>> {
         let (tx, rx) = mio::channel::sync_channel(settings.sync_channel_bound);
 
         Ok(Server {
             poll: try!(Poll::new()),
             connections: Slab::with_capacity(settings.max_connections),
 
-            factory: factory,
+            router: router,
 
             listener: None,
 
@@ -159,7 +158,7 @@ impl<F> Server<F>
                     );
 
                     if events.is_readable() {
-                        try!(conn.do_read());
+                        try!(conn.do_read(&mut self.router));
 
                         try!(self.poll.reregister(
                               conn.sock()
@@ -183,12 +182,12 @@ impl<F> Server<F>
 
                 if events.is_hup() {
                     try!(self.do_hup(token));
-                    self.factory.on_hup();
+                    self.router.on_tcp_hup();
                 }
 
                 if events.is_error() {
                     try!(self.do_error(token));
-                    self.factory.on_error();
+                    self.router.on_tcp_error();
                 }
             },
         }
@@ -204,8 +203,8 @@ impl<F> Server<F>
                 let token = {
                     if let Some(entry) = self.connections.vacant_entry() {
                         let token = entry.index();
-                        let handler = self.factory.on_accept(token);
-                        entry.insert(Connection::new(token, sock, handler));
+                        self.router.on_tcp_accept(token);
+                        entry.insert(Connection::new(token, sock));
                         token
                     } else {
                         return Err(Error::new(ErrorKind::Capacity, "Unable to add another TCP connection to the event loop while accepting TCP connection"));

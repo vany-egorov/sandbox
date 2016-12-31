@@ -51,13 +51,6 @@ pub struct Request {
     pub header: header::Header,
     pub header_length: usize,
     pub content_length: usize,
-
-    // TODO: body as reader (reader, closer) trait
-    // see src/libstd/io/error.rs.html
-    // Box<error::Error+Send+Sync>
-    // Into<Box<error::Error+Send+Sync>>
-    // error.into()
-    // pub body: Vec<u8>,
 }
 
 impl Request {

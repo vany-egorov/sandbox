@@ -11,12 +11,11 @@ mod server_builder;
 mod server_settings;
 mod connection;
 mod tokens;
-mod factory;
+mod router;
 mod handler;
 mod handler_tcp;
 mod handler_http;
 mod handler_ws;
-mod http_router;
 
 pub mod http;
 pub mod ws;
@@ -27,7 +26,6 @@ pub use handler::Handler;
 pub use handler_tcp::HandlerTCP;
 pub use handler_http::HandlerHTTP;
 pub use handler_ws::HandlerWS;
-pub use http_router::HTTPRouter;
 pub use http::{
     Request as HTTPRequest,
     Response as HTTPResponse,

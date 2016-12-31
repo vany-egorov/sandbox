@@ -13,7 +13,6 @@ use mio_tcp::{
     HandlerHTTP,
     HTTPRequest,
     HTTPResponse,
-    HTTPRouter,
 };
 use mio_tcp::http;
 
@@ -57,23 +56,15 @@ impl HandlerHTTP for IndexHandler {
 }
 
 
-struct Router {}
-
-impl HTTPRouter for Router {
-    fn route(&self, req: &HTTPRequest) -> Handler {
-        Handler::HTTP(Box::new(IndexHandler{}))
-    }
+fn route(_: &HTTPRequest) -> Handler {
+    Handler::HTTP(Box::new(IndexHandler{}))
 }
 
 
 fn main() {
     env_logger::init().unwrap();
 
-    match listen("0.0.0.0:8000", |_| {
-        // println!("[#{}] [+]", usize::from(token));
-
-        Handler::HTTPRouter(Box::new(Router{}))
-    }) {
+    match listen("0.0.0.0:8000", route) {
         Err(e) => println!("error => {}", e),
         Ok(..) => {},
     }

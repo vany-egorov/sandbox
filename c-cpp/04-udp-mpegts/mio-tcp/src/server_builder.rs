@@ -1,10 +1,6 @@
-use std::net::SocketAddr;
-
-use mio::Poll;
-
 use server::Server;
 use result::Result;
-use factory::Factory;
+use router::Router;
 use server_settings::ServerSettings;
 
 
@@ -19,10 +15,10 @@ impl ServerBuilder {
         }
     }
 
-    pub fn finalize<F>(&self, factory: F) -> Result<Server<F>>
-        where F: Factory
+    pub fn finalize<R>(&self, router: R) -> Result<Server<R>>
+        where R: Router
     {
-        Server::new(self.settings, factory)
+        Server::new(self.settings, router)
     }
 
     pub fn with_settings(&mut self, settings: ServerSettings) -> &mut ServerBuilder {

@@ -1,27 +1,21 @@
 use std::fmt;
-use std::usize;
-use std::net::{
-    SocketAddr,
-    ToSocketAddrs
-};
+use std::net::ToSocketAddrs;
 
-use mio::Token;
-
+use http::Request;
 use result::Result;
 use server_builder::ServerBuilder;
 use handler::Handler;
-use connection::Connection;
 
 
-pub fn listen<A, F>(addr_spec: A, factory: F) -> Result<()>
+pub fn listen<A, R>(addr_spec: A, router: R) -> Result<()>
     where
         A: ToSocketAddrs + fmt::Debug,
-        F: FnMut(Token) -> Handler
+        R: FnMut(&Request) -> Handler
 {
     let addr = try!(addr_spec.to_socket_addrs())
         .nth(0)    // first
         .unwrap(); // TODO: handle error
-    let mut server = try!(ServerBuilder::new().finalize(factory));
+    let mut server = try!(ServerBuilder::new().finalize(router));
     try!(server.listen_and_serve(&addr));
 
     Ok(())
