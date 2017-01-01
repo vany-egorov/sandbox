@@ -15,13 +15,7 @@ pub trait HandlerWS {
     }
     fn on_http_response_after(&mut self, _: u64, _: &Request, _: &Response) { /* */ }
 
-    fn on_tcp_hup(&mut self) { /* */ }
-}
+    fn on_ws_message(&mut self, _: u64, _: usize) -> Result<()>;
 
-impl<F> HandlerWS for F
-    where F: FnMut(u64, &Request, &mut Response, &mut Write) -> Result<()>
-{
-    fn on_http_response(&mut self, id: u64, req: &Request, resp: &mut Response, w: &mut Write) -> Result<()> {
-        self(id, req, resp, w)
-    }
+    fn on_tcp_hup(&mut self) { /* */ }
 }

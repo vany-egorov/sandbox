@@ -128,6 +128,7 @@ impl Connection {
     pub fn do_read<R>(&mut self, router: &mut R) -> Result<()>
         where R: Router
     {
+        let id = self.token_u64();
         let sz = try!(map_non_block(self.sock.read_to_end(&mut self.buf.get_mut())))
             .unwrap_or_else(|| self.buf.get_ref().len());
 
@@ -155,7 +156,11 @@ impl Connection {
                 }
             },
             State::WS => {
-                println!("[#{}] [ws] [<] {}", self.token_usz(), sz);
+                if self.is_handler_ws() {
+                    if let Some(ref mut handler) = self.handler {
+                        handler.on_ws_message(id, sz);
+                    }
+                }
                 self.reset_buffer()
             },
             _ => {
@@ -237,7 +242,8 @@ impl Connection {
             }
         }
 
-        resp.set_content_length(resp_body.position() as usize);
+        let content_length = resp_body.position() as usize;
+        resp.set_content_length(content_length);
 
         try!(
             self.sock

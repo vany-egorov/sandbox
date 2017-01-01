@@ -59,4 +59,11 @@ impl Handler {
             Handler::WS(ref mut h) => h.on_http_response_after(id, req, resp),
         }
     }
+
+    pub fn on_ws_message(&mut self, id: u64, sz: usize) -> Result<()> {
+        match *self {
+            Handler::HTTP(ref mut h) => { Ok(()) },
+            Handler::WS(ref mut h) => h.on_ws_message(id, sz),
+        }
+    }
 }

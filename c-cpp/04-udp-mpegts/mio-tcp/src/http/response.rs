@@ -28,7 +28,7 @@ pub struct Response {
     pub proto_minor: u8, // 0
 
     pub header: header::Header,
-    content_length: usize,
+    content_length: Option<usize>,
 }
 
 impl Response {
@@ -40,14 +40,14 @@ impl Response {
             proto_minor: 1,
 
             header: header::Header::new(),
-            content_length: 0,
+            content_length: None,
         }
     }
 }
 
 impl Response {
-    pub fn content_length(&self) -> usize { self.content_length }
-    pub fn set_content_length(&mut self, v: usize) { self.content_length = v; }
+    pub fn content_length(&self) -> usize { self.content_length.unwrap_or(0) }
+    pub fn set_content_length(&mut self, v: usize) { self.content_length = Some(v); }
 
     pub fn header_mut(&mut self) -> &mut header::Header { &mut self.header }
     pub fn header_set<S>(&mut self, k: S, v: S) -> &mut Response
@@ -99,11 +99,11 @@ impl ToString for Response {
             }
         }
 
-        if self.content_length != 0 {
+        if let Some(v) = self.content_length {
             s.push_str(&format!(
                 "{k}: {v}{CR}{LF}",
                 k=HEADER_CONTENT_LENGTH,
-                v=self.content_length,
+                v=v,
                 CR=CCR,
                 LF=CLF
             ));
