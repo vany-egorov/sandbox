@@ -14,3 +14,7 @@ curl.log
 libmill
 mongoose
 libwebsockets
+
+**/ui/node_modules
+**/ui/static/*
+!**/ui/static/.keep
