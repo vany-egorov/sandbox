@@ -17,4 +17,5 @@ libwebsockets
 
 **/ui/node_modules
 **/ui/static/*
+!**/ui/bin
 !**/ui/static/.keep
