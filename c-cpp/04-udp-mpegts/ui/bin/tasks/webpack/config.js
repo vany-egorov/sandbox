@@ -7,12 +7,14 @@ const config = {
   devtool: 'source-map',
   entry: [
     // The script refreshing the browser on none hot updates
-    'webpack-hot-middleware/client?reload=true',
+    'webpack-hot-middleware/client?reload=true&overlay=true',
 
     resolve('src/main.js')
   ],
   output: {
-    filename: resolve('static/main.js')
+    path: resolve('static'),
+    publicPath: '/',
+    filename: 'main.js'
   },
   module: {
     loaders: [
@@ -31,6 +33,11 @@ const config = {
   },
   plugins: [
     new ProgressBarPlugin(),
+    new webpack.optimize.OccurenceOrderPlugin(),
+    // Webpack 2.0 fixed this mispelling
+    // new webpack.optimize.OccurrenceOrderPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoErrorsPlugin()
     // new webpack.optimize.UglifyJsPlugin({
     //   compress: {
     //     unused: true,

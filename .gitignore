@@ -17,6 +17,6 @@ libwebsockets
 
 **/ui/node_modules
 **/ui/static/*
+**/ui/yarn.lock
 !**/ui/bin
 !**/ui/static/.keep
-**/ui/yarn.lock

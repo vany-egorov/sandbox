@@ -6,11 +6,18 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "build": "better-npm-run build:dev"
+    "build": "better-npm-run build:dev",
+    "server": "better-npm-run server:dev"
   },
   "betterScripts": {
     "build:dev": {
       "command": "node ./bin/build",
+      "env": {
+        "DEBUG": "va"
+      }
+    },
+    "server:dev": {
+      "command": "node ./bin/server",
       "env": {
         "DEBUG": "va"
       }
@@ -29,10 +36,12 @@
     "eslint": "^3.13.0",
     "eslint-loader": "^1.6.1",
     "eslint-plugin-react": "^6.8.0",
+    "express": "^4.14.0",
     "progress-bar-webpack-plugin": "^1.9.2",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
     "webpack": "^1.14.0",
+    "webpack-dev-middleware": "^1.9.0",
     "webpack-hot-middleware": "^2.15.0"
   }
 }
