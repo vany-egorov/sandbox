@@ -2,7 +2,7 @@ CXX := g++
 CXXFLAGS := -g
 
 CC:= gcc
-CCFLAGS := -g -lpthread -lrt -fPIC
+CCFLAGS := -g -pthread -lrt -fPIC
 
 LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 
@@ -24,11 +24,19 @@ $(OBJS_DIR)/msg-out.o: ./msg-out.c
 $(OBJS_DIR)/msgs.o: ./msgs.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS_DIR)/enc.o: ./enc.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJS_DIR)/encs.o: ./encs.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 main: \
 	$(OBJS_DIR)/chan.o \
 	$(OBJS_DIR)/msg-in.o \
 	$(OBJS_DIR)/msg-out.o \
 	$(OBJS_DIR)/msgs.o \
+	$(OBJS_DIR)/enc.o \
+	$(OBJS_DIR)/encs.o \
 	$(OBJS_DIR)/main.o
 	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
 
@@ -43,3 +51,8 @@ clean:
 	rm -rvf $(BIN_DIR)/*.so
 	rm -rvf $(BIN_DIR)/*.a
 	rm -rvf $(BIN_DIR)/main
+
+	rm -rvf $(OBJS_DIR)/*.o
+	rm -rvf $(OBJS_DIR)/*.so
+	rm -rvf $(OBJS_DIR)/*.a
+	rm -rvf $(OBJS_DIR)/main
