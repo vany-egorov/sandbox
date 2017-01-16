@@ -1,10 +1,10 @@
-#include "encs.h"
+#include "bufs.h"
 
 
-int encs_new(ENCs **out) {
-	ENCs *it = NULL;
+int bufs_new(Bufs **out) {
+	Bufs *it = NULL;
 
-	it = (ENCs*)calloc(1, sizeof(ENCs));
+	it = (Bufs*)calloc(1, sizeof(Bufs));
 	if (!it) return 1;
 
 	*out = it;
@@ -15,10 +15,10 @@ int encs_new(ENCs **out) {
 	return 0;
 }
 
-int encs_push(ENCs *it, ENC *el) {
+int bufs_push(Bufs *it, Buf *el) {
 	int ret = 0;
 
-	it->els = (ENC**)realloc(it->els, (it->len + 1)*sizeof(ENC*));
+	it->els = (Buf**)realloc(it->els, (it->len + 1)*sizeof(Buf*));
 
 	if (!it->els) { ret = 1; goto cleanup; }
 
@@ -30,9 +30,9 @@ cleanup:
 }
 
 
-int encs_del(ENCs **out) {
+int bufs_del(Bufs **out) {
 	int ret = 0;
-	ENCs *it = NULL;
+	Bufs *it = NULL;
 
 	if (!out) return ret;
 

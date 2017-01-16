@@ -1,58 +1,69 @@
-CXX := g++
-CXXFLAGS := -g
+SHELL := /bin/bash
 
 CC:= gcc
-CCFLAGS := -g -pthread -lrt -fPIC
+CXX:= g++
+CCFLAGS := -O0 -ggdb -g -g1
 
-LDFLAGS += -L/usr/lib64 -ldl -lstdc++
+PATH_X265 := $(shell realpath ../../../x265)
 
-BIN_DIR := ./bin
-OBJS_DIR := ./obj
+INCLUDEFLAS := -I${PATH_X265}/source
+INCLUDEFLAS += -I${PATH_X265}/build/linux
 
-$(OBJS_DIR)/main.o: ./main.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
+LDFLAGS := -L${PATH_X265}/build/linux
+LDFLAGS += -Wl,-Bstatic
+LDFLAGS += -lx265
+LDFLAGS += -Wl,-Bdynamic
+LDFLAGS += -ldl
+LDFLAGS += -lpthread
 
-$(OBJS_DIR)/chan.o: ./chan.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
+OBJECTS_DIRS := ./bin
 
-$(OBJS_DIR)/msg-in.o: ./msg-in.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/msg-out.o: ./msg-out.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
+$(OBJECTS_DIRS)/enc.o: ./enc.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
 
-$(OBJS_DIR)/msgs.o: ./msgs.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
+$(OBJECTS_DIRS)/encs.o: ./encs.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
 
-$(OBJS_DIR)/enc.o: ./enc.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
+$(OBJECTS_DIRS)/chan.o: ./chan.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
 
-$(OBJS_DIR)/encs.o: ./encs.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
+$(OBJECTS_DIRS)/profile.o: ./profile.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/buf.o: ./buf.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/bufs.o: ./bufs.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/msg-i.o: ./msg-i.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/msg-o.o: ./msg-o.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
+$(OBJECTS_DIRS)/main.o: ./main.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
 
 main: \
-	$(OBJS_DIR)/chan.o \
-	$(OBJS_DIR)/msg-in.o \
-	$(OBJS_DIR)/msg-out.o \
-	$(OBJS_DIR)/msgs.o \
-	$(OBJS_DIR)/enc.o \
-	$(OBJS_DIR)/encs.o \
-	$(OBJS_DIR)/main.o
-	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
+	$(OBJECTS_DIRS)/encs.o    \
+	$(OBJECTS_DIRS)/enc.o     \
+	$(OBJECTS_DIRS)/chan.o    \
+	$(OBJECTS_DIRS)/profile.o \
+	$(OBJECTS_DIRS)/buf.o     \
+	$(OBJECTS_DIRS)/bufs.o    \
+	$(OBJECTS_DIRS)/msg-i.o   \
+	$(OBJECTS_DIRS)/msg-o.o   \
+	$(OBJECTS_DIRS)/main.o
+	$(CXX) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
 
-ensure-dirs:
-	mkdir -p $(OBJS_DIR)
-	mkdir -p $(BIN_DIR)
+bin-dir:
+	mkdir -p $(OBJECTS_DIRS)
 
-build: ensure-dirs main
+build: bin-dir main
 
 clean:
-	rm -rvf $(BIN_DIR)/*.o
-	rm -rvf $(BIN_DIR)/*.so
-	rm -rvf $(BIN_DIR)/*.a
-	rm -rvf $(BIN_DIR)/main
-
-	rm -rvf $(OBJS_DIR)/*.o
-	rm -rvf $(OBJS_DIR)/*.so
-	rm -rvf $(OBJS_DIR)/*.a
-	rm -rvf $(OBJS_DIR)/main
+	rm -rvf $(OBJECTS_DIRS)/*.o
+	rm -rvf $(OBJECTS_DIRS)/main

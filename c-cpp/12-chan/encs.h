@@ -19,7 +19,7 @@ struct encs_c {
 
 int encs_new(ENCs **out);
 int encs_push(ENCs *it, ENC *el);
-int encs_del(ENCs *it);
+int encs_del(ENCs **out);
 
 
 #endif /* __ENCS_H__ */
