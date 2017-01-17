@@ -24,7 +24,7 @@ int  buf_get_available(Buf *it, void **out);
 int  buf_got_available(Buf *it);
 int  buf_is_empty(Buf *it);
 int  buf_first(Buf *it, void **out);
-void buf_del(Buf *it);
+void buf_del(Buf **out);
 
 
 #endif /* __BUF_H__ */

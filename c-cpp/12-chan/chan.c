@@ -29,10 +29,25 @@ void chan_wait(Chan *it) {
 
 int chan_send(Chan *it, void *msg) {
 	int ret = 0;
-	size_t finish_nxt = 0,
-	       offset = 0;
 
 	pthread_mutex_lock(&it->rw_mutex);
+	memcpy(it->msgs + (it->finish*it->msgsz), msg, it->msgsz);
+
+	ret = chan_send_silent(it, msg);
+
+	pthread_mutex_unlock(&it->rw_mutex);
+	chan_notify(it);
+
+	return ret;
+}
+
+/*
+ * no thread mutex lock
+ * no cond-variable/semaphore wake up
+ */
+int chan_send_silent(Chan *it, void *msg) {
+	int ret = 0;
+
 	memcpy(it->msgs + (it->finish*it->msgsz), msg, it->msgsz);
 
 	it->finish = (it->finish + 1) % it->cap;
@@ -43,21 +58,31 @@ int chan_send(Chan *it, void *msg) {
 		it->start = it->finish;
 	}
 
-	pthread_mutex_unlock(&it->rw_mutex);
-	sem_post(&it->sem);
-
 	return ret;
 }
+
+void chan_notify(Chan *it) { sem_post(&it->sem); }
 
 int chan_recv(Chan *it, void *msg) {
 	int ret = 0;
 
 	pthread_mutex_lock(&it->rw_mutex);
 
-	if (!it->len) {
-		pthread_mutex_unlock(&it->rw_mutex);
-		return ret;
-	}
+	ret = chan_recv_silent(it, msg);
+
+	pthread_mutex_unlock(&it->rw_mutex);
+
+	return ret;
+}
+
+/*
+ * no thread mutex lock
+ * no cond-variable/semaphore wake up
+ */
+int chan_recv_silent(Chan *it, void *msg) {
+	int ret = 0;
+
+	if (!it->len) return ret;
 
 	memcpy(msg, it->msgs + (it->start*it->msgsz), it->msgsz);
 	memset(it->msgs + (it->start*it->msgsz), 0, it->msgsz);
@@ -65,10 +90,10 @@ int chan_recv(Chan *it, void *msg) {
 	it->start = (it->start + 1) % it->cap;
 	it->len--;
 
-	pthread_mutex_unlock(&it->rw_mutex);
-
 	return ret;
 }
+
+inline int chan_got_msg(Chan *it) { return it->len ? 1 : 0; }
 
 int chan_del(Chan **out) {
 	if (!out) return;

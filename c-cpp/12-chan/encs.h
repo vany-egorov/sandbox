@@ -19,6 +19,9 @@ struct encs_c {
 
 int encs_new(ENCs **out);
 int encs_push(ENCs *it, ENC *el);
+int enc_push(ENC *it, ENCs *collection);
+int encs_wait(ENCs *it);
+int encs_stop(ENCs *it);
 int encs_del(ENCs **out);
 
 

@@ -11,9 +11,10 @@ typedef struct profile_s Profile;
 
 
 struct profile_s{
-	uint16_t w;
-	uint16_t h;
-	uint16_t b;
+	uint16_t w;        /* width */
+	uint16_t h;        /* height */
+	uint16_t b;        /* bitrate */
+	uint8_t  bframes;  /* */
 
 	char *preset;
 	char *tune;

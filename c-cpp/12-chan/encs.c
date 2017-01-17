@@ -29,16 +29,46 @@ cleanup:
 	return ret;
 }
 
+int enc_push(ENC *it, ENCs *collection) {
+	it->index = (uint8_t)collection->len;
+	return encs_push(collection, it);
+}
+
+int encs_wait(ENCs *it) {
+	int ret = 0,
+	    i = 0;
+	ENC *enc = NULL;
+
+	for (i = 0; i < it->len; i++) {
+		enc = it->els[i];
+		chan_wait(enc->chan_o);
+	}
+
+	return ret;
+}
+
+int encs_stop(ENCs *it) {
+	int ret = 0,
+	    i = 0;
+	ENC *enc = NULL;
+
+	for (i = 0; i < it->len; i++) {
+		enc = it->els[i];
+		enc_stop(enc);
+	}
+
+	return 0;
+}
 
 int encs_del(ENCs **out) {
 	int ret = 0;
 	ENCs *it = NULL;
 
-	if (!out) return ret;
+	if (!out) goto cleanup;
 
 	it = *out;
 
-	if (!it) return ret;
+	if (!it) goto cleanup;
 
 	if (it->els) {
 		free(it->els);
@@ -48,6 +78,9 @@ int encs_del(ENCs **out) {
 	free(it);
 
 	*out = NULL;
+
+cleanup:
+	x265_cleanup();
 
 	return ret;
 }

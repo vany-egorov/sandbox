@@ -25,11 +25,15 @@ struct chan_s {
 };
 
 
-int  chan_new(Chan **out, size_t cap, size_t msgsz);
-void chan_wait(Chan *it);
-int  chan_send(Chan *it, void *msg);
-int  chan_recv(Chan *it, void *msg);
-int  chan_del(Chan **out);
+int        chan_new(Chan **out, size_t cap, size_t msgsz);
+void       chan_wait(Chan *it);
+int        chan_send(Chan *it, void *msg);
+int        chan_send_silent(Chan *it, void *msg);
+int        chan_recv_silent(Chan *it, void *msg);
+inline int chan_got_msg(Chan *it);
+void       chan_notify(Chan *it);
+int        chan_recv(Chan *it, void *msg);
+int        chan_del(Chan **out);
 
 
 #endif /* __CHAN_H__ */

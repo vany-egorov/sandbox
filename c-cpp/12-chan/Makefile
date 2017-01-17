@@ -43,6 +43,9 @@ $(OBJECTS_DIRS)/msg-i.o: ./msg-i.c
 $(OBJECTS_DIRS)/msg-o.o: ./msg-o.c
 	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
 
+$(OBJECTS_DIRS)/signal.o: ./signal.c
+	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
+
 $(OBJECTS_DIRS)/main.o: ./main.c
 	$(CC) $(CCFLAGS) $(INCLUDEFLAS) -o $@ -c $<
 
@@ -56,8 +59,15 @@ main: \
 	$(OBJECTS_DIRS)/bufs.o    \
 	$(OBJECTS_DIRS)/msg-i.o   \
 	$(OBJECTS_DIRS)/msg-o.o   \
+	$(OBJECTS_DIRS)/signal.o  \
 	$(OBJECTS_DIRS)/main.o
 	$(CXX) $(CCFLAGS) -o $(OBJECTS_DIRS)/$@ $+ $(LDFLAGS)
+
+
+run:
+	# ./bin/main </tmp/egorov/1920x1080-yuv420.yuv
+	./bin/main </tmp/egorov/1920x1080-yuv420-small.yuv
+
 
 bin-dir:
 	mkdir -p $(OBJECTS_DIRS)

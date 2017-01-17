@@ -31,7 +31,9 @@ cleanup:
 
 
 int bufs_del(Bufs **out) {
-	int ret = 0;
+	int ret;
+	size_t i = 0;
+	Buf *el = NULL;
 	Bufs *it = NULL;
 
 	if (!out) return ret;
@@ -41,6 +43,10 @@ int bufs_del(Bufs **out) {
 	if (!it) return ret;
 
 	if (it->els) {
+		for (el=it->els[0]; i < it->len; i++, el++) {
+			buf_del(&el);
+		}
+
 		free(it->els);
 		it->els = NULL;
 	}

@@ -8,12 +8,13 @@
 #include <x265.h>  /* x265_encoder */
 
 #include "./chan.h"
-#include "./profile.h"
 #include "./msg-i.h"
 #include "./msg-o.h"
+#include "./profile.h"
+#include "./enc-status.h"
 
 
-typedef struct enc_s ENC;
+typedef struct enc_s       ENC;
 typedef struct enc_param_s ENCParam;
 
 
@@ -25,10 +26,12 @@ struct enc_param_s {
 };
 
 struct enc_s {
+	uint8_t index; /* encoder index inside encoders collection */
+
 	ENCParam param;
 
-	Chan *chan_i;
-	Chan *chan_o;
+	Chan *chan_i;    /* <- */
+	Chan *chan_o;    /* -> */
 
 	pthread_t thread;
 
@@ -40,6 +43,7 @@ struct enc_s {
 
 int enc_new(ENC **out, ENCParam *param);
 int enc_go(ENC *it);
+int enc_stop(ENC *it);
 int enc_del(ENC **out);
 
 

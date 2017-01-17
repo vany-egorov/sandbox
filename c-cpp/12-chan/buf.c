@@ -39,11 +39,23 @@ int buf_get_available(Buf *it, void **out) {
 int buf_got_available(Buf *it) { return (it->len == it->cap) ? 0 : 1; }
 int buf_is_empty(Buf *it) { return (it->len == 0) ? 1 : 0; }
 
-void buf_del(Buf *it) {
+void buf_del(Buf **out) {
+	Buf *it = NULL;
+
+	if (!out) return;
+
+	it = *out;
+
 	if (!it) return;
+
 	if (it->els != NULL) {
 		free(it->els);
 		it->els = NULL;
 	}
+
 	free(it);
+
+	*out = NULL;
+
+	return;
 }

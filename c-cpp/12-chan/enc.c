@@ -47,7 +47,7 @@ static int enc_open(ENC *it) {
 		h265_param->fpsDenom = 1;
 		h265_param->sourceWidth = (int)it->param.profile.w;
 		h265_param->sourceHeight = (int)it->param.profile.h;
-		h265_param->bframes = 3;
+		h265_param->bframes = (int)it->param.profile.bframes;
 		h265_param->bRepeatHeaders = 1;
 		h265_param->bAnnexB = 1;
 		// h265_param->analysisMode = X265_ANALYSIS_LOAD;
@@ -86,21 +86,37 @@ cleanup:
 	return ret;
 }
 
-static void* enc_worker(void *args) {
+static int enc_close(ENC *it) {
 	int ret = 0;
-	ENC *it = NULL;
-	it = (ENC*)args;
+
+	if (it->h265_encoder) {
+		x265_encoder_close(it->h265_encoder);
+		it->h265_encoder = NULL;
+	}
+	if (it->h265_pic_in) {
+		x265_picture_free(it->h265_pic_in);
+		it->h265_pic_in = NULL;
+	}
+	if (it->h265_pic_out) {
+		x265_picture_free(it->h265_pic_out);
+		it->h265_pic_out = NULL;
+	}
+
+cleanup:
+	return ret;
+}
+
+
+static void* enc_worker(void *args) {
+	int i = 0;
+	ENC *it = (ENC*)args;
 	MsgI msg_i = { 0 };
+	MsgO msg_o = { 0 };
 
 	int       h265_ret = 0;
 	x265_nal *h265_nals = NULL;
 	uint32_t  h265_nal_count = 0;
-
-	char path_out[255] = { 0 };
-	snprintf(path_out, sizeof(path_out)-1, "/tmp/egorov/%zdx%zd@%zd.x265",
-		it->param.profile.w, it->param.profile.h, it->param.profile.b);
-	FILE *out = fopen(path_out, "wb");
-	int i = 0;
+	x265_nal  h265_nal = { 0 };
 
 	enc_open(it);
 
@@ -109,22 +125,68 @@ static void* enc_worker(void *args) {
 
 	for (;;) {
 		chan_wait(it->chan_i);
-		chan_recv(it->chan_i, &msg_i);  /* TODO: read multiple messages at once */
+		chan_recv_silent(it->chan_i, &msg_i);  /* TODO: read multiple messages at once */
 
-		it->h265_pic_in->planes[0] = (char*)msg_i.yuv;
-		it->h265_pic_in->planes[1] = (char*)msg_i.yuv + plane_1_offset;
-		it->h265_pic_in->planes[2] = it->h265_pic_in->planes[1] + plane_2_offset;
+		switch (msg_i.kind) {
+			case MSG_I_KIND_YUV: {
+				it->h265_pic_in->planes[0] = (char*)msg_i.yuv;
+				it->h265_pic_in->planes[1] = (char*)msg_i.yuv + plane_1_offset;
+				it->h265_pic_in->planes[2] = it->h265_pic_in->planes[1] + plane_2_offset;
 
-		h265_ret = x265_encoder_encode(it->h265_encoder, &h265_nals, &h265_nal_count, it->h265_pic_in, it->h265_pic_out);
-		if (h265_ret == 1) {
-			for (i = 0; i < h265_nal_count; i++) {
-				x265_nal nal = h265_nals[i];
-				fprintf(stderr, "[+] %5d %5d %5d %5d\n", h265_nal_count, nal.sizeBytes,
-					it->h265_pic_out->sliceType, it->h265_pic_out->poc);
-				fwrite(nal.payload, nal.sizeBytes, 1, out);
+				h265_ret = x265_encoder_encode(it->h265_encoder, &h265_nals, &h265_nal_count, it->h265_pic_in, it->h265_pic_out);
+				if (!h265_ret) { /* MORE */
+					msg_o_clear(&msg_o);
+
+					msg_o.status = ENC_STATUS_MORE;
+					msg_o.profile = &it->param.profile;
+
+					chan_send(it->chan_o, &msg_o);
+
+				} else if (h265_ret == 1) { /* OK */
+					for (i = 0; i < h265_nal_count; i++) {
+						h265_nal = h265_nals[i];
+
+						fprintf(stderr, "[<- #%d] %5d %5d %5d %5d\n",
+							it->index,
+							h265_nal_count, h265_nal.sizeBytes,
+							it->h265_pic_out->sliceType, it->h265_pic_out->poc
+						);
+
+						msg_o_clear(&msg_o);
+
+						msg_o.status = ENC_STATUS_OK;
+						msg_o.nal_type = h265_nal.type;
+						msg_o.nal_payload = h265_nal.payload;
+						msg_o.nal_sz = h265_nal.sizeBytes;
+						msg_o.profile = &it->param.profile;
+
+						chan_send_silent(it->chan_o, &msg_o);
+					}
+
+					chan_notify(it->chan_o);
+
+				} else { /* ERR */
+					msg_o_clear(&msg_o);
+
+					msg_o.status = ENC_STATUS_ERR;
+					msg_o.profile = &it->param.profile;
+
+					chan_send_silent(it->chan_o, &msg_o);
+				}
+
+				break;
+			}
+			case MSG_I_KIND_STOP: {
+				goto cleanup;
+				break;
 			}
 		}
 	}
+
+cleanup:
+	enc_close(it);
+
+	return NULL;
 }
 
 int enc_go(ENC *it) {
@@ -135,6 +197,22 @@ int enc_go(ENC *it) {
 	}
 
 cleanup:
+	return ret;
+}
+
+int enc_stop(ENC *it) {
+	int ret = 0;
+
+	MsgI i = {
+		.kind = MSG_I_KIND_STOP,
+		.yuv = NULL,
+	};
+
+	chan_send_silent(it->chan_i, &i);
+	chan_notify(it->chan_i);
+
+	pthread_join(it->thread, NULL);
+
 	return ret;
 }
 
