@@ -172,9 +172,9 @@ struct h264_nal_aud_s {
 	uint8_t primary_pic_type;
 };
 
-int  h264_nal_pps_parse(H264NALPPS *it, const uint8_t *data);
-void h264_nal_pps_print_json(H264NALPPS *it);
-void h264_nal_pps_print_humanized(H264NALPPS *it);
+int  h264_nal_aud_parse(H264NALAUD *it, const uint8_t *data);
+void h264_nal_aud_print_json(H264NALAUD *it);
+void h264_nal_aud_print_humanized(H264NALAUD *it);
 
 /* nal-sei.c */
 struct h264_nal_sei_s {
