@@ -2,7 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import ReconnectingWebSocket from 'reconnectingwebsocket'
 
-const wsURL = `ws://${window.location.hostname}:${window.location.port}/ws/v1`
+const wsHost = window.location.hostname
+// const wsPort = window.location.port
+const wsPort = 8000
+const wsURL = `ws://${wsHost}:${wsPort}/ws/v1`
 
 function wsOnOpen() {
   console.log('ws-on-open')

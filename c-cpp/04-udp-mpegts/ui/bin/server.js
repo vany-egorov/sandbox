@@ -33,4 +33,4 @@ app.use(require("webpack-hot-middleware")(compiler, {
 }));
 
 const server = app.listen(1000)
-server.on('upgrade', p.upgrade)
+// server.on('upgrade', p.upgrade)

@@ -63,14 +63,16 @@ impl Response {
     }
 
     pub fn ws_upgrade(&mut self, req: &Request) -> Result<()> {
-        // TODO: error handling
-        let response_key = ws_gen_key(req.header.get_first("Sec-WebSocket-Key").unwrap().as_ref());
-
-        self
-            .set_status(status::Status::SwitchingProtocols)
-            .header_set(HEADER_UPGRADE, HEADER_V_WEBSOCKET)
-            .header_set(HEADER_CONNECTION, HEADER_V_UPGRADE)
-            .header_set(HEADER_SEC_WEBSOCKET_ACCEPT, response_key.as_ref());
+        if let Some(sec_ws_key) = req.header.get_first("Sec-WebSocket-Key") {
+            let response_key = ws_gen_key(sec_ws_key.as_ref());
+            self
+                .set_status(status::Status::SwitchingProtocols)
+                .header_set(HEADER_UPGRADE, HEADER_V_WEBSOCKET)
+                .header_set(HEADER_CONNECTION, HEADER_V_UPGRADE)
+                .header_set(HEADER_SEC_WEBSOCKET_ACCEPT, response_key.as_ref());
+        } else {
+            println!("Missing \"Sec-WebSocket-Key\" header");
+        }
 
         Ok(())
     }
