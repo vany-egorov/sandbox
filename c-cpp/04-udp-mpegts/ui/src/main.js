@@ -1,6 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import ReconnectingWebSocket from 'reconnectingwebsocket'
+import msgpack from 'msgpack-lite'
+
+console.log(msgpack)
 
 const wsHost = window.location.hostname
 // const wsPort = window.location.port

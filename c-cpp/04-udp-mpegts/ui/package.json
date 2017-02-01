@@ -38,6 +38,7 @@
     "eslint-plugin-react": "^6.8.0",
     "express": "^4.14.0",
     "http-proxy-middleware": "^0.17.3",
+    "msgpack-lite": "^0.1.26",
     "progress-bar-webpack-plugin": "^1.9.2",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
