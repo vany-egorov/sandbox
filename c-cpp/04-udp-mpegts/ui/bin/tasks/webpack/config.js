@@ -17,27 +17,28 @@ const config = {
     filename: 'main.js'
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
-        loaders: [
-          'babel-loader',
-          'eslint-loader'
+        use: [
+          {
+            loader: 'babel-loader'
+          },
+          {
+            loader: 'eslint-loader',
+            options: {
+              configFile: resolve('.eslintrc')
+            }
+          }
         ]
       }
     ]
   },
-  eslint: {
-    configFile: resolve('.eslintrc')
-  },
   plugins: [
     new ProgressBarPlugin(),
-    new webpack.optimize.OccurenceOrderPlugin(),
-    // Webpack 2.0 fixed this mispelling
-    // new webpack.optimize.OccurrenceOrderPlugin(),
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoErrorsPlugin()
+    new webpack.NoEmitOnErrorsPlugin()
     // new webpack.optimize.UglifyJsPlugin({
     //   compress: {
     //     unused: true,
