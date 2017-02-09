@@ -12,6 +12,13 @@ BIN_DIR := ../bin
 LIB_DIR := ../lib
 
 
+.DEFAULT: default
+
+
+default: all
+all: build
+
+
 $(OBJS_DIR)/collections-slice.o: ./collections/slice.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 

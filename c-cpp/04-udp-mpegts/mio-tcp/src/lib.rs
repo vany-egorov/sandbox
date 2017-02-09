@@ -29,6 +29,7 @@ pub use handler::Handler;
 pub use handler_tcp::HandlerTCP;
 pub use handler_http::HandlerHTTP;
 pub use handler_ws::HandlerWS;
+pub use server_builder::ServerBuilder;
 pub use http::{
     Request as HTTPRequest,
     Response as HTTPResponse,

@@ -80,6 +80,10 @@ impl<R> Server<R>
         })
     }
 
+    pub fn tx(&mut self) -> mio::channel::SyncSender<()> {
+        self.tx.clone()
+    }
+
     pub fn listen_and_serve(&mut self, addr: &SocketAddr) -> Result<()> {
         try!(self.listen(addr));
         try!(self.serve());

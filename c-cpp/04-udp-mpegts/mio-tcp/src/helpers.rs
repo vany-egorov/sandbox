@@ -7,6 +7,11 @@ use server_builder::ServerBuilder;
 use handler::Handler;
 
 
+// example:
+// match listen("0.0.0.0:8000", route) {
+//     Err(e) => println!("error starting HTTP/WS server: {}", e),
+//     Ok(..) => {},
+// }
 pub fn listen<A, R>(addr_spec: A, router: R) -> Result<()>
     where
         A: ToSocketAddrs + fmt::Debug,

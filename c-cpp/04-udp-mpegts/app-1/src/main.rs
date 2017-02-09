@@ -5,6 +5,7 @@ use std::io::{
     Write,
     copy
 };
+use std::net::SocketAddr;
 use std::fs::File;
 use std::path::Path;
 
@@ -15,7 +16,8 @@ use mio_tcp::{
     HandlerWS,
     HTTPRequest,
     HTTPResponse,
-    Result as MIOTCPResult
+    Result as MIOTCPResult,
+    ServerBuilder,
 };
 use mio_tcp::http;
 
@@ -145,8 +147,27 @@ fn route(req: &HTTPRequest) -> Handler {
 fn main() {
     env_logger::init().unwrap();
 
-    match listen("0.0.0.0:8000", route) {
-        Err(e) => println!("error starting HTTP/WS server: {}", e),
-        Ok(..) => {},
-    }
+    let addr: SocketAddr = match "0.0.0.0:8000".parse() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("parse-addr failed: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let mut server = match ServerBuilder::new().finalize(route) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("create server instance failed: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+    let tx = server.tx();
+
+    server.listen_and_serve(&addr);
+
+    // match listen("0.0.0.0:8000", route) {
+    //     Err(e) => println!("error starting HTTP/WS server: {}", e),
+    //     Ok(..) => {},
+    // }
 }
