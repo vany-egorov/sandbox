@@ -1,3 +1,4 @@
+extern crate libc;
 extern crate mio_tcp;
 extern crate env_logger;
 extern crate rustc_serialize;           // MessagePack
@@ -12,6 +13,7 @@ use std::fs::File;
 use std::path::Path;
 
 use mio_tcp::{
+    http,
     listen,
     Handler,
     HandlerHTTP,
@@ -20,8 +22,11 @@ use mio_tcp::{
     HTTPResponse,
     Result as MIOTCPResult,
     ServerBuilder,
+    ChannelSyncSender
 };
-use mio_tcp::http;
+use libc::{c_int, c_void};
+use msgpack::{Encoder, Decoder};
+use rustc_serialize::Encodable;
 
 mod va;
 
@@ -147,6 +152,38 @@ fn route(req: &HTTPRequest) -> Handler {
     }
 }
 
+
+pub struct CbCtx {
+    tx: ChannelSyncSender<()>,
+}
+
+
+unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, atom_kind: va::AtomKind, offset: u64) -> c_int {
+    if atom_kind == va::AtomKind::MPEGTSHeader   ||
+       atom_kind == va::AtomKind::MPEGTSAdaption ||
+       atom_kind == va::AtomKind::MPEGTSPES      ||
+       atom_kind == va::AtomKind::MPEGTSPSIPAT   ||
+       atom_kind == va::AtomKind::MPEGTSPSIPMT   ||
+       atom_kind == va::AtomKind::MPEGTSPSISDT {
+        return 0;
+    }
+
+    let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
+
+    if atom_kind == va::AtomKind::H264SliceIDR {
+        let h264_slice_idr: &mut va::h264::H264NALSliceIDR = unsafe { &mut *(atom as *mut va::h264::H264NALSliceIDR) };
+        // println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
+        let mut encoded = Vec::new();
+        {
+            let mut encoder = Encoder::new(&mut encoded);
+            h264_slice_idr.encode(&mut encoder);
+        }
+        println!("{:?}", encoded);
+        // cb_ctx.tx.send(server::Command{data: encoded, signal: server::Signal::A}).unwrap();
+    }
+    // println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
+    return 0;
+}
 
 fn main() {
     env_logger::init().unwrap();

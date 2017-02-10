@@ -34,3 +34,7 @@ pub use http::{
     Request as HTTPRequest,
     Response as HTTPResponse,
 };
+pub use mio::channel::{
+    SyncSender as ChannelSyncSender
+};
+
