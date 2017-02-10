@@ -1,5 +1,7 @@
 extern crate mio_tcp;
 extern crate env_logger;
+extern crate rustc_serialize;           // MessagePack
+extern crate rmp_serialize as msgpack;  // MessagePack
 
 use std::io::{
     Write,
@@ -20,6 +22,8 @@ use mio_tcp::{
     ServerBuilder,
 };
 use mio_tcp::http;
+
+mod va;
 
 
 fn log_req_res(id: u64, req: &HTTPRequest, resp: &HTTPResponse) {

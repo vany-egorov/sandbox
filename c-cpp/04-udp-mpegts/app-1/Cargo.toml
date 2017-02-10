@@ -8,5 +8,13 @@ build = "build.rs"
 mio-tcp = { version = "*", path = "../mio-tcp" }
 env_logger = "0.3"
 
+# <MessagePack>
+rustc-serialize = "0.3"
+rmp = "0.8"
+rmp-serialize = "0.8"
+# </MessagePack>
+
+libc = "0.2"
+
 [build-dependencies]
 bindgen = "0.19.0"
