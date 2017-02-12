@@ -20,6 +20,11 @@ use error::{Error, Kind as ErrorKind};
 use router::Router;
 use connection::Connection;
 use server_settings::ServerSettings;
+use message::{
+    Message,
+    Kind as MessageKind,
+    Body as MessageBody
+};
 
 
 #[derive(Debug, PartialEq, Eq)]
@@ -51,8 +56,8 @@ pub struct Server<R>
 
     events: mio::Events,
 
-    tx: mio::channel::SyncSender<()>,
-    rx: mio::channel::Receiver<()>,
+    tx: mio::channel::SyncSender<Message>,
+    rx: mio::channel::Receiver<Message>,
 
     state: ServerState,
 }
@@ -80,7 +85,7 @@ impl<R> Server<R>
         })
     }
 
-    pub fn tx(&mut self) -> mio::channel::SyncSender<()> {
+    pub fn tx(&mut self) -> mio::channel::SyncSender<Message> {
         self.tx.clone()
     }
 
@@ -152,7 +157,23 @@ impl<R> Server<R>
                     conn.on_tcp_accept();
                 }
             },
-            tokens::BUS => {},
+            tokens::BUS => {
+                loop {
+                    match self.rx.try_recv() {
+                        Ok(msg) => {
+                            self.on_bus(&msg);
+                        },
+                        _ => break
+                    }
+                }
+
+                try!(self.poll.reregister(
+                      &self.rx
+                    , tokens::BUS
+                    , Ready::readable()
+                    , PollOpt::edge() | PollOpt::oneshot()
+                ));
+            },
             _ => {
                 {
                     let conn = try!(
@@ -195,6 +216,24 @@ impl<R> Server<R>
                 }
             },
         }
+
+        Ok(())
+    }
+
+    fn on_bus(&mut self, msg: &Message) -> Result<()> {
+        match msg.kind {
+            MessageKind::WsBroadcast => {
+                match msg.body {
+                    MessageBody::Text(ref v) => {
+                        println!("[<] [BUS] ws-broadcast/text {}", v);
+                    },
+                    MessageBody::Binary(ref v) => {
+                        println!("[<] [BUS] ws-broadcast/binary {:?}", v);
+                    },
+                }
+            },
+            _ => {}
+        };
 
         Ok(())
     }

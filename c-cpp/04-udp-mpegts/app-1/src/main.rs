@@ -21,8 +21,10 @@ use mio_tcp::{
     HTTPRequest,
     HTTPResponse,
     Result as MIOTCPResult,
+    Message, MessageKind, MessageBody,
     ServerBuilder,
-    ChannelSyncSender
+    ChannelSyncSender,
+
 };
 use libc::{c_int, c_void};
 use msgpack::{Encoder, Decoder};
@@ -154,7 +156,7 @@ fn route(req: &HTTPRequest) -> Handler {
 
 
 pub struct CbCtx {
-    tx: ChannelSyncSender<()>,
+    tx: ChannelSyncSender<Message>,
 }
 
 
@@ -178,8 +180,7 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
             let mut encoder = Encoder::new(&mut encoded);
             h264_slice_idr.encode(&mut encoder);
         }
-        println!("{:?}", encoded);
-        // cb_ctx.tx.send(server::Command{data: encoded, signal: server::Signal::A}).unwrap();
+        cb_ctx.tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Binary(encoded)});
     }
     // println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
     return 0;
@@ -205,6 +206,20 @@ fn main() {
     };
     let tx = server.tx();
 
+    let mut va_parser: va::Parser = Default::default();
+    let mut cb_ctx = CbCtx{tx: tx};
+    let cb_ctx_ptr: *mut c_void = &mut cb_ctx as *mut _ as *mut c_void;
+    let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
+    let va_parser_open_args = va::ParserOpenArgs{
+        i_url_raw : raw.as_ptr(),
+        cb : Some(va_parser_parse_cb),
+        cb_ctx : cb_ctx_ptr,
+    };
+
+    unsafe {
+        va::va_parser_open(&mut va_parser, &va_parser_open_args);
+        va::va_parser_go(&mut va_parser);
+    }
     server.listen_and_serve(&addr);
 
     // match listen("0.0.0.0:8000", route) {
