@@ -1,5 +1,7 @@
+use std::io::Write;
 use std::net::SocketAddr;
 
+use rsws;
 use mio;
 use mio::{
     Poll,
@@ -161,7 +163,7 @@ impl<R> Server<R>
                 loop {
                     match self.rx.try_recv() {
                         Ok(msg) => {
-                            self.on_bus(&msg);
+                            self.on_bus(msg);
                         },
                         _ => break
                     }
@@ -220,16 +222,26 @@ impl<R> Server<R>
         Ok(())
     }
 
-    fn on_bus(&mut self, msg: &Message) -> Result<()> {
+    fn on_bus(&mut self, msg: Message) -> Result<()> {
         match msg.kind {
             MessageKind::WsBroadcast => {
-                match msg.body {
-                    MessageBody::Text(ref v) => {
-                        println!("[<] [BUS] ws-broadcast/text {}", v);
-                    },
-                    MessageBody::Binary(ref v) => {
-                        println!("[<] [BUS] ws-broadcast/binary {:?}", v);
-                    },
+                let mut frame = rsws::Frame::message(msg.body.into_bin().into(), rsws::OpCode::Binary, true);
+                let mut encoded = Vec::new();
+                frame.format(&mut encoded);
+
+                for ref mut conn in self.connections.iter_mut() {
+                    if conn.state.is_ws() {
+                        conn.sock.write(encoded.as_slice());
+                    }
+                    //     match msg.body {
+                    //         MessageBody::Text(ref v) => {
+                    //             println!("[<] [BUS] ws-broadcast/text {}", v);
+                    //         },
+                    //         MessageBody::Bin(ref v) => {
+                    //             println!("[<] [BUS] ws-broadcast/binary {:?}", v);
+                    //         },
+                    //     }
+                    // }
                 }
             },
             _ => {}

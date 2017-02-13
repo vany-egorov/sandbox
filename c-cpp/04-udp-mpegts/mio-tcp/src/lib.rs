@@ -1,3 +1,4 @@
+extern crate ws as rsws;
 extern crate mio;
 extern crate slab;
 #[macro_use] extern crate log; /* error! */

@@ -180,7 +180,7 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
             let mut encoder = Encoder::new(&mut encoded);
             h264_slice_idr.encode(&mut encoder);
         }
-        cb_ctx.tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Binary(encoded)});
+        cb_ctx.tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Bin(encoded)});
     }
     // println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
     return 0;

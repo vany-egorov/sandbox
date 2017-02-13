@@ -32,5 +32,5 @@ app.use(require("webpack-hot-middleware")(compiler, {
   heartbeat: 10 * 1000
 }));
 
-const server = app.listen(1000)
+const server = app.listen(1024)
 // server.on('upgrade', p.upgrade)

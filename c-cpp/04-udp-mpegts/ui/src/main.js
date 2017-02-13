@@ -4,6 +4,7 @@ import ReconnectingWebSocket from 'reconnectingwebsocket'
 import msgpack from 'msgpack-lite'
 
 console.log(msgpack)
+console.log('==>')
 
 const wsHost = window.location.hostname
 // const wsPort = window.location.port

@@ -2,6 +2,7 @@ use std::io;
 use std::fmt;
 use std::borrow::Cow;
 use std::convert::Into;
+use std::str::Utf8Error;
 use std::error::Error as StdError;
 
 use http::RequestError as HTTPRequestError;
@@ -12,6 +13,7 @@ pub enum Kind {
     NoListenerProvided,
     Capacity,
     NoConnectionAssociatedWithToken,
+    Encoding(Utf8Error),
     Io(io::Error),
     HTTP(HTTPRequestError),
 }
@@ -56,6 +58,7 @@ impl StdError for Error {
             Kind::Capacity                        => "Out of capacity",
             Kind::NoConnectionAssociatedWithToken => "No connection associated with token",
             Kind::Io(ref err)                     => err.description(),
+            Kind::Encoding(ref err)               => err.description(),
             Kind::HTTP(ref err)                   => err.description(),
         }
     }
@@ -66,8 +69,15 @@ impl StdError for Error {
             Kind::Capacity                        => None,
             Kind::NoConnectionAssociatedWithToken => None,
             Kind::Io(ref err)                     => Some(err),
+            Kind::Encoding(ref err)               => Some(err),
             Kind::HTTP(ref err)                   => Some(err),
         }
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(err: Utf8Error) -> Error {
+        Error::new(Kind::Encoding(err), "")
     }
 }
 

@@ -53,7 +53,7 @@ UDPResult udp_connect_i(UDP *it, const char *group, const uint16_t port, char *i
 
 	if (bind(it->sock, (struct sockaddr *)&it->addr, sizeof(it->addr)) < 0) {
 		if ((ebuf) && (ebufsz))
-			snprintf(ebuf, ebufsz, "bind error: \"%s\"\n", strerror(errno));
+			snprintf(ebuf, ebufsz, "bind error: \"%s\"", strerror(errno));
 		ret = UDP_RESULT_ERR_BIND; goto cleanup;
 	}
 
