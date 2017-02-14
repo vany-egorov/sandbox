@@ -21,3 +21,4 @@ libwebsockets
 !**/ui/bin
 !**/ui/static/.keep
 *.swp
+*.swo
