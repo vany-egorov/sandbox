@@ -225,7 +225,9 @@ impl<R> Server<R>
     fn on_bus(&mut self, msg: Message) -> Result<()> {
         match msg.kind {
             MessageKind::WsBroadcast => {
-                let mut frame = rsws::Frame::message(msg.body.into_bin().into(), rsws::OpCode::Binary, true);
+                let data = msg.body.into_bin();
+                println!("[->] [ws] {:?}", data);
+                let mut frame = rsws::Frame::message(data.into(), rsws::OpCode::Binary, true);
                 let mut encoded = Vec::new();
                 frame.format(&mut encoded);
 

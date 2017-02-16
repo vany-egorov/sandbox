@@ -22,3 +22,5 @@ libwebsockets
 !**/ui/static/.keep
 *.swp
 *.swo
+
+tags
