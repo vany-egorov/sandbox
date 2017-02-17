@@ -4,8 +4,9 @@ import ReconnectingWebSocket from 'reconnectingwebsocket'
 import msgpack from 'msgpack-lite'
 import blobToBuffer from 'blob-to-buffer'
 
-console.log(msgpack)
-console.log('==>')
+import {H264NALSliceType} from './h264-nal-slice-type.js'
+
+console.log(H264NALSliceType)
 
 const wsHost = window.location.hostname
 // const wsPort = window.location.port
@@ -26,39 +27,10 @@ function wsOnMessage(event) {
     const frame_num = message[4]
     const pic_order_cnt_lsb = message[5]
 
-    let slice_type = ''
-    switch (slice_type_raw) {
-    case 2:
-    case 4:
-    case 7:
-    case 9: {
-      slice_type = 'I'
-      break
-    }
+    const sliceType = H264NALSliceType.parse(slice_type_raw)
 
-    case 0:
-    case 3:
-    case 5:
-    case 8: {
-      slice_type = 'P'
-      break
-    }
-
-    case 1:
-    case 6: {
-      slice_type = 'B'
-      break
-    }
-    }
-
-    console.log(slice_type, frame_num, pic_order_cnt_lsb)
+    console.log(sliceType.toStringSimple(), frame_num, pic_order_cnt_lsb)
   })
-
-  // const options = {codec: msgpack.createCodec({useraw: true})}
-  // const arr = new Uint8Array(event.data)
-  // const buf = arr.buffer
-  // const data = msgpack.decode(new Uint8Array(buf), options)
-  // console.log(data)
 }
 
 function wsOnClose() {
@@ -72,7 +44,11 @@ ws.onopen = wsOnOpen
 ws.onmessage = wsOnMessage
 ws.onclose = wsOnClose
 
-ReactDOM.render(
-  <h1>libVA UI</h1>,
-  document.getElementById('root')
-)
+function render() {
+  ReactDOM.render(
+    <h1>libVA UI</h1>,
+    document.getElementById('root')
+  )
+}
+
+render()

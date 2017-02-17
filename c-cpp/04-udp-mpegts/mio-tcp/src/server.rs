@@ -226,7 +226,7 @@ impl<R> Server<R>
         match msg.kind {
             MessageKind::WsBroadcast => {
                 let data = msg.body.into_bin();
-                println!("[->] [ws] {:?}", data);
+                // println!("[->] [ws] {:?}", data);
                 let mut frame = rsws::Frame::message(data.into(), rsws::OpCode::Binary, true);
                 let mut encoded = Vec::new();
                 frame.format(&mut encoded);
