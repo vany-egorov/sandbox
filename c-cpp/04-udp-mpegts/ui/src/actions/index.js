@@ -6,4 +6,4 @@ function add(atom) {
   return {type: ADD, atom: atom}
 }
 
-export {ADD, add}
+export {add, ADD}

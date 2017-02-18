@@ -1,12 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
+import {Provider} from 'react-redux'
 import ReconnectingWebSocket from 'reconnectingwebsocket'
 import msgpack from 'msgpack-lite'
 import blobToBuffer from 'blob-to-buffer'
 
 import H264NALSliceType from './h264-nal-slice-type'
-import {add} from './actions/index'
 import store from './store'
+import {add} from './actions'
+import App from './components/app'
 
 const wsHost = window.location.hostname
 // const wsPort = window.location.port
@@ -29,8 +31,9 @@ function wsOnMessage(event) {
 
     const sliceType = H264NALSliceType.parse(slice_type_raw)
 
+    store.dispatch(add(sliceType))
+
     console.log(sliceType.toStringSimple(), frame_num, pic_order_cnt_lsb)
-    add(sliceType)
   })
 }
 
@@ -39,21 +42,18 @@ function wsOnClose() {
 }
 
 const ws = new ReconnectingWebSocket(wsURL)
-ws.binaryType = 'arraybuffer'
-ws.reconnectInterval = 1000
+ws.reconnectInterval = 2000
 ws.onopen = wsOnOpen
 ws.onmessage = wsOnMessage
 ws.onclose = wsOnClose
 
-store.dispatch(add('atom-1'))
-store.dispatch(add('atom-2'))
-store.dispatch(add('atom-3'))
-
-function render() {
+function render(store) {
   ReactDOM.render(
-    <h1>libVA UI</h1>,
+    <Provider store={store}>
+      <App />
+    </Provider>,
     document.getElementById('root')
   )
 }
 
-render()
+render(store)
