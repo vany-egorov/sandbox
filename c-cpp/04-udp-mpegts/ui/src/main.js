@@ -4,9 +4,9 @@ import ReconnectingWebSocket from 'reconnectingwebsocket'
 import msgpack from 'msgpack-lite'
 import blobToBuffer from 'blob-to-buffer'
 
-import {H264NALSliceType} from './h264-nal-slice-type.js'
-
-console.log(H264NALSliceType)
+import H264NALSliceType from './h264-nal-slice-type'
+import {add} from './actions/index'
+import store from './store'
 
 const wsHost = window.location.hostname
 // const wsPort = window.location.port
@@ -30,6 +30,7 @@ function wsOnMessage(event) {
     const sliceType = H264NALSliceType.parse(slice_type_raw)
 
     console.log(sliceType.toStringSimple(), frame_num, pic_order_cnt_lsb)
+    add(sliceType)
   })
 }
 
@@ -43,6 +44,10 @@ ws.reconnectInterval = 1000
 ws.onopen = wsOnOpen
 ws.onmessage = wsOnMessage
 ws.onclose = wsOnClose
+
+store.dispatch(add('atom-1'))
+store.dispatch(add('atom-2'))
+store.dispatch(add('atom-3'))
 
 function render() {
   ReactDOM.render(
