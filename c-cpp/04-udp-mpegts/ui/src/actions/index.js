@@ -1,9 +1,8 @@
-const ADD = Symbol('ADD')
+const ATOMS_ADD = Symbol('ATOMS:ADD')
 
 /* Action Creators */
-function add(atom) {
-  console.log('add atom action')
-  return {type: ADD, atom: atom}
+function atomsAdd(atom) {
+  return {type: ATOMS_ADD, atom: atom}
 }
 
-export {add, ADD}
+export {atomsAdd, ATOMS_ADD}

@@ -1,5 +1,4 @@
 import React from 'react'
-import {connect} from 'react-redux'
 
 class Atom extends React.Component {
   render() {
@@ -7,15 +6,19 @@ class Atom extends React.Component {
 
     return (
       <div>
-        H264 {model.toString()} slice
+        H264 {model.sliceType.toString()} slice #0 (
+          frame-num: {model.frameNum},
+          pic-order-cnt-lsb: {model.picOrderCntLsb}
+        )
       </div>
     )
   }
 }
 
 class Atoms extends React.Component {
-  createChildComponent(model, i) {
-    return <Atom model={model} key={i}/>
+  createChildComponent(model) {
+    const key = `${model.frameNum}:${model.picOrderCntLsb}`
+    return <Atom model={model} key={key}/>
   }
 
   render() {
@@ -30,17 +33,4 @@ class Atoms extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
-  return {
-    collection: state.atoms
-  }
-}
-
-// function mapDispatchToProps(dispatch) {
-//   return {}
-// }
-
-export default connect(
-  mapStateToProps
-  // , mapDispatchToProps
-)(Atoms)
+export default Atoms

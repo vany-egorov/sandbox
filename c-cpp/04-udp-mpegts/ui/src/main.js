@@ -7,7 +7,7 @@ import blobToBuffer from 'blob-to-buffer'
 
 import H264NALSliceType from './h264-nal-slice-type'
 import store from './store'
-import {add} from './actions'
+import {atomsAdd} from './actions'
 import App from './components/app'
 
 const wsHost = window.location.hostname
@@ -24,16 +24,21 @@ function wsOnMessage(event) {
     const message = msgpack.decode(buffer)
 
     // const nal_type_raw = message[0][0]
-    const slice_type_raw = message[1][0]
-    // const pic_parameter_set_id = message[3]
-    const frame_num = message[4]
-    const pic_order_cnt_lsb = message[5]
+    const sliceTypeRaw = message[1][0]
+    const picParameterSetID = message[3]
+    const frameNum = message[4]
+    const picOrderCntLsb = message[5]
 
-    const sliceType = H264NALSliceType.parse(slice_type_raw)
+    const sliceType = H264NALSliceType.parse(sliceTypeRaw)
 
-    store.dispatch(add(sliceType))
+    const atom = {
+      sliceType: sliceType,
+      picParameterSetID: picParameterSetID,
+      frameNum: frameNum,
+      picOrderCntLsb: picOrderCntLsb
+    }
 
-    console.log(sliceType.toStringSimple(), frame_num, pic_order_cnt_lsb)
+    store.dispatch(atomsAdd(atom))
   })
 }
 

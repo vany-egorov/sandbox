@@ -1,6 +1,6 @@
 import React from 'react'
 import Chart from './chart'
-import Atoms from './atoms'
+import Atoms from '../containers/atoms'
 
 const App = () =>
   <section>
