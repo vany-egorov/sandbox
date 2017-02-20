@@ -59,6 +59,14 @@ pub struct Parser {
     pub worker_parse: ParserWorkerParse,
 }
 
+#[repr(C)]
+pub struct AtomWrapper {
+    pub id: u64,
+    pub offset: u64,
+    pub kind: AtomKind,
+    pub atom: *mut c_void,
+}
+
 impl Default for Parser {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
@@ -66,9 +74,7 @@ impl Default for Parser {
 pub type ParserParseCBFunc =
     ::std::option::Option<unsafe extern "C" fn(
         ctx: *mut c_void,
-        atom: *mut c_void,
-        atom_kind: AtomKind,
-        offset: u64
+        aw: *mut AtomWrapper
     ) -> c_int>;
 
 #[repr(C)]

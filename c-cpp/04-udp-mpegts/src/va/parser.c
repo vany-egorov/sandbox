@@ -117,4 +117,3 @@ int va_parser_del2(VAParser **it) {
 
 	return ret;
 }
-

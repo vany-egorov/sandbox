@@ -46,11 +46,11 @@ static int signal_wait(void) {
 	return 0;
 }
 
-static int va_parser_parse_cb(void *ctx, void *atom, VAAtomKind atom_kind, uint64_t offset) {
-	if (atom_kind == VA_ATOM_KIND_MPEGTS_HEADER)
+static int va_parser_parse_cb(void *ctx, VAAtomWrapper *aw) {
+	if (aw->kind == VA_ATOM_KIND_MPEGTS_HEADER)
 		return 0;
 
-	printf("0x%08llX | %p | %p | %d\n", offset, ctx, atom, atom_kind);
+	printf("0x%08llX | %p | %p | %d\n", aw->offset, ctx, aw->atom, aw->kind);
 	return 0;
 }
 

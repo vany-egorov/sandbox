@@ -160,20 +160,20 @@ pub struct CbCtx {
 }
 
 
-unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, atom_kind: va::AtomKind, offset: u64) -> c_int {
-    if atom_kind == va::AtomKind::MPEGTSHeader   ||
-       atom_kind == va::AtomKind::MPEGTSAdaption ||
-       atom_kind == va::AtomKind::MPEGTSPES      ||
-       atom_kind == va::AtomKind::MPEGTSPSIPAT   ||
-       atom_kind == va::AtomKind::MPEGTSPSIPMT   ||
-       atom_kind == va::AtomKind::MPEGTSPSISDT {
+unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, aw: *mut va::AtomWrapper) -> c_int {
+    if (*aw).kind == va::AtomKind::MPEGTSHeader   ||
+       (*aw).kind == va::AtomKind::MPEGTSAdaption ||
+       (*aw).kind == va::AtomKind::MPEGTSPES      ||
+       (*aw).kind == va::AtomKind::MPEGTSPSIPAT   ||
+       (*aw).kind == va::AtomKind::MPEGTSPSIPMT   ||
+       (*aw).kind == va::AtomKind::MPEGTSPSISDT {
         return 0;
     }
 
     let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
 
-    if atom_kind == va::AtomKind::H264SliceIDR {
-        let h264_slice_idr: &mut va::h264::H264NALSliceIDR = unsafe { &mut *(atom as *mut va::h264::H264NALSliceIDR) };
+    if (*aw).kind == va::AtomKind::H264SliceIDR {
+        let h264_slice_idr: &mut va::h264::H264NALSliceIDR = unsafe { &mut *((*aw).atom as *mut va::h264::H264NALSliceIDR) };
         // println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
         let mut encoded = Vec::new();
         {
@@ -182,7 +182,7 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, ato
         }
         cb_ctx.tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Bin(encoded)});
     }
-    // println!("0x{:08X} | {:p} | {:p} | {:?}", offset, ctx, atom, atom_kind);
+    println!("0x{:08X} | {} | {:p} | {:p} | {:?}", (*aw).offset, (*aw).id, ctx, (*aw).atom, (*aw).kind);
     return 0;
 }
 

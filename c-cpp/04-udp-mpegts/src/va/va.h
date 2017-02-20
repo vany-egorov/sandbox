@@ -16,11 +16,21 @@
 #include "./atom-kind.h"
 
 
+typedef struct va_atom_wrapper_s        VAAtomWrapper;
 typedef struct va_parser_s              VAParser;
 typedef struct va_parser_open_args_s    VAParserOpenArgs;
 typedef struct va_parser_worker_read_s  VAParserWorkerRead;
 typedef struct va_parser_worker_parse_s VAParserWorkerParse;
-typedef int (*va_parser_parse_cb_func) (void *ctx, void *atom, VAAtomKind atom_kind, uint64_t offset);
+typedef int (*va_parser_parse_cb_func) (void *ctx, VAAtomWrapper *atom);
+
+
+struct va_atom_wrapper_s {
+	uint64_t id; /* index */
+	uint64_t offset;
+
+	VAAtomKind kind;
+	void *atom;
+};
 
 
 /* parser-worker-read.c */
@@ -44,6 +54,7 @@ struct va_parser_worker_parse_s {
 	void *cb_ctx;
 	va_parser_parse_cb_func cb;
 
+	uint64_t id; /* index */
 	uint64_t offset;
 	uint16_t video_PID_H264;
 
