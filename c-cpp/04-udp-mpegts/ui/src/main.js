@@ -23,11 +23,13 @@ function wsOnMessage(event) {
   blobToBuffer(event.data, (_, buffer) => {
     const message = msgpack.decode(buffer)
 
-    // const nal_type_raw = message[0][0]
-    const sliceTypeRaw = message[1][0]
-    const picParameterSetID = message[3]
-    const frameNum = message[4]
-    const picOrderCntLsb = message[5]
+    // const id = message[0]
+    // const offset = message[1]
+    // const nal_type_raw = message[3][0][0]
+    const sliceTypeRaw = message[3][1][0]
+    const picParameterSetID = message[3][3]
+    const frameNum = message[3][4]
+    const picOrderCntLsb = message[3][5]
 
     const sliceType = H264NALSliceType.parse(sliceTypeRaw)
 

@@ -1,3 +1,6 @@
+use ::rustc_serialize::{Encodable, Decodable};
+use ::msgpack::{Encoder, Decoder};
+
 pub mod io;
 pub mod url;
 
@@ -10,7 +13,7 @@ use self::libc::pthread_t;
 use self::libc::{c_char, c_int, c_void};
 
 #[repr(i32)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub enum AtomKind {
     MPEGTSHeader,
     MPEGTSAdaption,
@@ -60,11 +63,12 @@ pub struct Parser {
 }
 
 #[repr(C)]
-pub struct AtomWrapper {
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
+pub struct AtomWrapper<T> {
     pub id: u64,
     pub offset: u64,
     pub kind: AtomKind,
-    pub atom: *mut c_void,
+    pub atom: T,
 }
 
 impl Default for Parser {
@@ -73,15 +77,15 @@ impl Default for Parser {
 
 pub type ParserParseCBFunc =
     ::std::option::Option<unsafe extern "C" fn(
-        ctx: *mut c_void,
-        aw: *mut AtomWrapper
+        ctx: *const c_void,
+        aw: &AtomWrapper<*const c_void>
     ) -> c_int>;
 
 #[repr(C)]
 pub struct ParserOpenArgs {
     pub i_url_raw: *const c_char,
 
-    pub cb_ctx: *mut c_void,
+    pub cb_ctx: *const c_void,
     pub cb: ParserParseCBFunc,
 }
 

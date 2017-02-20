@@ -8,6 +8,7 @@ use std::io::{
     Write,
     copy
 };
+use std::mem;
 use std::net::SocketAddr;
 use std::fs::File;
 use std::path::Path;
@@ -160,7 +161,7 @@ pub struct CbCtx {
 }
 
 
-unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, aw: *mut va::AtomWrapper) -> c_int {
+unsafe extern "C" fn va_parser_parse_cb(ctx: *const c_void, aw: &va::AtomWrapper<*const c_void>) -> c_int {
     if (*aw).kind == va::AtomKind::MPEGTSHeader   ||
        (*aw).kind == va::AtomKind::MPEGTSAdaption ||
        (*aw).kind == va::AtomKind::MPEGTSPES      ||
@@ -173,12 +174,12 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, aw: *mut va::AtomWrapp
     let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
 
     if (*aw).kind == va::AtomKind::H264SliceIDR {
-        let h264_slice_idr: &mut va::h264::H264NALSliceIDR = unsafe { &mut *((*aw).atom as *mut va::h264::H264NALSliceIDR) };
+        let v: &va::AtomWrapper<&va::h264::H264NALSliceIDR> = unsafe { mem::transmute(aw) };
         // println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
         let mut encoded = Vec::new();
         {
             let mut encoder = Encoder::new(&mut encoded);
-            h264_slice_idr.encode(&mut encoder);
+            v.encode(&mut encoder);
         }
         cb_ctx.tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Bin(encoded)});
     }
@@ -207,8 +208,8 @@ fn main() {
     let tx = server.tx();
 
     let mut va_parser: va::Parser = Default::default();
-    let mut cb_ctx = CbCtx{tx: tx};
-    let cb_ctx_ptr: *mut c_void = &mut cb_ctx as *mut _ as *mut c_void;
+    let cb_ctx = CbCtx{tx: tx};
+    let cb_ctx_ptr: *const c_void = &cb_ctx as *const _ as *const c_void;
     let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
     let va_parser_open_args = va::ParserOpenArgs{
         i_url_raw : raw.as_ptr(),
