@@ -2,7 +2,7 @@ import React from 'react'
 
 class Atom extends React.Component {
   render() {
-    const model = this.props.model
+    const model = this.props.model.atom
 
     return (
       <div>
@@ -17,7 +17,7 @@ class Atom extends React.Component {
 
 class Atoms extends React.Component {
   createChildComponent(model) {
-    const key = `${model.frameNum}:${model.picOrderCntLsb}`
+    const key = model.id
     return <Atom model={model} key={key}/>
   }
 

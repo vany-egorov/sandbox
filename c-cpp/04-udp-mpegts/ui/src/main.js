@@ -5,7 +5,7 @@ import ReconnectingWebSocket from 'reconnectingwebsocket'
 import msgpack from 'msgpack-lite'
 import blobToBuffer from 'blob-to-buffer'
 
-import H264NALSliceType from './h264-nal-slice-type'
+import AtomWrapper from './entities/atoms/atom-wrapper'
 import store from './store'
 import {atomsAdd} from './actions'
 import App from './components/app'
@@ -21,26 +21,11 @@ function wsOnOpen() {
 
 function wsOnMessage(event) {
   blobToBuffer(event.data, (_, buffer) => {
-    const message = msgpack.decode(buffer)
+    const msg = msgpack.decode(buffer)
 
-    // const id = message[0]
-    // const offset = message[1]
-    // const nal_type_raw = message[3][0][0]
-    const sliceTypeRaw = message[3][1][0]
-    const picParameterSetID = message[3][3]
-    const frameNum = message[3][4]
-    const picOrderCntLsb = message[3][5]
+    const atomWrapper = AtomWrapper.fromMessagePack(msg)
 
-    const sliceType = H264NALSliceType.parse(sliceTypeRaw)
-
-    const atom = {
-      sliceType: sliceType,
-      picParameterSetID: picParameterSetID,
-      frameNum: frameNum,
-      picOrderCntLsb: picOrderCntLsb
-    }
-
-    store.dispatch(atomsAdd(atom))
+    store.dispatch(atomsAdd(atomWrapper))
   })
 }
 

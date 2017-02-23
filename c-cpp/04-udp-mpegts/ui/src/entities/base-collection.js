@@ -1,3 +1,3 @@
-class BaseCollection
+class BaseCollection { }
 
 export default BaseCollection
