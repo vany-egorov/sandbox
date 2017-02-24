@@ -63,6 +63,7 @@ pub enum H264NALSliceType {
 #[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub struct H264NALSliceIDR { // 4 bytes + 12 bytes = 16 bytes
     pub nt: H264NALType, // from H264NAL
+    pub sz: u64, // from H264NAL
 
     pub st: H264NALSliceType,
     pub bitfields: u8,
@@ -72,22 +73,28 @@ pub struct H264NALSliceIDR { // 4 bytes + 12 bytes = 16 bytes
 }
 
 #[repr(C)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub struct H264NALSEI { // 4 + 1 = 8 byte
     pub nt: H264NALType, // from H264NAL
+    pub sz: u64, // from H264NAL
 
     pub reserved: u8,
 }
 
 #[repr(C)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub struct H264NALAUD { // 4 + 1 = 8 byte
     pub nt: H264NALType, // from H264NAL
+    pub sz: u64, // from H264NAL
 
     pub primary_pic_type: u8,
 }
 
 #[repr(C)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub struct H264NALSPS { // 4 + 18 = 24 bytes
     pub nt: H264NALType, // from H264NAL
+    pub sz: u64, // from H264NAL
 
     pub profile_idc: u8,
     pub bitfields1: u8,
@@ -108,8 +115,10 @@ pub struct H264NALSPS { // 4 + 18 = 24 bytes
 }
 
 #[repr(C)]
+#[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub struct H264NALPPS { // 4 + 8 bytes = 16 bytes
     pub nt: H264NALType, // from H264NAL
+    pub sz: u64, // from H264NAL
 
     pub pic_parameter_set_id: u16,
     pub seq_parameter_set_id: u16,

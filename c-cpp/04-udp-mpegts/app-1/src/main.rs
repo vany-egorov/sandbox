@@ -161,29 +161,57 @@ pub struct CbCtx {
 }
 
 
+fn encode_and_send<T>(tx: &ChannelSyncSender<Message>, aw: &va::AtomWrapper<T>)
+    where
+        T: rustc_serialize::Encodable,
+{
+    let mut encoded = Vec::new();
+    {
+        let mut encoder = Encoder::new(&mut encoded);
+        aw.encode(&mut encoder);
+    }
+    tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Bin(encoded)});
+}
+
+
 unsafe extern "C" fn va_parser_parse_cb(ctx: *const c_void, aw: &va::AtomWrapper<*const c_void>) -> c_int {
     if (*aw).kind == va::AtomKind::MPEGTSHeader   ||
        (*aw).kind == va::AtomKind::MPEGTSAdaption ||
        (*aw).kind == va::AtomKind::MPEGTSPES      ||
        (*aw).kind == va::AtomKind::MPEGTSPSIPAT   ||
-       (*aw).kind == va::AtomKind::MPEGTSPSIPMT   ||
+       // (*aw).kind == va::AtomKind::MPEGTSPSIPMT   ||
        (*aw).kind == va::AtomKind::MPEGTSPSISDT {
         return 0;
     }
 
-    let cb_ctx: &mut CbCtx = unsafe { &mut *(ctx as *mut CbCtx) };
+    let cb_ctx: &mut CbCtx = &mut *(ctx as *mut CbCtx);
 
-    if (*aw).kind == va::AtomKind::H264SliceIDR {
-        let v: &va::AtomWrapper<&va::h264::H264NALSliceIDR> = unsafe { mem::transmute(aw) };
-        // println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
-        let mut encoded = Vec::new();
-        {
-            let mut encoder = Encoder::new(&mut encoded);
-            v.encode(&mut encoder);
-        }
-        cb_ctx.tx.send(Message{kind: MessageKind::WsBroadcast, body: MessageBody::Bin(encoded)});
+    match (*aw).kind {
+        va::AtomKind::H264SPS => {
+            let v: &va::AtomWrapper<&va::h264::H264NALSPS> = mem::transmute(aw);
+            encode_and_send(&cb_ctx.tx, v);
+        },
+        va::AtomKind::H264PPS => {
+            let v: &va::AtomWrapper<&va::h264::H264NALPPS> = mem::transmute(aw);
+            encode_and_send(&cb_ctx.tx, v);
+        },
+        va::AtomKind::H264AUD => {
+            let v: &va::AtomWrapper<&va::h264::H264NALAUD> = mem::transmute(aw);
+            encode_and_send(&cb_ctx.tx, v);
+        },
+        va::AtomKind::H264SEI => {
+            let v: &va::AtomWrapper<&va::h264::H264NALSEI> = mem::transmute(aw);
+            encode_and_send(&cb_ctx.tx, v);
+        },
+        va::AtomKind::H264SliceIDR => {
+            let v: &va::AtomWrapper<&va::h264::H264NALSliceIDR> = mem::transmute(aw);
+            encode_and_send(&cb_ctx.tx, v);
+            // // println!("0x{:08X} {:?} {:?} {} {}", offset, h264_slice_idr.nt, h264_slice_idr.st, h264_slice_idr.frame_num, h264_slice_idr.pic_order_cnt_lsb);
+        },
+        _ => {}
     }
-    println!("0x{:08X} | {} | {:p} | {:p} | {:?}", (*aw).offset, (*aw).id, ctx, (*aw).atom, (*aw).kind);
+
+    // println!("0x{:08X} | {} | {:p} | {:p} | {:?}", (*aw).offset, (*aw).id, ctx, (*aw).atom, (*aw).kind);
     return 0;
 }
 

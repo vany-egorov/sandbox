@@ -51,6 +51,8 @@ struct va_parser_worker_parse_s {
 	MPEGTS mpegts;
 	H264   h264;
 
+	H264AnnexBParseResult *h264_annex_b_parse_result; /* last/prev parse result */
+
 	void *cb_ctx;
 	va_parser_parse_cb_func cb;
 

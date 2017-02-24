@@ -50,7 +50,7 @@ static int va_parser_parse_cb(void *ctx, VAAtomWrapper *aw) {
 	if (aw->kind == VA_ATOM_KIND_MPEGTS_HEADER)
 		return 0;
 
-	printf("0x%08llX | %p | %p | %d\n", aw->offset, ctx, aw->atom, aw->kind);
+	// printf("0x%08llX | %p | %p | %d\n", aw->offset, ctx, aw->atom, aw->kind);
 	return 0;
 }
 

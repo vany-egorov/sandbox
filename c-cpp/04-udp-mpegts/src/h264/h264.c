@@ -33,13 +33,14 @@ static FILE *f_dump_h264 = NULL;
 static int is_dump_h264_opened = 0;
 // static size_t nal_size = 0;
 
-int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264AnnexBParseResult *result) {
-	int ret = 0;
-	int i = 0;
-	int offset = 0;
+int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, const uint64_t goffset, H264AnnexBParseResult *result) {
+	int ret = 0,
+	    i = 0,
+	    offset = 0,
+	    nal_index = 0;
 	uint32_t es_start_code = 0;
-	uint8_t forbidden_zero_bit = 0;
-	uint8_t nal_ref_idc = 0;
+	uint8_t forbidden_zero_bit = 0,
+	        nal_ref_idc = 0;
 	H264NALType nal_type = 0;
 	int got_es_start_code = 0;
 
@@ -93,9 +94,22 @@ int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264An
 				(nal_type == H264_NAL_TYPE_SPS) ||
 				(nal_type == H264_NAL_TYPE_PPS)
 			) {
+				nal_index++;
+
+				if ((result->len) &&
+				    (nal_index != 1))  /* check if it is not first nal in packet; */
+				                       /* result->len can be not 0, but offset is 0 */
+				                       /* got nal from previous h264_annexb_parse call */
+				{ /* sz calculation */
+					H264NAL *result_nal_prv = &result->nals[result->len-1];
+					size_t offset_prv = (size_t)result->offsets[result->len-1];
+					result_nal_prv->sz = (size_t)goffset + (size_t)offset - offset_prv;
+				}
+
 				H264NAL *result_nal = &result->nals[result->len];
-				result->offsets[result->len] = offset;
+				result->offsets[result->len] = goffset + (uint64_t)offset;
 				result->len++;
+				result_nal->sz = datasz - (size_t)offset;
 
 				result_nal->type = nal_type;
 
@@ -140,19 +154,17 @@ int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264An
 	return ret;
 }
 
-void h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it, uint64_t offset) {
+void h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it) {
 	int i = 0;
 	const char *nal_type_name = NULL;
 	H264NAL *nal = NULL;
-	uint64_t nal_offset = 0;
 
 	if (!it->len) { return; }
 
 	for (i = 0; i < it->len; i++) {
 		nal = &it->nals[i];
-		nal_offset = offset + (uint64_t)(it->offsets[i]);
 
-		printf("ES 0x%08llX | ", nal_offset);
+		printf("ES 0x%08llX | %5zd | ", it->offsets[i], nal->sz);
 
 		const char *nal_type_name = h264_nal_type_string(nal->type);
 		switch (nal->type) {

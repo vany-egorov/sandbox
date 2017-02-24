@@ -235,6 +235,8 @@ void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it); /* debug 
 /* h264.c */
 struct h264_nal_s {
 	H264NALType type;
+	size_t      sz;  /* TODO: move to h264_annexb_parse_result_s? as szs[7] */
+
 	union {
 		H264NALSPS      sps;
 		H264NALPPS      pps;
@@ -261,14 +263,14 @@ struct h264_s {
 
 /* must be set to { 0 } */
 struct h264_annexb_parse_result_s {
-	int     len;         /* total nals parsed count */
-	H264NAL nals[5];     /* NALs with type */
-	int     offsets[5];  /* position of each NALu inside stream (offset from beginning) */
+	int      len;         /* total nals parsed count */
+	H264NAL  nals[7];     /* NALs with type */
+	uint64_t offsets[7];  /* position of each NALu inside stream (offset from beginning) */
 };
 
 const char* h264_nal_type_string(H264NALType it);
-int         h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, H264AnnexBParseResult *result);
-void        h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it, uint64_t offset); /* debug */
+int         h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, const uint64_t goffset, H264AnnexBParseResult *result);
+void        h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it); /* debug */
 
 
 #endif

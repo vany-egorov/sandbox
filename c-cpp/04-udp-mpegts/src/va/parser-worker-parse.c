@@ -14,6 +14,7 @@ static void exec_cb(VAParserWorkerParse *it, void *atom, VAAtomKind atom_kind, u
 	it->cb(it->cb_ctx, &aw);
 }
 
+/* TODO: get rid of msg[index]; use meg++ => move pointer instead; */
 static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 	int i = 0;
 	MPEGTS *mpegts = &it->mpegts;
@@ -94,20 +95,34 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 				int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
 				if (mpegts_header.PID == it->video_PID_H264) {
-					H264AnnexBParseResult h264_parse_result = { 0 };
-					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &h264_parse_result);
-					h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result, it->offset + (uint64_t)es_offset);
-					if (h264_parse_result.len) {
-						int nal_i = 0;
-						for (nal_i = 0; nal_i < h264_parse_result.len; nal_i++) {
-							H264NAL *nal = &h264_parse_result.nals[nal_i];
-							uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(h264_parse_result.offsets[nal_i]);
+					if (!it->h264_annex_b_parse_result) {
+						/* TODO: move to new_H264AnnexBParseResult() */
+						it->h264_annex_b_parse_result = calloc(1, sizeof(H264AnnexBParseResult));
+						it->h264_annex_b_parse_result->len = 0;
+					} else { /* exec-cb; always emit previous result; */
+						if (it->h264_annex_b_parse_result->len) {
+							h264_annexb_parse_result_print_humanized_one_line(it->h264_annex_b_parse_result);
 
-							/* db_store_h264(it->db, nal, nal_offset); */
-							/* if (it->cb) it->cb(it->cb_ctx, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset); */
-							exec_cb(it, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
+							{int ii = 0; for (ii = 0; ii < it->h264_annex_b_parse_result->len; ii++) {
+								H264NAL *nal = &it->h264_annex_b_parse_result->nals[ii];
+								uint64_t nal_offset = it->h264_annex_b_parse_result->offsets[ii];
+
+								/* db_store_h264(it->db, nal, nal_offset); */
+								/* if (it->cb) it->cb(it->cb_ctx, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset); */
+								exec_cb(it, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
+							}}
 						}
+
+						memset(it->h264_annex_b_parse_result, 0, sizeof(H264AnnexBParseResult));
 					}
+
+					h264_annexb_parse(
+						&it->h264,
+						&msg[es_offset],
+						(size_t)es_length,
+						it->offset + (uint64_t)es_offset,
+						it->h264_annex_b_parse_result
+					);
 				}
 			}
 		} else {
@@ -117,19 +132,17 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
 			if (mpegts_header.PID == it->video_PID_H264) {
-				H264AnnexBParseResult h264_parse_result = { 0 };
-				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &h264_parse_result);
-				h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result, it->offset + (uint64_t)es_offset);
-				if (h264_parse_result.len) {
-					int nal_i = 0;
-					for (nal_i = 0; nal_i < h264_parse_result.len; nal_i++) {
-						H264NAL *nal = &h264_parse_result.nals[nal_i];
-						uint64_t nal_offset = it->offset + (uint64_t)es_offset + (uint64_t)(h264_parse_result.offsets[nal_i]);
+				/* NAL size determination */
+				h264_annexb_parse(
+					&it->h264,
+					&msg[es_offset],
+					(size_t)es_length,
+					it->offset + (uint64_t)es_offset,
+					it->h264_annex_b_parse_result
+				);
 
-						/* db_store_h264(it->db, nal, nal_offset); */
-						/* if (it->cb) it->cb(it->cb_ctx, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset); */
-						exec_cb(it, nal, va_atom_kind_from_h264_nal_type(nal->type), nal_offset);
-					}
+				if ((it->h264_annex_b_parse_result) && (it->h264_annex_b_parse_result->len)) {
+					it->h264_annex_b_parse_result->nals[it->h264_annex_b_parse_result->len-1].sz += (size_t)es_length;
 				}
 			}
 		}

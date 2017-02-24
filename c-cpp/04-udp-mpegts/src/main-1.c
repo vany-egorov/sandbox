@@ -107,8 +107,8 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 
 				if (mpegts_header.PID == it->video_PID_H264) {
 					H264AnnexBParseResult h264_parse_result = { 0 };
-					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &h264_parse_result);
-					h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result, it->offset + (uint64_t)es_offset);
+					h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, it->offset + (uint64_t)es_offset, &h264_parse_result);
+					h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result);
 					if (h264_parse_result.len) {
 						int nal_i = 0;
 						for (nal_i = 0; nal_i < h264_parse_result.len; nal_i++) {
@@ -128,8 +128,8 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 
 			if (mpegts_header.PID == it->video_PID_H264) {
 				H264AnnexBParseResult h264_parse_result = { 0 };
-				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, &h264_parse_result);
-				h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result, it->offset + (uint64_t)es_offset);
+				h264_annexb_parse(&it->h264, &msg[es_offset], (size_t)es_length, it->offset + (uint64_t)es_offset, &h264_parse_result);
+				h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result);
 				if (h264_parse_result.len) {
 					int nal_i = 0;
 					for (nal_i = 0; nal_i < h264_parse_result.len; nal_i++) {

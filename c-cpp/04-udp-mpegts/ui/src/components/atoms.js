@@ -1,17 +1,31 @@
 import React from 'react'
+import ak from '../lib/atom-kind'
 
 class Atom extends React.Component {
   render() {
-    const model = this.props.model.atom
+    const model = this.props.model
 
-    return (
-      <div>
-        H264 {model.sliceType.toString()} slice #0 (
-          frame-num: {model.frameNum},
-          pic-order-cnt-lsb: {model.picOrderCntLsb}
-        )
-      </div>
-    )
+    switch (model.atomKind.v) {
+    case ak.H264SliceIDR:
+      return (
+        <div>
+          0x{model.offset.toString(16)}&nbsp;
+            {model.size}&nbsp;
+            H264 {model.sliceType.toString()} slice #0 (
+            frame-num: {model.frameNum},
+            pic-order-cnt-lsb: {model.picOrderCntLsb}
+          )
+        </div>
+      )
+    default:
+      return (
+        <div>
+          0x{model.offset.toString(16)}&nbsp;
+            {model.size}&nbsp;
+            H264 {model.atomKind.toString()}
+        </div>
+      )
+    }
   }
 }
 
