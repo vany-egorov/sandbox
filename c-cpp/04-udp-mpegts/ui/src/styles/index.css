@@ -1,0 +1,5 @@
+.header__title {
+  &.header__title_blue {
+    color: blue;
+  }
+}

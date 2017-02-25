@@ -1,23 +1,21 @@
-import BaseModel from '../base-model'
+import H264NAL from './h264-nal'
 
-class H264NALPPS extends BaseModel {
+class H264NALPPS extends H264NAL {
   static fromMessagePack(msg) {
-    const size = msg[1]
+    const model = new H264NALPPS()
 
-    const model = new H264NALPPS(size)
+    model.fromMessagePack(msg)
 
     return model
   }
 
-  constructor(size) {
+  constructor() {
     super()
-
-    this.size = size
   }
 
   normalized() {
     return {
-      size: this.size
+      sz: this.sz
     }
   }
 }

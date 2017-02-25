@@ -1,17 +1,18 @@
 import React from 'react'
 import ak from '../lib/atom-kind'
+import h264NALSliceType from '../lib/h264-nal-slice-type'
 
 class Atom extends React.Component {
   render() {
     const model = this.props.model
 
-    switch (model.atomKind.v) {
+    switch (model.atomKind) {
     case ak.H264SliceIDR:
       return (
-        <div>
+        <div className="atoms-grid__row">
           0x{model.offset.toString(16)}&nbsp;
-            {model.size}&nbsp;
-            H264 {model.sliceType.toString()} slice #0 (
+            {model.sz}&nbsp;
+            H264 {h264NALSliceType.toString(model.sliceType)} slice #0 (
             frame-num: {model.frameNum},
             pic-order-cnt-lsb: {model.picOrderCntLsb}
           )
@@ -19,10 +20,10 @@ class Atom extends React.Component {
       )
     default:
       return (
-        <div>
+        <div className="atoms-grid__row">
           0x{model.offset.toString(16)}&nbsp;
-            {model.size}&nbsp;
-            H264 {model.atomKind.toString()}
+            {model.sz}&nbsp;
+            H264 {ak.toString(model.atomKind)}
         </div>
       )
     }
@@ -40,7 +41,7 @@ class Atoms extends React.Component {
     const items = collection.map(this.createChildComponent)
 
     return (
-      <div>
+      <div className="atoms-grid">
         {items}
       </div>
     )

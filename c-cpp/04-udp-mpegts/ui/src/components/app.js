@@ -4,7 +4,9 @@ import Atoms from '../containers/atoms'
 
 const App = () =>
   <section>
-    <h1>libVA UI</h1>
+    <header className="header">
+      <h1 className="header__title header__title_blue">libVA UI</h1>
+    </header>
 
     <Chart />
     <Atoms />

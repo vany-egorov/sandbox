@@ -1,31 +1,29 @@
-import BaseModel from '../base-model'
-import H264NALSliceType from '../../lib/h264-nal-slice-type'
+import H264NAL from './h264-nal'
+import h264NALSliceType from '../../lib/h264-nal-slice-type'
 
-class H264NALSliceIDR extends BaseModel {
+class H264NALSliceIDR extends H264NAL {
   static fromMessagePack(msg) {
-    const size = msg[1]
     const sliceTypeRaw = msg[2][0]
     const picParameterSetID = msg[4]
     const frameNum = msg[5]
     const picOrderCntLsb = msg[6]
 
-    const sliceType = H264NALSliceType.parse(sliceTypeRaw)
+    const sliceType = h264NALSliceType.parse(sliceTypeRaw)
 
     const model = new H264NALSliceIDR(
-        size
-      , sliceType
+        sliceType
       , picParameterSetID
       , frameNum
       , picOrderCntLsb
     )
+    model.fromMessagePack(msg)
 
     return model
   }
 
-  constructor(size, sliceType, picParameterSetID, frameNum, picOrderCntLsb) {
+  constructor(sliceType, picParameterSetID, frameNum, picOrderCntLsb) {
     super()
 
-    this.size = size
     this.sliceType = sliceType
     this.picParameterSetID = picParameterSetID
     this.frameNum = frameNum
@@ -34,7 +32,7 @@ class H264NALSliceIDR extends BaseModel {
 
   normalized() {
     return {
-      size: this.size,
+      sz: this.sz,
       sliceType: this.sliceType,
       picParameterSetID: this.picParameterSetID,
       frameNum: this.frameNum,

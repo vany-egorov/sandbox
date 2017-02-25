@@ -11,11 +11,11 @@ class AtomWrapper extends BaseModel {
     const offset = msg[1]
     const atomKindRaw = msg[2][0]
 
-    const atomKind = ak.AtomKind.parse(atomKindRaw)
+    const atomKind = ak.parse(atomKindRaw)
 
     const model = new AtomWrapper(id, offset, atomKind)
 
-    switch (model.atomKind.v) {
+    switch (model.atomKind) {
     case ak.H264SliceIDR:
       model.atom = H264NALSliceIDR.fromMessagePack(msg[3])
       break
@@ -45,7 +45,7 @@ class AtomWrapper extends BaseModel {
       atomKind: this.atomKind
     }
 
-    switch (this.atomKind.v) {
+    switch (this.atomKind) {
     case ak.H264SliceIDR:
       return _.extend(result, this.atom.normalized())
     case ak.H264SPS:
