@@ -1,5 +1,19 @@
-.header__title {
-  &.header__title_blue {
-    color: blue;
-  }
+.atoms-grid__row_h264-aud {
+  color: yellow;
+}
+
+.atoms-grid__row_h264-sei {
+  color: orange;
+}
+
+.atoms-grid__row_h264-slice-idr_i {
+  color: red;
+}
+
+.atoms-grid__row_h264-slice-idr_p {
+  color: blue;
+}
+
+.atoms-grid__row_h264-slice-idr_b {
+  color: green;
 }
