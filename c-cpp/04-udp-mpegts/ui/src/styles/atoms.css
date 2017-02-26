@@ -1,0 +1,30 @@
+.atoms-grid__row-h264-aud {
+  color: yellow;
+}
+
+.atoms-grid__row-h264-sei {
+  color: orange;
+}
+
+.atoms-grid__row-h264-slice-idr-i {
+  color: red;
+}
+
+.atoms-grid__row-h264-slice-idr-p {
+  color: blue;
+}
+
+.atoms-grid__row-h264-slice-idr-b {
+  color: green;
+}
+
+.atoms-grid__row {
+  display: flex; flex-direction: row;
+  justify-content: flex-start;
+}
+.atoms-grid__cell-offset {
+  flex: 0 0 100px;
+}
+.atoms-grid_cell-name {
+  flex: 0 0 100px;
+}
