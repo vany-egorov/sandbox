@@ -1,0 +1,14 @@
+$c-grey: #262626;
+$c-grey-light: #404040;
+
+$c-green: #50a148;
+
+$c-blue: #2e77cc;
+
+$c-vermillion: #e7143c;
+
+$c-background: $c-grey;
+$c-h264-I: $c-vermillion;
+$c-h264-P: $c-blue;
+$c-h264-B: $c-green;
+$c-row: $c-grey-light;

@@ -1,5 +1,8 @@
+@import "colors.css";
+
 .grid {
   .row {
+    background: $c-row;
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
@@ -11,9 +14,9 @@
       color: orange;
     }
     &.h264-slice-idr {
-      &.i { color: red; }
+      &.i { color: $c-h264-I; }
       &.p { color: blue; }
-      &.b { color: green; }
+      &.b { color: $c-h264-B; }
     }
 
     .cell {
@@ -26,36 +29,3 @@
     }
   }
 }
-
-/*
-.atoms-grid__row-h264-aud {
-  color: yellow;
-}
-
-.atoms-grid__row-h264-sei {
-  color: orange;
-}
-
-.atoms-grid__row-h264-slice-idr-i {
-  color: red;
-}
-
-.atoms-grid__row-h264-slice-idr-p {
-  color: blue;
-}
-
-.atoms-grid__row-h264-slice-idr-b {
-  color: green;
-}
-
-.atoms-grid__row {
-  display: flex; flex-direction: row;
-  justify-content: flex-start;
-}
-.atoms-grid__cell-offset {
-  flex: 0 0 100px;
-}
-.atoms-grid_cell-name {
-  flex: 0 0 100px;
-}
-*/

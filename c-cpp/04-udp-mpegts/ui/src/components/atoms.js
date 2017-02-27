@@ -2,6 +2,7 @@ import React from 'react'
 import classNames from 'classnames'
 import ak from '../lib/atom-kind'
 import h264NALSliceType from '../lib/h264-nal-slice-type'
+import humanize from '../helpers/humanize'
 import styles from '../styles/atoms.css'
 
 class Atom extends React.Component {
@@ -26,7 +27,8 @@ class Atom extends React.Component {
         classes[styles['h264-sei']] = true
       } else if (model.atomKind == ak.H264SliceIDR) {
         cellName = `H264 ${h264NALSliceType.toString(model.sliceType)}`
-        cellData = `{ \
+        cellData = `{\
+        size: ${humanize.byte(model.sz)}, \
         frame-num: ${model.frameNum}, \
         pic-order-cnt-lsb: ${model.picOrderCntLsb}\
         }`
@@ -70,7 +72,7 @@ class Atoms extends React.Component {
     const items = collection.map(this.createChildComponent)
 
     return (
-      <div className="atoms-grid">
+      <div className={styles.grid}>
         {items}
       </div>
     )
