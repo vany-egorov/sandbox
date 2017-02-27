@@ -1,3 +1,33 @@
+.grid {
+  .row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+
+    &.h264-aud {
+      color: yellow;
+    }
+    &.h264-sei {
+      color: orange;
+    }
+    &.h264-slice-idr {
+      &.i { color: red; }
+      &.p { color: blue; }
+      &.b { color: green; }
+    }
+
+    .cell {
+      &.offset {
+        flex: 0 0 100px;
+      }
+      &.name {
+        flex: 0 0 100px;
+      }
+    }
+  }
+}
+
+/*
 .atoms-grid__row-h264-aud {
   color: yellow;
 }
@@ -28,3 +58,4 @@
 .atoms-grid_cell-name {
   flex: 0 0 100px;
 }
+*/

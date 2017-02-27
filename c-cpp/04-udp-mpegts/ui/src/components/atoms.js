@@ -2,6 +2,7 @@ import React from 'react'
 import classNames from 'classnames'
 import ak from '../lib/atom-kind'
 import h264NALSliceType from '../lib/h264-nal-slice-type'
+import styles from '../styles/atoms.css'
 
 class Atom extends React.Component {
   render() {
@@ -10,19 +11,19 @@ class Atom extends React.Component {
     let cellName = ''
     let cellData = ''
 
-    const classes = {'atoms-grid__row': true}
+    const classes = {[styles.row]: true}
 
     if (ak.isH264(model.atomKind)) {
       cellName = `H264 ${ ak.toString(model.atomKind) }`
 
       if (model.atomKind == ak.H264SPS) {
-        classes['atoms-grid__row-h264-sps'] = true
+        // classes[styles['h264-sps']] = true
       } else if (model.atomKind == ak.H264PPS) {
-        classes['atoms-grid__row-h264-pps'] = true
+        // classes[styles['h264-pps']] = true
       } else if (model.atomKind == ak.H264AUD) {
-        classes['atoms-grid__row-h264-aud'] = true
+        classes[styles['h264-aud']] = true
       } else if (model.atomKind == ak.H264SEI) {
-        classes['atoms-grid__row-h264-sei'] = true
+        classes[styles['h264-sei']] = true
       } else if (model.atomKind == ak.H264SliceIDR) {
         cellName = `H264 ${h264NALSliceType.toString(model.sliceType)}`
         cellData = `{ \
@@ -30,27 +31,27 @@ class Atom extends React.Component {
         pic-order-cnt-lsb: ${model.picOrderCntLsb}\
         }`
 
-        classes['atoms-grid__row-h264-slice-idr'] = true
+        classes[styles['h264-slice-idr']] = true
 
         if (h264NALSliceType.isI(model.sliceType)) {
-          classes['atoms-grid__row-h264-slice-idr-i'] = true
+          classes[styles.i] = true
         } else if (h264NALSliceType.isP(model.sliceType)) {
-          classes['atoms-grid__row-h264-slice-idr-p'] = true
+          classes[styles.p] = true
         } else if (h264NALSliceType.isB(model.sliceType)) {
-          classes['atoms-grid__row-h264-slice-idr-b'] = true
+          classes[styles.b] = true
         }
       }
     }
 
     return (
       <div className={classNames(classes)}>
-        <div className="atoms-grid__cell atoms-grid__cell-offset">
+        <div className={classNames(styles.cell, styles.offset)}>
           0x{model.offset.toString(16)}
         </div>
-        <div className="atoms-grid__cell atoms-grid_cell-name">
+        <div className={classNames(styles.cell, styles.name)}>
           {cellName}
         </div>
-        <div className="atoms-grid__cell atoms-grid_cell-data">
+        <div className={classNames(styles.cell, styles.data)}>
           {cellData}
         </div>
       </div>
