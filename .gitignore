@@ -20,6 +20,8 @@ libwebsockets
 **/ui/yarn.lock
 !**/ui/bin
 !**/ui/static/.keep
+!**/ui/src/lib
+!**/ui/src/lib/*
 *.swp
 *.swo
 
