@@ -2,8 +2,15 @@ import _ from 'lodash'
 import ak from '../lib/atom-kind'
 import {ATOMS_ADD_SINGLE, ATOMS_ADD_MULTI} from '../actions/index.js'
 
+// let isDumped = false
+
 function atoms(state = [], action) {
   let stateNew = []
+
+  // if ((state.length == 100) && (!isDumped)) {
+  //   console.log(JSON.stringify(state))
+  //   isDumped = true
+  // }
 
   switch (action.type) {
   case ATOMS_ADD_SINGLE:
@@ -36,7 +43,7 @@ function atoms(state = [], action) {
       })
       .value()
       .concat(state)
-      .slice(0, 50)
+      .slice(0, 100)
   default:
     return state
   }

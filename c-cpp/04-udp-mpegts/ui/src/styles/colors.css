@@ -7,7 +7,8 @@ $c-blue: #2e77cc;
 
 $c-vermillion: #e7143c;
 
-$c-background: $c-grey;
+/* $c-background: $c-grey; */
+$c-background: #FFFFFF;
 $c-h264-I: $c-vermillion;
 $c-h264-P: $c-blue;
 $c-h264-B: $c-green;
