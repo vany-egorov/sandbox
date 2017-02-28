@@ -5,10 +5,11 @@ import {Provider} from 'react-redux'
 import ReconnectingWebSocket from 'reconnectingwebsocket'
 import msgpack from 'msgpack-lite'
 import blobToBuffer from 'blob-to-buffer'
+import Bacon from 'baconjs'
 
 import AtomWrapper from './entities/atoms/atom-wrapper'
 import store from './store'
-import {atomsAdd} from './actions'
+import {atomsAddMulti} from './actions'
 import App from './components/app'
 
 const wsHost = window.location.hostname
@@ -16,23 +17,25 @@ const wsHost = window.location.hostname
 const wsPort = 8000
 const wsURL = `ws://${wsHost}:${wsPort}/ws/v1`
 
-function wsOnOpen() {
-  console.log('ws-on-open')
-}
+const bus = new Bacon.Bus()
+bus
+  .bufferWithTimeOrCount(500, 30)
+  .onValue((atoms) => {
+    store.dispatch(atomsAddMulti(atoms))
+  })
+
+function wsOnOpen() { }
 
 function wsOnMessage(event) {
   blobToBuffer(event.data, (_, buffer) => {
     const msg = msgpack.decode(buffer)
 
     const atomWrapper = AtomWrapper.fromMessagePack(msg)
-
-    store.dispatch(atomsAdd(atomWrapper))
+    bus.push(atomWrapper)
   })
 }
 
-function wsOnClose() {
-  console.log('ws-on-close')
-}
+function wsOnClose() { }
 
 const ws = new ReconnectingWebSocket(wsURL)
 ws.reconnectInterval = 2000
