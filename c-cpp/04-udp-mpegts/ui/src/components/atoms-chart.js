@@ -2,6 +2,7 @@ import _ from 'lodash'
 import React from 'react'
 import * as d3 from 'd3'
 import mockData from './atoms-chart-mock-data'
+import styles from '../styles/atoms-chart.css'
 
 class Chart {
   constructor(data, selector, margin, ticks) {
@@ -98,19 +99,33 @@ class Chart {
 
     lines.enter()
       .append('line')
-      .attr('class', 'd3-axis-grid-line d3-axis-grid-line-x')
+      .attr('class', `d3-axis-grid-line ${styles['d3-axis-grid-line-x']}`)
       .attr('x1', (d) => {
-        console.log('x1', d)
-        // @x(d) + @x.range-band!/2
+        return this.x(d) + this.x.bandwidth()/2 + 0.5
       })
       .attr('x2', (d) => {
-        console.log('x2', d)
-        // @x(d) + @x.range-band!/2
+        return this.x(d) + this.x.bandwidth()/2 + 0.5
       })
       .attr('y1', 0)
       .attr('y2', this.y(0))
+  }
 
-    return lines
+  drawGridLinesY() {
+    const lines = this.gGridLines
+      .selectAll('.d3-axis-grid-line-y')
+      .data(this.y.ticks(10))
+
+    lines.enter()
+      .append('line')
+      .attr('class', `d3-axis-grid-line ${styles['d3-axis-grid-line-y']}`)
+      .attr('x1', 0)
+      .attr('x2', this.width - this.margin.left - this.margin.right)
+      .attr('y1', (d) => {
+        return this.y(d) + 0.5
+      })
+      .attr('y2', (d) => {
+        return this.y(d) + 0.5
+      })
   }
 
   update(data) {
@@ -140,6 +155,12 @@ class Chart {
         `translate(${ this.margin.left }, ${ this.margin.top })`
       )
   }
+
+  getGGridLines() {
+    return this.svg
+      .append('g')
+      .attr('class', 'd3-g d3-g-grid-lines')
+  }
 }
 
 function chart(data, selector) {
@@ -155,8 +176,12 @@ function chart(data, selector) {
   const chart = new Chart(data, selector, margin, ticks)
   chart.reset()
   chart.svg = chart.getSVG()
+  chart.gGridLines = chart.getGGridLines()
   chart.drawXAxis()
   chart.drawYAxis()
+
+  chart.drawGridLinesX()
+  chart.drawGridLinesY()
 }
 
 class AtomsChart extends React.Component {
