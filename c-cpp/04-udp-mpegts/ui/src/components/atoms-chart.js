@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import React from 'react'
 import * as d3 from 'd3'
+import h264NALSliceType from '../lib/h264-nal-slice-type'
 import mockData from './atoms-chart-mock-data'
 import styles from '../styles/atoms-chart.css'
 
@@ -88,7 +89,7 @@ class Chart {
   drawYAxis() {
     this.svg
       .append('g')
-      .attr('class', 'd3-axis d3-axis-y d3-axis-y-temp')
+      .attr('class', 'd3-axis d3-axis-y')
       .call(this.getYAxis())
   }
 
@@ -137,7 +138,16 @@ class Chart {
 
     rect.enter()
       .append('rect')
-      .attr('class', 'd3-bar')
+      .attr('class', (d) => {
+        if (h264NALSliceType.isI(d.sliceType)) {
+          return `d3-bar ${styles['d3-bar-i']}`
+        } else if (h264NALSliceType.isP(d.sliceType)) {
+          return `d3-bar ${styles['d3-bar-p']}`
+        } else if (h264NALSliceType.isB(d.sliceType)) {
+          return `d3-bar ${styles['d3-bar-b']}`
+        }
+        return 'd3-bar'
+      })
       .attr('x', (d) => {
         return this.x(d.id)
       })

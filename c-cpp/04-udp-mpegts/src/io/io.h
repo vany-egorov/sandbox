@@ -5,6 +5,7 @@
 #include <stddef.h> /* size_t */
 #include <stdint.h> /* uint8_t */
 #include <stdlib.h> /* calloc */
+#include <string.h> /* strerror */
 
 
 /* reader */

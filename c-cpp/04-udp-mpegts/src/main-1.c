@@ -198,27 +198,29 @@ void* parse_worker_do(void *args) {
 			h264_nal_pps_print_humanized(&it->h264.nal_pps);
 			h264_nal_aud_print_humanized(&it->h264.nal_aud);
 
-			MPEGTSHeader *mpegts_header = NULL;
-			MPEGTSAdaption *mpegts_adaption = NULL;
-			MPEGTSPES *mpegts_pes = NULL;
+			if (0) {
+				MPEGTSHeader *mpegts_header = NULL;
+				MPEGTSAdaption *mpegts_adaption = NULL;
+				MPEGTSPES *mpegts_pes = NULL;
 
-			for (i = 0; i < it->db->atoms->len; i++) {
-				DBAtom *atom = slice_get(it->db->atoms, i);
-				switch (atom->kind) {
-				case DB_MPEGTS_HEADER:
-					mpegts_header = (MPEGTSHeader*)atom->data;
-					// mpegts_header_print_json(mpegts_header);
-					break;
-				case DB_MPEGTS_ADAPTION:
-					mpegts_adaption = (MPEGTSAdaption*)atom->data;
-					mpegts_adaption_print_json(mpegts_adaption);
-					if (mpegts_adaption->PCR_flag)
-						mpegts_pcr_print_json(&mpegts_adaption->PCR);
-					break;
-				case DB_MPEGTS_PES:
-					mpegts_pes = (MPEGTSPES*)atom->data;
-					mpegts_pes_print_humanized(mpegts_pes);
-					break;
+				for (i = 0; i < it->db->atoms->len; i++) {
+					DBAtom *atom = slice_get(it->db->atoms, i);
+					switch (atom->kind) {
+					case DB_MPEGTS_HEADER:
+						mpegts_header = (MPEGTSHeader*)atom->data;
+						// mpegts_header_print_json(mpegts_header);
+						break;
+					case DB_MPEGTS_ADAPTION:
+						mpegts_adaption = (MPEGTSAdaption*)atom->data;
+						mpegts_adaption_print_json(mpegts_adaption);
+						if (mpegts_adaption->PCR_flag)
+							mpegts_pcr_print_json(&mpegts_adaption->PCR);
+						break;
+					case DB_MPEGTS_PES:
+						mpegts_pes = (MPEGTSPES*)atom->data;
+						mpegts_pes_print_humanized(mpegts_pes);
+						break;
+					}
 				}
 			}
 
@@ -301,14 +303,14 @@ int main (int argc, char *argv[]) {
 			", \"if\": \"%s\""
 		"}\n", udp_i, udp_i->sock, url_host(config->i), config->i->port, "-");
 
-	if (file_open(file_ts_1, "./tmp/out-1.ts", "wb",
+	if (file_open(file_ts_1, "../tmp/out-1.ts", "wb",
 	              ebuf, sizeof(ebuf))) {
 		fprintf(stderr, "[file-ts-1 @ %p] open error: \"%s\"\n", file_ts_1, ebuf);
 		ret = EX_SOFTWARE; goto cleanup;
 	} else
 		printf("[file-ts-1 @ %p] OK \n", file_ts_1);
 
-	if (file_open(file_ts_2, "./tmp/out-2.ts", "wb",
+	if (file_open(file_ts_2, "../tmp/out-2.ts", "wb",
 	              ebuf, sizeof(ebuf))) {
 		fprintf(stderr, "[file-ts-2 @ %p] open error: \"%s\"\n", file_ts_2, ebuf);
 		ret = EX_SOFTWARE; goto cleanup;

@@ -1,13 +1,13 @@
-const P   = Symbol('P')
-const B   = Symbol('B')
-const I   = Symbol('I')
-const SP  = Symbol('SP')
-const SI  = Symbol('SI')
-const P2  = Symbol('P2')
-const B2  = Symbol('B2')
-const I2  = Symbol('I2')
-const SP2 = Symbol('SP2')
-const SI2 = Symbol('SI2')
+const P   = 0 // Symbol('P')
+const B   = 1 // Symbol('B')
+const I   = 2 // Symbol('I')
+const SP  = 3 // Symbol('SP')
+const SI  = 4 // Symbol('SI')
+const P2  = 5 // Symbol('P2')
+const B2  = 6 // Symbol('B2')
+const I2  = 7 // Symbol('I2')
+const SP2 = 8 // Symbol('SP2')
+const SI2 = 8 // Symbol('SI2')
 
 const name = {
   [P]: 'P',

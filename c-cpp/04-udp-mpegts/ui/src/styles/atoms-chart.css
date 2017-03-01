@@ -1,2 +1,7 @@
+@import "colors.css";
+
 .d3-axis-grid-line-x { stroke: #E0E0E0; }
 .d3-axis-grid-line-y { stroke: #E0E0E0; }
+.d3-bar-i { fill: $c-h264-I; }
+.d3-bar-p { fill: $c-h264-P; }
+.d3-bar-b { fill: $c-h264-B; }

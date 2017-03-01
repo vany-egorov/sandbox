@@ -5,6 +5,7 @@
 #include <errno.h>  // errno
 #include <stdio.h>  // FILE
 #include <stdlib.h> // calloc
+#include <string.h> // strerror
 #include <stdint.h> // uint8_t, uint16_t
 
 

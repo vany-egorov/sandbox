@@ -1,15 +1,15 @@
-const MPEGTSHeader = Symbol('MPEGTSHeader')
-const MPEGTSAdaption = Symbol('MPEGTSAdaption')
-const MPEGTSPES = Symbol('MPEGTSPES')
-const MPEGTSPSIPAT = Symbol('MPEGTSPSIPAT')
-const MPEGTSPSIPMT = Symbol('MPEGTSPSIPMT')
-const MPEGTSPSISDT = Symbol('MPEGTSPSISDT')
+const MPEGTSHeader   = 0 // Symbol('MPEGTSHeader')
+const MPEGTSAdaption = 1 // Symbol('MPEGTSAdaption')
+const MPEGTSPES      = 2 // Symbol('MPEGTSPES')
+const MPEGTSPSIPAT   = 3 // Symbol('MPEGTSPSIPAT')
+const MPEGTSPSIPMT   = 4 // Symbol('MPEGTSPSIPMT')
+const MPEGTSPSISDT   = 5 // Symbol('MPEGTSPSISDT')
 
-const H264SPS = Symbol('H264SPS')
-const H264PPS = Symbol('H264PPS')
-const H264AUD = Symbol('H264AUD')
-const H264SEI = Symbol('H264SEI')
-const H264SliceIDR = Symbol('H264SliceIDR')
+const H264SPS      = 10 // Symbol('H264SPS')
+const H264PPS      = 11 // Symbol('H264PPS')
+const H264AUD      = 12 // Symbol('H264AUD')
+const H264SEI      = 13 // Symbol('H264SEI')
+const H264SliceIDR = 14 // Symbol('H264SliceIDR')
 
 function parse(v) {
   switch (v) {

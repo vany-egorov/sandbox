@@ -16,7 +16,7 @@
     }
     &.h264-slice-idr {
       &.i { color: $c-h264-I; }
-      &.p { color: blue; }
+      &.p { color: $c-h264-P; }
       &.b { color: $c-h264-B; }
     }
 

@@ -7,7 +7,7 @@ import {ATOMS_ADD_SINGLE, ATOMS_ADD_MULTI} from '../actions/index.js'
 function atoms(state = [], action) {
   let stateNew = []
 
-  // if ((state.length == 100) && (!isDumped)) {
+  // if ((state.length == 300) && (!isDumped)) {
   //   console.log(JSON.stringify(state))
   //   isDumped = true
   // }
@@ -41,9 +41,10 @@ function atoms(state = [], action) {
       .map((atom) => {
         return atom.normalized()
       })
+      .reverse()
       .value()
       .concat(state)
-      .slice(0, 100)
+      .slice(0, 50)
   default:
     return state
   }

@@ -6,16 +6,16 @@
 #define _BSD_SOURCE     /* Needed for using struct ip_mreq with recent glibc */
 #endif
 
-#include <stdio.h>      // printf, fprintf, snprintf
-#include <errno.h>      // errno
-#include <string.h>     // strerror
-#include <stdlib.h>     // calloc
-#include <stdint.h>     // uint8_t, uint16_t
-#include <unistd.h>     // close
-#include <net/if.h>     // struct ifreq
-#include <arpa/inet.h>  // inet_addr
-#include <sys/ioctl.h>  // struct ifreq, ioctl
-#include <netinet/in.h> // struct ip_mreq
+#include <stdio.h>      /* printf, fprintf, snprintf */
+#include <errno.h>      /* errno */
+#include <string.h>     /* strerror */
+#include <stdlib.h>     /* calloc */
+#include <stdint.h>     /* uint8_t, uint16_t */
+#include <unistd.h>     /* close */
+#include <net/if.h>     /* struct ifreq */
+#include <arpa/inet.h>  /* inet_addr */
+#include <sys/ioctl.h>  /* struct ifreq, ioctl */
+#include <netinet/in.h> /* struct ip_mreq */
 
 
 typedef struct udp_s UDP;
