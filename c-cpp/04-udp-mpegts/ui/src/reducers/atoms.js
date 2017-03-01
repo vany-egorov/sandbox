@@ -1,6 +1,6 @@
-import _ from 'lodash'
-import ak from '../lib/atom-kind'
-import {ATOMS_ADD_SINGLE, ATOMS_ADD_MULTI} from '../actions/index.js'
+import _ from "lodash"
+import ak from "../lib/atom-kind"
+import {ATOMS_ADD_SINGLE, ATOMS_ADD_MULTI} from "../actions/index.js"
 
 // let isDumped = false
 

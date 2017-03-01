@@ -1,9 +1,10 @@
-import _ from 'lodash'
-import React from 'react'
-import * as d3 from 'd3'
-import h264NALSliceType from '../lib/h264-nal-slice-type'
-import mockData from './atoms-chart-mock-data'
-import styles from '../styles/atoms-chart.css'
+import _ from "lodash"
+import React from "react"
+import * as d3 from "d3"
+import {ATOMS_ADD_MULTI} from "../actions"
+import h264NALSliceType from "../lib/h264-nal-slice-type"
+import mockData from "./atoms-chart-mock-data"
+import styles from "../styles/atoms-chart.css"
 
 class Chart {
   constructor(data, selector, margin, ticks) {
@@ -37,15 +38,13 @@ class Chart {
 
   getTickValues() {
     return _(this.x.domain())
-      .filter((_, i) => {
-        return ((i % this.showEvery) == 0)
-      })
+      .filter((_, i) => { return ((i % this.showEvery) == 0) })
       .value()
   }
 
   getX() {
     return d3.scaleBand()
-      .domain(_(this.data).map('id').value())
+      .domain(_(this.data).map("id").value())
       .range([0, this.width - this.margin.left - this.margin.right])
   }
 
@@ -57,7 +56,7 @@ class Chart {
 
   getSzMax() {
     return _(this.data)
-      .map('sz')
+      .map("sz")
       .max()
   }
 
@@ -67,9 +66,7 @@ class Chart {
       .tickSize(10)
       .tickPadding(10)
       .tickValues(this.tickValues)
-      .tickFormat((v) => {
-        return v
-      })
+      .tickFormat((v) => { return v })
   }
 
   getYAxis() {
@@ -80,85 +77,77 @@ class Chart {
   drawXAxis() {
     const ty = this.height - this.margin.top - this.margin.bottom
     this.svg
-      .append('g')
-      .attr('class', 'd3-axis d3-axis-x')
-      .attr('transform', `translate(0, ${ ty })`)
+      .append("g")
+      .attr("class", "d3-axis d3-axis-x")
+      .attr("transform", `translate(0, ${ ty })`)
       .call(this.getXAxis())
   }
 
   drawYAxis() {
     this.svg
-      .append('g')
-      .attr('class', 'd3-axis d3-axis-y')
+      .append("g")
+      .attr("class", "d3-axis d3-axis-y")
       .call(this.getYAxis())
   }
 
   drawGridLinesX() {
     const lines = this.gGridLines
-      .selectAll('.d3-axis-grid-line-x')
+      .selectAll(".d3-axis-grid-line-x")
       .data(this.tickValues)
 
     lines.enter()
-      .append('line')
-      .attr('class', `d3-axis-grid-line ${styles['d3-axis-grid-line-x']}`)
-      .attr('x1', (d) => {
-        return this.x(d) + this.x.bandwidth()/2 + 0.5
-      })
-      .attr('x2', (d) => {
-        return this.x(d) + this.x.bandwidth()/2 + 0.5
-      })
-      .attr('y1', 0)
-      .attr('y2', this.y(0))
+      .append("line")
+      .attr("class", `d3-axis-grid-line ${styles["d3-axis-grid-line-x"]}`)
+      .attr("x1", (d) => { return this.x(d) + this.x.bandwidth()/2 + 0.5 })
+      .attr("x2", (d) => { return this.x(d) + this.x.bandwidth()/2 + 0.5 })
+      .attr("y1", 0)
+      .attr("y2", this.y(0))
   }
 
   drawGridLinesY() {
     const lines = this.gGridLines
-      .selectAll('.d3-axis-grid-line-y')
+      .selectAll(".d3-axis-grid-line-y")
       .data(this.y.ticks(10))
 
     lines.enter()
-      .append('line')
-      .attr('class', `d3-axis-grid-line ${styles['d3-axis-grid-line-y']}`)
-      .attr('x1', 0)
-      .attr('x2', this.width - this.margin.left - this.margin.right)
-      .attr('y1', (d) => {
-        return this.y(d) + 0.5
-      })
-      .attr('y2', (d) => {
-        return this.y(d) + 0.5
-      })
+      .append("line")
+      .attr("class", `d3-axis-grid-line ${styles["d3-axis-grid-line-y"]}`)
+      .attr("x1", 0)
+      .attr("x2", this.width - this.margin.left - this.margin.right)
+      .attr("y1", (d) => { return this.y(d) + 0.5 })
+      .attr("y2", (d) => { return this.y(d) + 0.5 })
   }
 
   drawRectAtoms() {
     const rect = this.gAtoms
-      .selectAll('d3-bar')
+      .selectAll("d3-bar")
       .data(this.data, (d) => {
         return d.id
       })
 
     rect.enter()
-      .append('rect')
-      .attr('class', (d) => {
+      .append("rect")
+      .attr("class", (d) => {
         if (h264NALSliceType.isI(d.sliceType)) {
-          return `d3-bar ${styles['d3-bar-i']}`
+          return `d3-bar ${styles["d3-bar-i"]}`
         } else if (h264NALSliceType.isP(d.sliceType)) {
-          return `d3-bar ${styles['d3-bar-p']}`
+          return `d3-bar ${styles["d3-bar-p"]}`
         } else if (h264NALSliceType.isB(d.sliceType)) {
-          return `d3-bar ${styles['d3-bar-b']}`
+          return `d3-bar ${styles["d3-bar-b"]}`
         }
-        return 'd3-bar'
+        return "d3-bar"
       })
-      .attr('x', (d) => {
+      .attr("x", (d) => {
         return this.x(d.id)
       })
-      .attr('y', (d) => {
+      .attr("y", (d) => {
         return (
           this.height - this.margin.top - this.margin.bottom -
           (this.height - this.margin.top - this.margin.bottom - this.y(d.sz))
         )
       })
-      .attr('width', this.x.bandwidth())
-      .attr('height', (d) => {
+      .attr("width", this.x.bandwidth())
+      .attr("height", (d) => {
         return this.height - this.margin.top - this.margin.bottom - this.y(d.sz)
       })
   }
@@ -172,35 +161,35 @@ class Chart {
 
     this.xAxis = this.getXAxis()
     this.svg
-      .selectAll('.d3-axis-x')
-      .transition().ease('linear')
+      .selectAll(".d3-axis-x")
+      .transition().ease("linear")
       .call(this.xAxis())
   }
 
   getSVG() {
     return d3
       .select(this.selector)
-      .append('svg')
-      .attr('class', 'chart atoms-chart')
-      .attr('width', this.width)
-      .attr('height', this.height)
-      .append('g')
+      .append("svg")
+      .attr("class", "chart atoms-chart")
+      .attr("width", this.width)
+      .attr("height", this.height)
+      .append("g")
       .attr(
-        'transform',
+        "transform",
         `translate(${ this.margin.left }, ${ this.margin.top })`
       )
   }
 
   getGGridLines() {
     return this.svg
-      .append('g')
-      .attr('class', 'd3-g d3-g-grid-lines')
+      .append("g")
+      .attr("class", "d3-g d3-g-grid-lines")
   }
 
   getGAtoms() {
     return this.svg
-      .append('g')
-      .attr('class', 'd3-g d3-g-atoms')
+      .append("g")
+      .attr("class", "d3-g d3-g-atoms")
   }
 }
 
@@ -229,13 +218,36 @@ function chart(data, selector) {
 }
 
 class AtomsChart extends React.Component {
+  constructor(props) {
+    super(props)
+
+    this.unsubs = _([])
+
+    this.onAtomsAddMulti = this.onAtomsAddMulti.bind(this)
+  }
+
   componentDidMount() {
-    chart(mockData, '#atoms-chart')
+    chart(mockData, "#atoms-chart")
+
+    const us1 = this.props.store.on(ATOMS_ADD_MULTI, this.onAtomsAddMulti)
+
+    this.unsubs
+      .push(us1)
+      .commit()
+  }
+
+  componentWillUnmount() {
+    this.unsubs
+      .forEach((u) => { u() })
+  }
+
+  onAtomsAddMulti(action) {
+    console.log(action.type)
   }
 
   render() {
     return (
-      <div id="atoms-chart" style={{height: '600px'}}/>
+      <div id="atoms-chart" style={{height: "600px"}}/>
     )
   }
 }

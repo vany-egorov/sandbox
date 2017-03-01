@@ -1,9 +1,9 @@
-import _ from 'lodash'
-import BaseModel from '../base-model'
-import ak from '../../lib/atom-kind'
-import H264NALSPS from './h264-nal-sps'
-import H264NALPPS from './h264-nal-pps'
-import H264NALSliceIDR from './h264-nal-slice-idr'
+import _ from "lodash"
+import BaseModel from "../base-model"
+import ak from "../../lib/atom-kind"
+import H264NALSPS from "./h264-nal-sps"
+import H264NALPPS from "./h264-nal-pps"
+import H264NALSliceIDR from "./h264-nal-slice-idr"
 
 class AtomWrapper extends BaseModel {
   static fromMessagePack(msg) {

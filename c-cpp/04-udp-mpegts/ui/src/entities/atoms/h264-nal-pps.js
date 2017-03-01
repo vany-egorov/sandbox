@@ -1,4 +1,4 @@
-import H264NAL from './h264-nal'
+import H264NAL from "./h264-nal"
 
 class H264NALPPS extends H264NAL {
   static fromMessagePack(msg) {

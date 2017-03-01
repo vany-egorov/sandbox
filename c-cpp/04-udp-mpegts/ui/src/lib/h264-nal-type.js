@@ -69,48 +69,48 @@ function parse(v) {
 function toString(v) {
   switch (v) {
   case Unspecified:
-    return 'Unspecified'
+    return "Unspecified"
   case Slice:
-    return 'Slice'
+    return "Slice"
   case DPA:
-    return 'DPA'
+    return "DPA"
   case DPB:
-    return 'DPB'
+    return "DPB"
   case DPC:
-    return 'DPC'
+    return "DPC"
   case IDR:
-    return 'IDR'
+    return "IDR"
   case SEI:
-    return 'SEI'
+    return "SEI"
   case SPS:
-    return 'SPS'
+    return "SPS"
   case PPS:
-    return 'PPS'
+    return "PPS"
   case AUD:
-    return 'AUD'
+    return "AUD"
   case EOSEQ:
-    return 'EOSEQ'
+    return "EOSEQ"
   case EOSTREAM:
-    return 'EOSTREAM'
+    return "EOSTREAM"
   case FILL:
-    return 'FILL'
+    return "FILL"
   case SPSEXT:
-    return 'SPSEXT'
+    return "SPSEXT"
   case Prefix:
-    return 'Prefix'
+    return "Prefix"
   case SSPS:
-    return 'SSPS'
+    return "SSPS"
   case DPS:
-    return 'DPS'
+    return "DPS"
   case CSOACPWP:
-    return 'CSOACPWP'
+    return "CSOACPWP"
   case CSE:
-    return 'CSE'
+    return "CSE"
   case CSE3D:
-    return 'CSE3D'
+    return "CSE3D"
   }
 
-  return 'Unspecified'
+  return "Unspecified"
 }
 
 export default {

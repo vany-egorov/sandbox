@@ -1,5 +1,5 @@
-const ATOMS_ADD_SINGLE = Symbol('ATOMS:ADD:SINGLE')
-const ATOMS_ADD_MULTI = Symbol('ATOMS:ADD:MULTI')
+const ATOMS_ADD_SINGLE = Symbol("ATOMS:ADD:SINGLE")
+const ATOMS_ADD_MULTI = Symbol("ATOMS:ADD:MULTI")
 
 /* Action Creators */
 function atomsAddSingle(atom) {

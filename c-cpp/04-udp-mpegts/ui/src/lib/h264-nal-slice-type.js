@@ -1,38 +1,38 @@
-const P   = 0 // Symbol('P')
-const B   = 1 // Symbol('B')
-const I   = 2 // Symbol('I')
-const SP  = 3 // Symbol('SP')
-const SI  = 4 // Symbol('SI')
-const P2  = 5 // Symbol('P2')
-const B2  = 6 // Symbol('B2')
-const I2  = 7 // Symbol('I2')
-const SP2 = 8 // Symbol('SP2')
-const SI2 = 8 // Symbol('SI2')
+const P   = 0 // Symbol("P")
+const B   = 1 // Symbol("B")
+const I   = 2 // Symbol("I")
+const SP  = 3 // Symbol("SP")
+const SI  = 4 // Symbol("SI")
+const P2  = 5 // Symbol("P2")
+const B2  = 6 // Symbol("B2")
+const I2  = 7 // Symbol("I2")
+const SP2 = 8 // Symbol("SP2")
+const SI2 = 8 // Symbol("SI2")
 
 const name = {
-  [P]: 'P',
-  [B]: 'B',
-  [I]: 'I',
-  [SP]: 'SP',
-  [SI]: 'SI',
-  [P2]: 'P2',
-  [B2]: 'B2',
-  [I2]: 'I2',
-  [SP2]: 'SP2',
-  [SI2]: 'SI2'
+  [P]: "P",
+  [B]: "B",
+  [I]: "I",
+  [SP]: "SP",
+  [SI]: "SI",
+  [P2]: "P2",
+  [B2]: "B2",
+  [I2]: "I2",
+  [SP2]: "SP2",
+  [SI2]: "SI2"
 }
 
 const nameShort = {
-  [P]: 'P',
-  [B]: 'B',
-  [I]: 'I',
-  [SP]: 'P',
-  [SI]: 'I',
-  [P2]: 'P',
-  [B2]: 'B',
-  [I2]: 'I',
-  [SP2]: 'P',
-  [SI2]: 'I'
+  [P]: "P",
+  [B]: "B",
+  [I]: "I",
+  [SP]: "P",
+  [SI]: "I",
+  [P2]: "P",
+  [B2]: "B",
+  [I2]: "I",
+  [SP2]: "P",
+  [SI2]: "I"
 }
 
 function parse(v) {

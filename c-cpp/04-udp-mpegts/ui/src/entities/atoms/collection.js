@@ -1,4 +1,4 @@
-import BaseCollection from '../base-collection'
+import BaseCollection from "../base-collection"
 
 class Collection extends BaseCollection { }
 

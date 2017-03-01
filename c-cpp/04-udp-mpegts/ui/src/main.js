@@ -1,28 +1,19 @@
-import './styles/index.css'
-import React from 'react'
-import ReactDOM from 'react-dom'
-import {Provider} from 'react-redux'
-import ReconnectingWebSocket from 'reconnectingwebsocket'
-import msgpack from 'msgpack-lite'
-import blobToBuffer from 'blob-to-buffer'
-import Bacon from 'baconjs'
+import "./styles/index.css"
+import React from "react"
+import ReactDOM from "react-dom"
+import ReconnectingWebSocket from "reconnectingwebsocket"
+import msgpack from "msgpack-lite"
+import blobToBuffer from "blob-to-buffer"
 
-import AtomWrapper from './entities/atoms/atom-wrapper'
-import store from './store'
-import {atomsAddMulti} from './actions'
-import App from './components/app'
+import AtomWrapper from "./entities/atoms/atom-wrapper"
+import store from "./store"
+import {atomsAddSingle} from "./actions"
+import App from "./components/app"
 
 const wsHost = window.location.hostname
 // const wsPort = window.location.port
 const wsPort = 8000
 const wsURL = `ws://${wsHost}:${wsPort}/ws/v1`
-
-const bus = new Bacon.Bus()
-bus
-  .bufferWithTimeOrCount(500, 30)
-  .onValue((atoms) => {
-    store.dispatch(atomsAddMulti(atoms))
-  })
 
 function wsOnOpen() { }
 
@@ -30,8 +21,9 @@ function wsOnMessage(event) {
   blobToBuffer(event.data, (_, buffer) => {
     const msg = msgpack.decode(buffer)
 
-    const atomWrapper = AtomWrapper.fromMessagePack(msg)
-    bus.push(atomWrapper)
+    const atom = AtomWrapper.fromMessagePack(msg)
+
+    store.dispatch(atomsAddSingle(atom))
   })
 }
 
@@ -45,10 +37,8 @@ ws.onclose = wsOnClose
 
 function render(store) {
   ReactDOM.render(
-    <Provider store={store}>
-      <App />
-    </Provider>,
-    document.getElementById('root')
+    <App store={store}/>,
+    document.getElementById("root")
   )
 }
 

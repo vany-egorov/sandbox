@@ -1,15 +1,15 @@
-const MPEGTSHeader   = 0 // Symbol('MPEGTSHeader')
-const MPEGTSAdaption = 1 // Symbol('MPEGTSAdaption')
-const MPEGTSPES      = 2 // Symbol('MPEGTSPES')
-const MPEGTSPSIPAT   = 3 // Symbol('MPEGTSPSIPAT')
-const MPEGTSPSIPMT   = 4 // Symbol('MPEGTSPSIPMT')
-const MPEGTSPSISDT   = 5 // Symbol('MPEGTSPSISDT')
+const MPEGTSHeader   = 0 // Symbol("MPEGTSHeader")
+const MPEGTSAdaption = 1 // Symbol("MPEGTSAdaption")
+const MPEGTSPES      = 2 // Symbol("MPEGTSPES")
+const MPEGTSPSIPAT   = 3 // Symbol("MPEGTSPSIPAT")
+const MPEGTSPSIPMT   = 4 // Symbol("MPEGTSPSIPMT")
+const MPEGTSPSISDT   = 5 // Symbol("MPEGTSPSISDT")
 
-const H264SPS      = 10 // Symbol('H264SPS')
-const H264PPS      = 11 // Symbol('H264PPS')
-const H264AUD      = 12 // Symbol('H264AUD')
-const H264SEI      = 13 // Symbol('H264SEI')
-const H264SliceIDR = 14 // Symbol('H264SliceIDR')
+const H264SPS      = 10 // Symbol("H264SPS")
+const H264PPS      = 11 // Symbol("H264PPS")
+const H264AUD      = 12 // Symbol("H264AUD")
+const H264SEI      = 13 // Symbol("H264SEI")
+const H264SliceIDR = 14 // Symbol("H264SliceIDR")
 
 function parse(v) {
   switch (v) {
@@ -44,31 +44,31 @@ function parse(v) {
 function toString(v) {
   switch (v) {
   case MPEGTSHeader:
-    return 'mpegts-header'
+    return "mpegts-header"
   case MPEGTSAdaption:
-    return 'mpegts-adaption'
+    return "mpegts-adaption"
   case MPEGTSPES:
-    return 'mpegts-pes'
+    return "mpegts-pes"
   case MPEGTSPSIPAT:
-    return 'mpegts-psi-pat'
+    return "mpegts-psi-pat"
   case MPEGTSPSIPMT:
-    return 'mpegts-psi-pmt'
+    return "mpegts-psi-pmt"
   case MPEGTSPSISDT:
-    return 'mpegts-psi-sdt'
+    return "mpegts-psi-sdt"
 
   case H264SPS:
-    return 'h264-sps'
+    return "h264-sps"
   case H264PPS:
-    return 'h264-pps'
+    return "h264-pps"
   case H264AUD:
-    return 'h264-aud'
+    return "h264-aud"
   case H264SEI:
-    return 'h264-sei'
+    return "h264-sei"
   case H264SliceIDR:
-    return 'h264-slice-idr'
+    return "h264-slice-idr"
   }
 
-  return 'unknown'
+  return "unknown"
 }
 
 function isMPEGTS(v) {

@@ -1,5 +1,5 @@
-import H264NAL from './h264-nal'
-import h264NALSliceType from '../../lib/h264-nal-slice-type'
+import H264NAL from "./h264-nal"
+import h264NALSliceType from "../../lib/h264-nal-slice-type"
 
 class H264NALSliceIDR extends H264NAL {
   static fromMessagePack(msg) {

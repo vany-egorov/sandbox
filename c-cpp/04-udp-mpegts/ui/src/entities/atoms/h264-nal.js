@@ -1,5 +1,5 @@
-import BaseModel from '../base-model'
-import h264NALType from '../../lib/h264-nal-type'
+import BaseModel from "../base-model"
+import h264NALType from "../../lib/h264-nal-type"
 
 class H264NAL extends BaseModel {
   fromMessagePack(msg) {

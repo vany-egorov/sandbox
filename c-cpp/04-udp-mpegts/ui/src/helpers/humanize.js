@@ -1,21 +1,21 @@
 function byte(v, significantFigures=1) {
-  let l = 'B'
+  let l = "B"
 
   if (
       (v > 256) &&  // 2**8
       (v <= 262144) // 2**18
     ) {
     v = v/1024 // 2**10
-    l = 'KB'
+    l = "KB"
   } else if (v <= 268435456) { // 2**28
     v = v/1048576 // 2**20
-    l = 'MB'
+    l = "MB"
   } else if (v <= 274877906944) { // 2**38
     v = v/1073741824 // 2**30
-    l = 'GB'
+    l = "GB"
   } else if (v > 274877906944) { // 2**38
     v = v/1.0995116e+12 // 2**40
-    l = 'TB'
+    l = "TB"
   }
 
   v = v.toFixed(significantFigures)
