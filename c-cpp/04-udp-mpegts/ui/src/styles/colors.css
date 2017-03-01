@@ -12,4 +12,5 @@ $c-background: #FFFFFF;
 $c-h264-I: $c-vermillion;
 $c-h264-P: $c-blue;
 $c-h264-B: $c-green;
-$c-row: $c-grey-light;
+/* $c-row: $c-grey-light; */
+$c-row: #FFFFFF;

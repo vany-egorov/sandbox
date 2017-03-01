@@ -128,6 +128,31 @@ class Chart {
       })
   }
 
+  drawRectAtoms() {
+    const rect = this.gAtoms
+      .selectAll('d3-bar')
+      .data(this.data, (d) => {
+        return d.id
+      })
+
+    rect.enter()
+      .append('rect')
+      .attr('class', 'd3-bar')
+      .attr('x', (d) => {
+        return this.x(d.id)
+      })
+      .attr('y', (d) => {
+        return (
+          this.height - this.margin.top - this.margin.bottom -
+          (this.height - this.margin.top - this.margin.bottom - this.y(d.sz))
+        )
+      })
+      .attr('width', this.x.bandwidth())
+      .attr('height', (d) => {
+        return this.height - this.margin.top - this.margin.bottom - this.y(d.sz)
+      })
+  }
+
   update(data) {
     this.redraw(data)
   }
@@ -161,6 +186,12 @@ class Chart {
       .append('g')
       .attr('class', 'd3-g d3-g-grid-lines')
   }
+
+  getGAtoms() {
+    return this.svg
+      .append('g')
+      .attr('class', 'd3-g d3-g-atoms')
+  }
 }
 
 function chart(data, selector) {
@@ -177,11 +208,14 @@ function chart(data, selector) {
   chart.reset()
   chart.svg = chart.getSVG()
   chart.gGridLines = chart.getGGridLines()
+  chart.gAtoms = chart.getGAtoms()
   chart.drawXAxis()
   chart.drawYAxis()
 
   chart.drawGridLinesX()
   chart.drawGridLinesY()
+
+  chart.drawRectAtoms()
 }
 
 class AtomsChart extends React.Component {
