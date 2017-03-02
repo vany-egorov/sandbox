@@ -1,7 +1,6 @@
 import _ from "lodash"
 import Bacon from "baconjs"
-import {atomsAddMulti,
-        ATOMS_ADD_SINGLE, ATOMS_ADD_MULTI} from "./actions"
+import * as actions from "./actions"
 
 class Store {
   constructor() {
@@ -15,10 +14,10 @@ class Store {
 
   register(handler) {
     const unsub1 = this.i
-      .filter((a) => { return a.type == ATOMS_ADD_SINGLE })
+      .filter((a) => { return a.type == actions.WS_ATOMS_ADD_SINGLE })
       .map((a) => { return a.atom })
-      .bufferWithTimeOrCount(500, 10)
-      .onValue((atoms) => { this.dispatch(atomsAddMulti(atoms)) })
+      .bufferWithTimeOrCount(500, 50)
+      .onValue((atoms) => { this.dispatch(actions.atomsAddMulti(atoms)) })
 
     const unsub2 = this.i
       .doAction(() => { /* middleware */ })
@@ -51,7 +50,7 @@ class Store {
 const store = new Store()
 store.register((action) => {
   switch (action.type) {
-  case ATOMS_ADD_MULTI:
+  case actions.ATOMS_ADD_MULTI:
     store.emit(action)
     break
   }

@@ -2,8 +2,9 @@ import _ from "lodash"
 import React from "react"
 import * as d3 from "d3"
 import {ATOMS_ADD_MULTI} from "../actions"
+import ak from "../lib/atom-kind"
 import h264NALSliceType from "../lib/h264-nal-slice-type"
-import mockData from "./atoms-chart-mock-data"
+// import mockData from "./atoms-chart-mock-data"
 import styles from "../styles/atoms-chart.css"
 
 class Chart {
@@ -92,7 +93,7 @@ class Chart {
 
   drawGridLinesX() {
     const lines = this.gGridLines
-      .selectAll(".d3-axis-grid-line-x")
+      .selectAll(`.${styles["d3-axis-grid-line-x"]}`)
       .data(this.tickValues)
 
     lines.enter()
@@ -102,11 +103,13 @@ class Chart {
       .attr("x2", (d) => { return this.x(d) + this.x.bandwidth()/2 + 0.5 })
       .attr("y1", 0)
       .attr("y2", this.y(0))
+
+    return lines
   }
 
   drawGridLinesY() {
     const lines = this.gGridLines
-      .selectAll(".d3-axis-grid-line-y")
+      .selectAll(`.${styles["d3-axis-grid-line-y"]}`)
       .data(this.y.ticks(10))
 
     lines.enter()
@@ -116,14 +119,14 @@ class Chart {
       .attr("x2", this.width - this.margin.left - this.margin.right)
       .attr("y1", (d) => { return this.y(d) + 0.5 })
       .attr("y2", (d) => { return this.y(d) + 0.5 })
+
+    return lines
   }
 
   drawRectAtoms() {
     const rect = this.gAtoms
-      .selectAll("d3-bar")
-      .data(this.data, (d) => {
-        return d.id
-      })
+      .selectAll(".d3-bar")
+      .data(this.data, (d) => { return d.id })
 
     rect.enter()
       .append("rect")
@@ -137,9 +140,7 @@ class Chart {
         }
         return "d3-bar"
       })
-      .attr("x", (d) => {
-        return this.x(d.id)
-      })
+      .attr("x", (d) => { return this.x(d.id) })
       .attr("y", (d) => {
         return (
           this.height - this.margin.top - this.margin.bottom -
@@ -150,20 +151,64 @@ class Chart {
       .attr("height", (d) => {
         return this.height - this.margin.top - this.margin.bottom - this.y(d.sz)
       })
+
+    return rect
   }
 
-  update(data) {
-    this.redraw(data)
-  }
+  update(data) { this.redraw(data) }
 
-  redraw() {
+  redraw(data) {
+    this.data = data
     this.reset()
 
     this.xAxis = this.getXAxis()
     this.svg
       .selectAll(".d3-axis-x")
-      .transition().ease("linear")
-      .call(this.xAxis())
+      // .transition().ease(d3.easeLinear)
+      .call(this.xAxis)
+
+    this.yAxis = this.getYAxis()
+    this.svg
+      .selectAll(".d3-axis-y")
+      // .transition().ease(d3.easeLinear)
+      .call(this.yAxis)
+
+    const linesX = this.drawGridLinesX()
+    linesX
+      // .transition().ease(d3.easeLinear)
+      .attr("x1", (d) => { return this.x(d) + this.x.bandwidth()/2 + 0.5 })
+      .attr("x2", (d) => { return this.x(d) + this.x.bandwidth()/2 + 0.5 })
+      .attr("y1", 0)
+      .attr("y2", this.y(0))
+    linesX.exit().remove(0)
+
+    const linesY = this.drawGridLinesY()
+    linesY
+      // .transition().ease(d3.easeLinear)
+      .attr("x1", 0)
+      .attr("x2", this.width - this.margin.left - this.margin.right)
+      .attr("y1", (d) => { return this.y(d) + 0.5 })
+      .attr("y2", (d) => { return this.y(d) + 0.5 })
+    linesY.exit().remove(0)
+
+    const rects = this.drawRectAtoms()
+    rects
+      // .transition().ease(d3.easeLinear)
+      .attr("x", (d) => { return this.x(d.id) })
+      .attr("y", (d) => {
+        return (
+          this.height - this.margin.top - this.margin.bottom -
+          (this.height - this.margin.top - this.margin.bottom - this.y(d.sz))
+        )
+      })
+      .attr("width", this.x.bandwidth())
+      .attr("height", (d) => {
+        return this.height - this.margin.top - this.margin.bottom - this.y(d.sz)
+      })
+
+    rects
+      .exit()
+      .remove(0)
   }
 
   getSVG() {
@@ -215,6 +260,8 @@ function chart(data, selector) {
   chart.drawGridLinesY()
 
   chart.drawRectAtoms()
+
+  return chart
 }
 
 class AtomsChart extends React.Component {
@@ -222,12 +269,13 @@ class AtomsChart extends React.Component {
     super(props)
 
     this.unsubs = _([])
+    this.data = []
 
     this.onAtomsAddMulti = this.onAtomsAddMulti.bind(this)
   }
 
   componentDidMount() {
-    chart(mockData, "#atoms-chart")
+    this.chart = chart(this.data, "#atoms-chart")
 
     const us1 = this.props.store.on(ATOMS_ADD_MULTI, this.onAtomsAddMulti)
 
@@ -242,7 +290,17 @@ class AtomsChart extends React.Component {
   }
 
   onAtomsAddMulti(action) {
-    console.log(action.type)
+    const data = _(action.atoms)
+      .filter((atom) => { return  atom.atomKind == ak.H264SliceIDR })
+      .map((atom) => { return atom.normalized() })
+      .reverse()
+      .value()
+      .concat(this.data)
+      // .slice(0, 300)
+
+    this.data = data
+
+    this.chart.update(data)
   }
 
   render() {

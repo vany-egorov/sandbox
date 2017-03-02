@@ -7,7 +7,7 @@ import blobToBuffer from "blob-to-buffer"
 
 import AtomWrapper from "./entities/atoms/atom-wrapper"
 import store from "./store"
-import {atomsAddSingle} from "./actions"
+import {wsAtomsAddSingle} from "./actions"
 import App from "./components/app"
 
 const wsHost = window.location.hostname
@@ -23,7 +23,7 @@ function wsOnMessage(event) {
 
     const atom = AtomWrapper.fromMessagePack(msg)
 
-    store.dispatch(atomsAddSingle(atom))
+    store.dispatch(wsAtomsAddSingle(atom))
   })
 }
 
