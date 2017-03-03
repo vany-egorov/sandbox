@@ -3,6 +3,7 @@ extern crate mio_tcp;
 extern crate env_logger;
 extern crate rustc_serialize;           // MessagePack
 extern crate rmp_serialize as msgpack;  // MessagePack
+#[macro_use] extern crate lazy_static; /* lazy_static! */
 
 use std::io::{
     Write,
@@ -32,6 +33,10 @@ use msgpack::{Encoder, Decoder};
 use rustc_serialize::Encodable;
 
 mod va;
+
+lazy_static! {
+    static ref MAINJSGZ: &'static [u8] = include_bytes!("../../ui/static/main.js.gz");
+}
 
 
 fn log_req_res(id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
@@ -69,6 +74,17 @@ impl HandlerHTTP for RootHandler {
     }
 }
 
+struct StaticMainJSHandler { }
+
+impl HandlerHTTP for StaticMainJSHandler {
+    fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> MIOTCPResult<()> {
+        Ok(())
+    }
+    fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
+        log_req_res(id, req, resp);
+    }
+}
+
 struct StaticDirHandler { }
 
 impl HandlerHTTP for StaticDirHandler {
@@ -101,6 +117,11 @@ impl HandlerHTTP for StaticDirHandler {
             },
             _  => "text/plain; charset=UTF-8",
         };
+
+        // try!(w.write_all(&MAINJSGZ));
+
+        // resp.header_set("Content-Type", "application/javascript");
+        // resp.header_set("Content-Encoding", "gzip");
 
         resp.header_set("Content-Type", content_type);
 
@@ -148,10 +169,11 @@ fn route(req: &HTTPRequest) -> Handler {
     let path = req.path().as_ref();
 
     match path {
-        "/"                              => Handler::HTTP(Box::new(RootHandler{})),
-        "/ws/v1"                         => Handler::WS(Box::new(WSHandler{})),
-        _ if path.starts_with("/static") => Handler::HTTP(Box::new(StaticDirHandler{})),
-        _                                => Handler::HTTP(Box::new(NotFoundHandler{})),
+        "/"                                      => Handler::HTTP(Box::new(RootHandler{})),
+        "/ws/v1"                                 => Handler::WS(Box::new(WSHandler{})),
+        "/static/main.js" | "/static/main.js.gz" => Handler::HTTP(Box::new(StaticMainJSHandler{})),
+        _ if path.starts_with("/static")         => Handler::HTTP(Box::new(StaticDirHandler{})),
+        _                                        => Handler::HTTP(Box::new(NotFoundHandler{})),
     }
 }
 
