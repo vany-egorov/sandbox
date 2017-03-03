@@ -1,4 +1,4 @@
 module.exports = {
-  'EXIT_SUCCESS': 0,
-  'EXIT_FAILURE': 1,
+  "EXIT_SUCCESS": 0,
+  "EXIT_FAILURE": 1,
 }
