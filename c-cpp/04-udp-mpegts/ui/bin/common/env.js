@@ -6,9 +6,9 @@ const PROD = 4
 
 
 function parse(v) {
-  let v = String(v)
+  v = String(v)
   v = v.toLowerCase()
-  v.replace("_", "-");
+  v = v.replace(/_/g, "-")
 
   switch (v) {
   case "1":
@@ -36,15 +36,26 @@ function parse(v) {
   return UNKNOWN
 }
 
-function is_dev() {
+function toString(v) {
+  switch (v) {
+  case DEV:
+    return "dev / development"
+  case TEST:
+    return "test"
+  case DEMO:
+    return "demo"
+  case PROD:
+    return "prod / production"
+  }
 
+  return "unknown"
 }
 
-function is_prod() {
-
-}
-
-function is
+function isUnknown(v) { return v == UNKNOWN }
+function isDev(v) { return v == DEV }
+function isTest(v) { return v == TEST }
+function isDemo(v) { return v == DEMO }
+function isProd(v) { return v == PROD }
 
 module.exports = {
   UNKNOWN: UNKNOWN,
@@ -52,4 +63,13 @@ module.exports = {
   TEST: TEST,
   DEMO: DEMO,
   PROD: PROD,
+
+  parse: parse,
+  toString: toString,
+
+  isUnknown: isUnknown,
+  isDev: isDev,
+  isTest: isTest,
+  isDemo: isDemo,
+  isProd: isProd,
 }

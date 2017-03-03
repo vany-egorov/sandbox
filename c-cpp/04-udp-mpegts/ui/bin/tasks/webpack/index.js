@@ -1,5 +1,5 @@
-const compiler = require('./compiler')
-const {log, error} = require('../../common/log')
+const compiler = require("./compiler")
+const {log, error} = require("../../common/log")
 
 function task() {
   return new Promise((resolve, reject) => {

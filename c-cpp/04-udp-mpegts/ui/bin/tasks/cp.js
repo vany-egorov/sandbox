@@ -1,6 +1,8 @@
+const {log} = require("../common/log")
+
 function task() {
   return new Promise((resolve, reject) => {
-    console.log("cp >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    log("[task] cp")
     resolve()
   })
 }

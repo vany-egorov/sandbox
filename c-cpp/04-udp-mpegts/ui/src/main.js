@@ -36,10 +36,18 @@ ws.onmessage = wsOnMessage
 ws.onclose = wsOnClose
 
 function render(store) {
-  ReactDOM.render(
-    <App store={store}/>,
-    document.getElementById("root")
-  )
+  const root = document.getElementById("root")
+
+  if (__DEV__) {
+    const RedBox = require("redbox-react").default
+    try {
+      ReactDOM.render(<App store={store}/>, root)
+    } catch (e) {
+      ReactDOM.render(<RedBox error={e} />, root)
+    }
+  } else {
+    ReactDOM.render(<App store={store}/>, root)
+  }
 }
 
 render(store)
