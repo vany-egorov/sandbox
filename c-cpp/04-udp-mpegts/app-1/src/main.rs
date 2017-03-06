@@ -35,7 +35,9 @@ use rustc_serialize::Encodable;
 mod va;
 
 lazy_static! {
-    static ref MAINJSGZ: &'static [u8] = include_bytes!("../../ui/static/main.js.gz");
+    static ref MAIN_JS_GZ: &'static [u8] = include_bytes!("../../ui/static/main.js.gz");
+    static ref MAIN_JS: &'static [u8] = include_bytes!("../../ui/static/main.js");
+    static ref INDEX_HTML: &'static [u8] = include_bytes!("../static/index.html");
 }
 
 
@@ -53,15 +55,17 @@ struct RootHandler {}
 
 impl HandlerHTTP for RootHandler {
     fn on_http_response(&mut self, _: u64, _: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> MIOTCPResult<()> {
-        let path = Path::new("./static/index.html");
+        // let path = Path::new("./static/index.html");
 
-        if !path.exists() {
-            resp.set_status(http::Status::NotFound);
-            return Ok(());
-        }
+        // if !path.exists() {
+        //     resp.set_status(http::Status::NotFound);
+        //     return Ok(());
+        // }
 
-        let mut r = try!(File::open(path));
-        try!(copy(&mut r, w));
+        // let mut r = try!(File::open(path));
+        // try!(copy(&mut r, w));
+
+        try!(w.write_all(&INDEX_HTML));
 
         resp.header_set("Content-Type",
             "text/html; charset=UTF-8");
@@ -78,6 +82,11 @@ struct StaticMainJSHandler { }
 
 impl HandlerHTTP for StaticMainJSHandler {
     fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> MIOTCPResult<()> {
+        resp.header_set("Content-Type", "application/javascript");
+        // resp.header_set("Content-Encoding", "gzip");
+
+        try!(w.write_all(&MAIN_JS));
+
         Ok(())
     }
     fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
@@ -118,7 +127,7 @@ impl HandlerHTTP for StaticDirHandler {
             _  => "text/plain; charset=UTF-8",
         };
 
-        // try!(w.write_all(&MAINJSGZ));
+        // try!(w.write_all(&MAIN_JS_GZ));
 
         // resp.header_set("Content-Type", "application/javascript");
         // resp.header_set("Content-Encoding", "gzip");

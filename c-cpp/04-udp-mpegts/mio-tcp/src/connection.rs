@@ -245,11 +245,19 @@ impl Connection {
         let content_length = resp_body.position() as usize;
         resp.set_content_length(content_length);
 
-        try!(
-            self.sock
-            .write(resp.to_string().as_bytes())
-            .and_then(|_| self.sock.write(&resp_body.into_inner()))
-        );
+        try!(self.sock.write(resp.to_string().as_bytes()));
+
+        let resp_body_data = &resp_body.into_inner();
+        let mut pos = 0;
+        let end = resp_body_data.len();
+        while pos < resp_body_data.len() {
+            // TODO: add sleep in case of:
+            //   Error { repr: Os { code: 11, message: "Resource temporarily unavailable" } }
+            //   IoErrorKind::WouldBlock
+            // or reschedule write to event loop to prevent infinite loop
+            pos += try!(map_non_block(self.sock.write(&resp_body_data[pos..end])))
+                .unwrap_or(0);
+        }
 
         if let State::HTTP(Some(ref req), ref mut _resp) = self.state {
             if let Some(ref mut handler) = self.handler {
