@@ -11,8 +11,8 @@ import {wsAtomsAddSingle} from "./actions"
 import App from "./components/app"
 
 const wsHost = window.location.hostname
-// const wsPort = window.location.port
-const wsPort = 8000
+let wsPort = 8000
+if (__PROD__) { wsPort =  window.location.port }
 const wsURL = `ws://${wsHost}:${wsPort}/ws/v1`
 
 function wsOnOpen() { }

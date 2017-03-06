@@ -44,7 +44,8 @@ int h264_annexb_parse(H264 *it, const uint8_t *data, const size_t datasz, const 
 	H264NALType nal_type = 0;
 	int got_es_start_code = 0;
 
-	if (1) {
+	// TODO: remove debug
+	if (0) {
 		if (!is_dump_h264_opened) {
 			f_dump_h264 = fopen("../tmp/out.h264", "wb");
 			is_dump_h264_opened = 1;

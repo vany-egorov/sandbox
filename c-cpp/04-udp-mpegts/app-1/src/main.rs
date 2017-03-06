@@ -1,4 +1,5 @@
 extern crate libc;
+extern crate clap;
 extern crate mio_tcp;
 extern crate env_logger;
 extern crate rustc_serialize;           // MessagePack
@@ -28,11 +29,21 @@ use mio_tcp::{
     ChannelSyncSender,
 
 };
+use clap::{
+    Arg,
+    App,
+    SubCommand,
+};
 use libc::{c_int, c_void};
 use msgpack::{Encoder, Decoder};
 use rustc_serialize::Encodable;
 
 mod va;
+
+const ENV_DEV: bool = false;
+const PATH_MAIN_JS_GZ: &'static str = "../../ui/static/main.js.gz";
+const PATH_MAIN_JS: &'static str = "../../ui/static/main.js";
+const PATH_INDEX_HTML: &'static str = "../static/index.html";
 
 lazy_static! {
     static ref MAIN_JS_GZ: &'static [u8] = include_bytes!("../../ui/static/main.js.gz");
@@ -55,20 +66,22 @@ struct RootHandler {}
 
 impl HandlerHTTP for RootHandler {
     fn on_http_response(&mut self, _: u64, _: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> MIOTCPResult<()> {
-        // let path = Path::new("./static/index.html");
-
-        // if !path.exists() {
-        //     resp.set_status(http::Status::NotFound);
-        //     return Ok(());
-        // }
-
-        // let mut r = try!(File::open(path));
-        // try!(copy(&mut r, w));
-
-        try!(w.write_all(&INDEX_HTML));
-
         resp.header_set("Content-Type",
             "text/html; charset=UTF-8");
+
+        if ENV_DEV {
+            let path = Path::new(PATH_INDEX_HTML);
+
+            if !path.exists() {
+                resp.set_status(http::Status::NotFound);
+                return Ok(());
+            }
+
+            let mut r = try!(File::open(path));
+            try!(copy(&mut r, w));
+        } else {
+            try!(w.write_all(&INDEX_HTML));
+        }
 
         Ok(())
     }
@@ -83,9 +96,22 @@ struct StaticMainJSHandler { }
 impl HandlerHTTP for StaticMainJSHandler {
     fn on_http_response(&mut self, _: u64, req: &HTTPRequest, resp: &mut HTTPResponse, w: &mut Write) -> MIOTCPResult<()> {
         resp.header_set("Content-Type", "application/javascript");
-        // resp.header_set("Content-Encoding", "gzip");
 
-        try!(w.write_all(&MAIN_JS));
+        if ENV_DEV {
+            let path = Path::new(PATH_MAIN_JS);
+
+            if !path.exists() {
+                resp.set_status(http::Status::NotFound);
+                return Ok(());
+            }
+
+            let mut r = try!(File::open(path));
+            try!(copy(&mut r, w));
+        } else {
+            resp.header_set("Content-Encoding", "gzip");
+
+            try!(w.write_all(&MAIN_JS_GZ));
+        }
 
         Ok(())
     }
@@ -249,6 +275,22 @@ unsafe extern "C" fn va_parser_parse_cb(ctx: *const c_void, aw: &va::AtomWrapper
 fn main() {
     env_logger::init().unwrap();
 
+    let matches = App::new("V/A tool")
+        .version("0.0.1")
+        .author("Ivan Egorov <vany.egorov@gmail.com>")
+        .about("Video/audio manipulation tool")
+        .arg(Arg::with_name("input")
+           .help("Sets the input file to use")
+           .required(true)
+           .index(1))
+        .get_matches();
+
+    let c_input = matches
+        .value_of("input")
+        .unwrap_or("udp://239.1.1.1:5500");
+
+    println!("input: {}", c_input);
+
     let addr: SocketAddr = match "0.0.0.0:8000".parse() {
         Ok(v) => v,
         Err(e) => {
@@ -269,7 +311,7 @@ fn main() {
     let mut va_parser: va::Parser = Default::default();
     let cb_ctx = CbCtx{tx: tx};
     let cb_ctx_ptr: *const c_void = &cb_ctx as *const _ as *const c_void;
-    let raw = std::ffi::CString::new("udp://239.1.1.1:5500").unwrap();
+    let raw = std::ffi::CString::new(c_input).unwrap();
     let va_parser_open_args = va::ParserOpenArgs{
         i_url_raw : raw.as_ptr(),
         cb : Some(va_parser_parse_cb),

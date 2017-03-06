@@ -8,12 +8,10 @@ const env = require("../../common/env")
 
 const webpackConfig = {
   devtool: "source-map",
-  entry: [
-    // The script refreshing the browser on none hot updates
-    "webpack-hot-middleware/client?reload=true&overlay=true",
-
-    resolve("src/main.js")
-  ],
+  stats: {
+    colors: true,
+    reasons: false
+  },
   output: {
     path: resolve("static"),
     publicPath: "/",
@@ -61,6 +59,17 @@ const webpackConfig = {
   ]
 }
 
+// entry
+const entryMain = resolve("src/main.js")
+// The script refreshing the browser on none hot updates
+const entryHMR = "webpack-hot-middleware/client?reload=true&overlay=true"
+if (env.isDev(config.env)) {
+  webpackConfig.entry = [entryMain, entryHMR]
+} else if (env.isProd(config.env)) {
+  webpackConfig.entry = [entryMain]
+}
+
+// plugins
 if (env.isDev(config.env)) {
   webpackConfig.plugins.push(
     new webpack.HotModuleReplacementPlugin(),
