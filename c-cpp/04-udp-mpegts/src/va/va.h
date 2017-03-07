@@ -91,6 +91,7 @@ struct va_parser_open_args_s {
 
 int va_parser_new(VAParser **out);
 int va_parser_open(VAParser *it, VAParserOpenArgs *args);
+int va_parser_probe_data(VAParser *it);
 int va_parser_go(VAParser *it);
 int va_parser_close(VAParser *it);
 int va_parser_del1(VAParser *it);

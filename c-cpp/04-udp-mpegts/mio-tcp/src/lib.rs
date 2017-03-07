@@ -28,6 +28,7 @@ pub use mio::Token;
 pub use mio::channel::SyncSender as ChannelSyncSender;
 pub use result::Result;
 pub use helpers::listen;
+pub use router::Router;
 pub use handler::Handler;
 pub use handler_tcp::HandlerTCP;
 pub use handler_http::HandlerHTTP;

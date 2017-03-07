@@ -27,6 +27,7 @@ use mio_tcp::{
     Message, MessageKind, MessageBody,
     ServerBuilder,
     ChannelSyncSender,
+    Router as MIOTCPRouter
 
 };
 use clap::{
@@ -47,7 +48,6 @@ const PATH_INDEX_HTML: &'static str = "../static/index.html";
 
 lazy_static! {
     static ref MAIN_JS_GZ: &'static [u8] = include_bytes!("../../ui/static/main.js.gz");
-    static ref MAIN_JS: &'static [u8] = include_bytes!("../../ui/static/main.js");
     static ref INDEX_HTML: &'static [u8] = include_bytes!("../static/index.html");
 }
 
@@ -153,15 +153,25 @@ impl HandlerHTTP for StaticDirHandler {
             _  => "text/plain; charset=UTF-8",
         };
 
-        // try!(w.write_all(&MAIN_JS_GZ));
-
-        // resp.header_set("Content-Type", "application/javascript");
-        // resp.header_set("Content-Encoding", "gzip");
-
         resp.header_set("Content-Type", content_type);
 
         let mut r = try!(File::open(path));
         try!(copy(&mut r, w));
+
+        Ok(())
+    }
+
+    fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
+        log_req_res(id, req, resp);
+    }
+}
+
+struct ChannelsProbeDataHandler<'a> {
+    va_parser: &'a va::Parser,
+}
+
+impl HandlerHTTP for ChannelsProbeDataHandler {
+    fn on_http_response(&mut self, _: u64, _: &HTTPRequest, resp: &mut HTTPResponse, _: &mut Write) -> MIOTCPResult<()> {
 
         Ok(())
     }
@@ -200,18 +210,30 @@ impl HandlerHTTP for NotFoundHandler {
 }
 
 
-fn route(req: &HTTPRequest) -> Handler {
-    let path = req.path().as_ref();
-
-    match path {
-        "/"                                      => Handler::HTTP(Box::new(RootHandler{})),
-        "/ws/v1"                                 => Handler::WS(Box::new(WSHandler{})),
-        "/static/main.js" | "/static/main.js.gz" => Handler::HTTP(Box::new(StaticMainJSHandler{})),
-        _ if path.starts_with("/static")         => Handler::HTTP(Box::new(StaticDirHandler{})),
-        _                                        => Handler::HTTP(Box::new(NotFoundHandler{})),
-    }
+struct MIOTCPRouter {
+    va_parser: &'a va::Parser,
 }
 
+impl MIOTCPRouter for Router {
+    fn route(req: &HTTPRequest) -> Handler {
+        let path = req.path().as_ref();
+
+        match path {
+            "/"                                      => Handler::HTTP(Box::new(RootHandler{})),
+            "/ws/v1"                                 => Handler::WS(Box::new(WSHandler{})),
+
+            // channel probe metadata:
+            //   - streams
+            //   - pids
+            //   - codecs, bitrates, resolution
+            "/api/v1/channels/probe-data" => Handler::HTTP(Box::new(ChannelsProbeDataHandler{})),
+
+            "/static/main.js" | "/static/main.js.gz" => Handler::HTTP(Box::new(StaticMainJSHandler{})),
+            _ if path.starts_with("/static")         => Handler::HTTP(Box::new(StaticDirHandler{})),
+            _                                        => Handler::HTTP(Box::new(NotFoundHandler{})),
+        }
+    }
+}
 
 pub struct CbCtx {
     tx: ChannelSyncSender<Message>,
@@ -291,6 +313,8 @@ fn main() {
 
     println!("input: {}", c_input);
 
+    let mut va_parser: va::Parser = Default::default();
+
     let addr: SocketAddr = match "0.0.0.0:8000".parse() {
         Ok(v) => v,
         Err(e) => {
@@ -308,7 +332,6 @@ fn main() {
     };
     let tx = server.tx();
 
-    let mut va_parser: va::Parser = Default::default();
     let cb_ctx = CbCtx{tx: tx};
     let cb_ctx_ptr: *const c_void = &cb_ctx as *const _ as *const c_void;
     let raw = std::ffi::CString::new(c_input).unwrap();
