@@ -27,8 +27,7 @@ use mio_tcp::{
     Message, MessageKind, MessageBody,
     ServerBuilder,
     ChannelSyncSender,
-    Router as MIOTCPRouter
-
+    // MIOTCPRouter as Router
 };
 use clap::{
     Arg,
@@ -166,20 +165,20 @@ impl HandlerHTTP for StaticDirHandler {
     }
 }
 
-struct ChannelsProbeDataHandler<'a> {
-    va_parser: &'a va::Parser,
-}
+// struct ChannelsProbeDataHandler<'a> {
+//     va_parser: &'a va::Parser,
+// }
 
-impl HandlerHTTP for ChannelsProbeDataHandler {
-    fn on_http_response(&mut self, _: u64, _: &HTTPRequest, resp: &mut HTTPResponse, _: &mut Write) -> MIOTCPResult<()> {
+// impl HandlerHTTP for ChannelsProbeDataHandler {
+//     fn on_http_response(&mut self, _: u64, _: &HTTPRequest, resp: &mut HTTPResponse, _: &mut Write) -> MIOTCPResult<()> {
 
-        Ok(())
-    }
+//         Ok(())
+//     }
 
-    fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
-        log_req_res(id, req, resp);
-    }
-}
+//     fn on_http_response_after(&mut self, id: u64, req: &HTTPRequest, resp: &HTTPResponse) {
+//         log_req_res(id, req, resp);
+//     }
+// }
 
 struct WSHandler { }
 
@@ -210,28 +209,40 @@ impl HandlerHTTP for NotFoundHandler {
 }
 
 
-struct MIOTCPRouter {
-    va_parser: &'a va::Parser,
-}
+// struct Router {
+//     va_parser: &'a va::Parser,
+// }
 
-impl MIOTCPRouter for Router {
-    fn route(req: &HTTPRequest) -> Handler {
-        let path = req.path().as_ref();
+// impl Router for MIOTCPRouter {
+//     fn route(req: &HTTPRequest) -> Handler {
+//         let path = req.path().as_ref();
 
-        match path {
-            "/"                                      => Handler::HTTP(Box::new(RootHandler{})),
-            "/ws/v1"                                 => Handler::WS(Box::new(WSHandler{})),
+//         match path {
+//             "/"                                      => Handler::HTTP(Box::new(RootHandler{})),
+//             "/ws/v1"                                 => Handler::WS(Box::new(WSHandler{})),
 
-            // channel probe metadata:
-            //   - streams
-            //   - pids
-            //   - codecs, bitrates, resolution
-            "/api/v1/channels/probe-data" => Handler::HTTP(Box::new(ChannelsProbeDataHandler{})),
+//             // channel probe metadata:
+//             //   - streams
+//             //   - pids
+//             //   - codecs, bitrates, resolution
+//             "/api/v1/channels/probe-data" => Handler::HTTP(Box::new(ChannelsProbeDataHandler{})),
 
-            "/static/main.js" | "/static/main.js.gz" => Handler::HTTP(Box::new(StaticMainJSHandler{})),
-            _ if path.starts_with("/static")         => Handler::HTTP(Box::new(StaticDirHandler{})),
-            _                                        => Handler::HTTP(Box::new(NotFoundHandler{})),
-        }
+//             "/static/main.js" | "/static/main.js.gz" => Handler::HTTP(Box::new(StaticMainJSHandler{})),
+//             _ if path.starts_with("/static")         => Handler::HTTP(Box::new(StaticDirHandler{})),
+//             _                                        => Handler::HTTP(Box::new(NotFoundHandler{})),
+//         }
+//     }
+// }
+
+fn route(req: &HTTPRequest) -> Handler {
+    let path = req.path().as_ref();
+
+    match path {
+        "/"                                      => Handler::HTTP(Box::new(RootHandler{})),
+        "/ws/v1"                                 => Handler::WS(Box::new(WSHandler{})),
+        "/static/main.js" | "/static/main.js.gz" => Handler::HTTP(Box::new(StaticMainJSHandler{})),
+        _ if path.starts_with("/static")         => Handler::HTTP(Box::new(StaticDirHandler{})),
+        _                                        => Handler::HTTP(Box::new(NotFoundHandler{})),
     }
 }
 
