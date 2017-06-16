@@ -6,8 +6,8 @@
 #include <stdlib.h> // malloc, NULL
 #include <stdint.h> // uint8_t
 
-#include "./url/url.h"
-#include "color.h"
+#include "../../url/url.h"
+#include "../../common/color.h"
 
 
 struct _Config {

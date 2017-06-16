@@ -1,5 +1,5 @@
 #include "h264.h"
-#include "../color.h"
+#include "../common/color.h"
 
 
 const char* h264_nal_type_string(H264NALType it) {

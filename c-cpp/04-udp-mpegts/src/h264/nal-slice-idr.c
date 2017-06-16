@@ -1,5 +1,5 @@
 #include "h264.h"
-#include "../color.h"
+#include "../common/color.h"
 
 
 int h264_nal_slice_idr_parse(H264NALSliceIDR *it, H264NALSPS *sps, const uint8_t *data) {

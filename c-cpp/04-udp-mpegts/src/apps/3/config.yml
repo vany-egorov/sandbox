@@ -1,0 +1,40 @@
+i:
+  - id: 1
+    name: DiscoveryHD
+    url: udp://239.255.1.1:5500
+    if: eth0.33
+
+    metrics:
+      - dts
+      - pts
+      - pcr
+      - no-signal
+      - missing-pid
+      - iat
+      - mlr
+      - h264-frames
+
+    o:
+      - url: file:///tmp/discovery-1.ts
+      - url: /tmp/discovery-2.ts
+
+  - id: 2
+    name: NatGeoWildHD
+    url: udp://239.255.1.2:5500
+    if: eth0.34
+
+    o:
+      - url: file:///tmp/nat-geo-wild-1.ts
+      - url: /tmp/nat-geo-wild-2.ts
+      - url: rtmp://172.16.1.2:5500
+      - url: udp://239.255.2.1:5500
+      - url: 239.255.2.2:5500
+
+color: true
+
+db:
+  path: /var/lib/va/db.vadb
+
+log:
+  min-level: trace
+  max-level: critical

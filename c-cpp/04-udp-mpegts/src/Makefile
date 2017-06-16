@@ -109,13 +109,19 @@ $(OBJS_DIR)/va-parser-worker-parse.o: ./va/parser-worker-parse.c
 $(OBJS_DIR)/va-parser.o: ./va/parser.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/config.o: ./config.c
+
+$(OBJS_DIR)/apps-1-config.o: ./apps/1/config.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/main-1.o: ./main-1.c
+$(OBJS_DIR)/apps-1-main.o: ./apps/1/main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/main-2.o: ./main-2.c
+
+$(OBJS_DIR)/apps-2-main.o: ./apps/2/main.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+
+$(OBJS_DIR)/apps-3-main.o: ./apps/3/main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
@@ -145,8 +151,10 @@ main-1: \
 	$(OBJS_DIR)/io-udp.o \
 	$(OBJS_DIR)/io-file.o \
 	$(OBJS_DIR)/io-io.o \
-	$(OBJS_DIR)/config.o \
-	$(OBJS_DIR)/main-1.o
+	\
+	$(OBJS_DIR)/apps-1-config.o \
+	$(OBJS_DIR)/apps-1-main.o
+
 	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
 
 main-2: \
@@ -179,7 +187,14 @@ main-2: \
 	$(OBJS_DIR)/va-parser.o \
 	$(OBJS_DIR)/va-parser-worker-read.o \
 	$(OBJS_DIR)/va-parser-worker-parse.o \
-	$(OBJS_DIR)/main-2.o
+	\
+	$(OBJS_DIR)/apps-2-main.o
+
+	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
+
+main-3: \
+	$(OBJS_DIR)/apps-3-main.o
+
 	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
 
 static: \
@@ -256,7 +271,7 @@ ensure-dirs:
 	mkdir -p $(BIN_DIR)
 	mkdir -p $(LIB_DIR)
 
-build: ensure-dirs static dynamic main-1 main-2 collections-slice-test
+build: ensure-dirs static dynamic main-1 main-2 main-3 collections-slice-test
 
 clean:
 	rm -rvf $(OBJS_DIR)/*.o
@@ -271,6 +286,7 @@ clean:
 	rm -rvf $(BIN_DIR)/*.a
 	rm -rvf $(BIN_DIR)/main-1
 	rm -rvf $(BIN_DIR)/main-2
+	rm -rvf $(BIN_DIR)/main-3
 	rm -rvf $(BIN_DIR)/collections-slice-test
 
 	rm -rvf $(LIB_DIR)/*.o
@@ -278,9 +294,10 @@ clean:
 	rm -rvf $(LIB_DIR)/*.a
 	rm -rvf $(LIB_DIR)/main-1
 	rm -rvf $(LIB_DIR)/main-2
+	rm -rvf $(LIB_DIR)/main-3
 	rm -rvf $(LIB_DIR)/collections-slice-test
 
 # tsplay ../tmp/hd.ts 239.1.1.1:5500 -loop
 run:
 	# $(OBJS_DIR)/main 2>&1 >out.log
-	$(OBJS_DIR)/main -i 239.1.1.1:5500
+	$(OBJS_DIR)/main-1 -i 239.1.1.1:5500

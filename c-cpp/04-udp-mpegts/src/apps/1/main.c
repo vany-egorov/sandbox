@@ -11,17 +11,17 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
-#include "./io/io.h"
-#include "./url/url.h"
-#include "./io/udp.h"
-#include "./io/file.h"
-#include "./db/db.h"
-#include "./collections/fifo.h"
-#include "./mpegts/mpegts.h"
-#include "./h264/h264.h"
+#include "../../io/io.h"
+#include "../../url/url.h"
+#include "../../io/udp.h"
+#include "../../io/file.h"
+#include "../../db/db.h"
+#include "../../collections/fifo.h"
+#include "../../mpegts/mpegts.h"
+#include "../../h264/h264.h"
 
-#include "color.h"
-#include "config.h"
+#include "../../common/color.h"
+#include "./config.h"
 
 
 typedef struct parse_worker_s ParseWorker;

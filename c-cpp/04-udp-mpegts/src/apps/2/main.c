@@ -5,7 +5,7 @@
 #include <sysexits.h>  /* EX_OK, EX_SOFTWARE */
 #include <semaphore.h> /* sem_t, sem_init, sem_wait, sem_post, sem_destroy */
 
-#include "./va/va.h"
+#include "../../va/va.h"
 
 
 sem_t sem = { 0 };

@@ -1,5 +1,5 @@
-#ifndef __COLOR__
-#define __COLOR__
+#ifndef __VA_COMMON_COLOR__
+#define __VA_COMMON_COLOR__
 
 
 #define COLOR_BRIGHT_BLACK    "\x1B[1;30m"
@@ -26,4 +26,4 @@
 #define COLORSTDERR(X, ...) fprintf(stderr, COLOR_BRIGHT_RED X COLOR_RESET "\n", ##__VA_ARGS__)
 
 
-#endif // __COLOR__
+#endif // __VA_COMMON_COLOR__
