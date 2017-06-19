@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 CXX := g++
 CXXFLAGS := -g
 
@@ -5,11 +7,14 @@ CC:= gcc
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
 CCFLAGS := -g -lpthread -lrt -fPIC -pthread
 
-LDFLAGS += -L/usr/lib64 -ldl -lstdc++
+PATH-PROJECT := $(shell pwd)
+OBJS-DIR := $(shell realpath $(PATH-PROJECT)/../obj)
+BIN-DIR := $(shell realpath $(PATH-PROJECT)/../bin)
+LIB-DIR := $(shell realpath $(PATH-PROJECT)/../lib)
 
-OBJS_DIR := ../obj
-BIN_DIR := ../bin
-LIB_DIR := ../lib
+PROJECT-INCLUDES := -I$(PATH-PROJECT)
+
+LDFLAGS += -L/usr/lib64 -ldl -lstdc++
 
 
 .DEFAULT: default
@@ -19,285 +24,294 @@ default: all
 all: build
 
 
-$(OBJS_DIR)/collections-slice.o: ./collections/slice.c
+$(OBJS-DIR)/collections-slice.o: ./collections/slice.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/collections-fifo.o: ./collections/fifo.c
+$(OBJS-DIR)/collections-fifo.o: ./collections/fifo.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/collections-slice-test.o: ./collections/slice-test.c
+$(OBJS-DIR)/collections-slice-test.o: ./collections/slice-test.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/db-db.o: ./db/db.c
+$(OBJS-DIR)/db-db.o: ./db/db.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-mpegts.o: ./mpegts/mpegts.c
+$(OBJS-DIR)/mpegts-mpegts.o: ./mpegts/mpegts.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-header.o: ./mpegts/header.c
+$(OBJS-DIR)/mpegts-header.o: ./mpegts/header.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-adaption.o: ./mpegts/adaption.c
+$(OBJS-DIR)/mpegts-adaption.o: ./mpegts/adaption.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-psi.o: ./mpegts/psi.c
+$(OBJS-DIR)/mpegts-psi.o: ./mpegts/psi.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-psi-cat.o: ./mpegts/psi-cat.c
+$(OBJS-DIR)/mpegts-psi-cat.o: ./mpegts/psi-cat.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-psi-nit.o: ./mpegts/psi-nit.c
+$(OBJS-DIR)/mpegts-psi-nit.o: ./mpegts/psi-nit.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-psi-pat.o: ./mpegts/psi-pat.c
+$(OBJS-DIR)/mpegts-psi-pat.o: ./mpegts/psi-pat.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-psi-pmt.o: ./mpegts/psi-pmt.c
+$(OBJS-DIR)/mpegts-psi-pmt.o: ./mpegts/psi-pmt.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-psi-sdt.o: ./mpegts/psi-sdt.c
+$(OBJS-DIR)/mpegts-psi-sdt.o: ./mpegts/psi-sdt.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-pes.o: ./mpegts/pes.c
+$(OBJS-DIR)/mpegts-pes.o: ./mpegts/pes.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/mpegts-es.o: ./mpegts/es.c
+$(OBJS-DIR)/mpegts-es.o: ./mpegts/es.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-h264.o: ./h264/h264.c
+$(OBJS-DIR)/h264-h264.o: ./h264/h264.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-nal-sps.o: ./h264/nal-sps.c
+$(OBJS-DIR)/h264-nal-sps.o: ./h264/nal-sps.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-nal-pps.o: ./h264/nal-pps.c
+$(OBJS-DIR)/h264-nal-pps.o: ./h264/nal-pps.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-nal-aud.o: ./h264/nal-aud.c
+$(OBJS-DIR)/h264-nal-aud.o: ./h264/nal-aud.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-nal-sei.o: ./h264/nal-sei.c
+$(OBJS-DIR)/h264-nal-sei.o: ./h264/nal-sei.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-nal-slice-idr.o: ./h264/nal-slice-idr.c
+$(OBJS-DIR)/h264-nal-slice-idr.o: ./h264/nal-slice-idr.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/h264-bitstream.o: ./h264/bitstream.c
+$(OBJS-DIR)/h264-bitstream.o: ./h264/bitstream.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/url-url.o: ./url/url.c
+$(OBJS-DIR)/url-url.o: ./url/url.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/io-io.o: ./io/io.c
+$(OBJS-DIR)/io-io.o: ./io/io.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/io-udp.o: ./io/udp.c
+$(OBJS-DIR)/io-udp.o: ./io/udp.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/io-file.o: ./io/file.c
+$(OBJS-DIR)/io-file.o: ./io/file.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/va-atom-kind.o: ./va/atom-kind.c
+$(OBJS-DIR)/va-atom-kind.o: ./va/atom-kind.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/va-parser-worker-read.o: ./va/parser-worker-read.c
+$(OBJS-DIR)/va-parser-worker-read.o: ./va/parser-worker-read.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/va-parser-worker-parse.o: ./va/parser-worker-parse.c
+$(OBJS-DIR)/va-parser-worker-parse.o: ./va/parser-worker-parse.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS_DIR)/va-parser.o: ./va/parser.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
-
-
-$(OBJS_DIR)/apps-1-config.o: ./apps/1/config.c
-	$(CC) $(CCFLAGS) -o $@ -c $<
-
-$(OBJS_DIR)/apps-1-main.o: ./apps/1/main.c
+$(OBJS-DIR)/va-parser.o: ./va/parser.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
-$(OBJS_DIR)/apps-2-main.o: ./apps/2/main.c
+$(OBJS-DIR)/apps-1-config.o: ./apps/1/config.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJS-DIR)/apps-1-main.o: ./apps/1/main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
-$(OBJS_DIR)/apps-3-main.o: ./apps/3/main.c
+$(OBJS-DIR)/apps-2-main.o: ./apps/2/main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
-main-1: \
-	$(OBJS_DIR)/collections-slice.o \
-	$(OBJS_DIR)/collections-fifo.o \
-	$(OBJS_DIR)/db-db.o \
-	$(OBJS_DIR)/mpegts-mpegts.o \
-	$(OBJS_DIR)/mpegts-header.o \
-	$(OBJS_DIR)/mpegts-adaption.o \
-	$(OBJS_DIR)/mpegts-psi.o \
-	$(OBJS_DIR)/mpegts-psi-cat.o \
-	$(OBJS_DIR)/mpegts-psi-nit.o \
-	$(OBJS_DIR)/mpegts-psi-pat.o \
-	$(OBJS_DIR)/mpegts-psi-pmt.o \
-	$(OBJS_DIR)/mpegts-psi-sdt.o \
-	$(OBJS_DIR)/mpegts-pes.o \
-	$(OBJS_DIR)/mpegts-es.o \
-	$(OBJS_DIR)/h264-h264.o \
-	$(OBJS_DIR)/h264-nal-sps.o \
-	$(OBJS_DIR)/h264-nal-pps.o \
-	$(OBJS_DIR)/h264-nal-aud.o \
-	$(OBJS_DIR)/h264-nal-sei.o \
-	$(OBJS_DIR)/h264-nal-slice-idr.o \
-	$(OBJS_DIR)/h264-bitstream.o \
-	$(OBJS_DIR)/url-url.o \
-	$(OBJS_DIR)/io-udp.o \
-	$(OBJS_DIR)/io-file.o \
-	$(OBJS_DIR)/io-io.o \
+$(OBJS-DIR)/apps-3-cfg.o: ./apps/3/cfg.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-main.o: ./apps/3/main.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+
+app-1: \
+	$(OBJS-DIR)/collections-slice.o \
+	$(OBJS-DIR)/collections-fifo.o \
+	$(OBJS-DIR)/db-db.o \
+	$(OBJS-DIR)/mpegts-mpegts.o \
+	$(OBJS-DIR)/mpegts-header.o \
+	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-psi.o \
+	$(OBJS-DIR)/mpegts-psi-cat.o \
+	$(OBJS-DIR)/mpegts-psi-nit.o \
+	$(OBJS-DIR)/mpegts-psi-pat.o \
+	$(OBJS-DIR)/mpegts-psi-pmt.o \
+	$(OBJS-DIR)/mpegts-psi-sdt.o \
+	$(OBJS-DIR)/mpegts-pes.o \
+	$(OBJS-DIR)/mpegts-es.o \
+	$(OBJS-DIR)/h264-h264.o \
+	$(OBJS-DIR)/h264-nal-sps.o \
+	$(OBJS-DIR)/h264-nal-pps.o \
+	$(OBJS-DIR)/h264-nal-aud.o \
+	$(OBJS-DIR)/h264-nal-sei.o \
+	$(OBJS-DIR)/h264-nal-slice-idr.o \
+	$(OBJS-DIR)/h264-bitstream.o \
+	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/io-udp.o \
+	$(OBJS-DIR)/io-file.o \
+	$(OBJS-DIR)/io-io.o \
 	\
-	$(OBJS_DIR)/apps-1-config.o \
-	$(OBJS_DIR)/apps-1-main.o
+	$(OBJS-DIR)/apps-1-config.o \
+	$(OBJS-DIR)/apps-1-main.o
 
-	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
-main-2: \
-	$(OBJS_DIR)/collections-slice.o \
-	$(OBJS_DIR)/collections-fifo.o \
-	$(OBJS_DIR)/db-db.o \
-	$(OBJS_DIR)/mpegts-mpegts.o \
-	$(OBJS_DIR)/mpegts-header.o \
-	$(OBJS_DIR)/mpegts-adaption.o \
-	$(OBJS_DIR)/mpegts-psi.o \
-	$(OBJS_DIR)/mpegts-psi-cat.o \
-	$(OBJS_DIR)/mpegts-psi-nit.o \
-	$(OBJS_DIR)/mpegts-psi-pat.o \
-	$(OBJS_DIR)/mpegts-psi-pmt.o \
-	$(OBJS_DIR)/mpegts-psi-sdt.o \
-	$(OBJS_DIR)/mpegts-pes.o \
-	$(OBJS_DIR)/mpegts-es.o \
-	$(OBJS_DIR)/h264-h264.o \
-	$(OBJS_DIR)/h264-nal-sps.o \
-	$(OBJS_DIR)/h264-nal-pps.o \
-	$(OBJS_DIR)/h264-nal-aud.o \
-	$(OBJS_DIR)/h264-nal-sei.o \
-	$(OBJS_DIR)/h264-nal-slice-idr.o \
-	$(OBJS_DIR)/h264-bitstream.o \
-	$(OBJS_DIR)/url-url.o \
-	$(OBJS_DIR)/io-udp.o \
-	$(OBJS_DIR)/io-file.o \
-	$(OBJS_DIR)/io-io.o \
-	$(OBJS_DIR)/va-atom-kind.o \
-	$(OBJS_DIR)/va-parser.o \
-	$(OBJS_DIR)/va-parser-worker-read.o \
-	$(OBJS_DIR)/va-parser-worker-parse.o \
+app-2: \
+	$(OBJS-DIR)/collections-slice.o \
+	$(OBJS-DIR)/collections-fifo.o \
+	$(OBJS-DIR)/db-db.o \
+	$(OBJS-DIR)/mpegts-mpegts.o \
+	$(OBJS-DIR)/mpegts-header.o \
+	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-psi.o \
+	$(OBJS-DIR)/mpegts-psi-cat.o \
+	$(OBJS-DIR)/mpegts-psi-nit.o \
+	$(OBJS-DIR)/mpegts-psi-pat.o \
+	$(OBJS-DIR)/mpegts-psi-pmt.o \
+	$(OBJS-DIR)/mpegts-psi-sdt.o \
+	$(OBJS-DIR)/mpegts-pes.o \
+	$(OBJS-DIR)/mpegts-es.o \
+	$(OBJS-DIR)/h264-h264.o \
+	$(OBJS-DIR)/h264-nal-sps.o \
+	$(OBJS-DIR)/h264-nal-pps.o \
+	$(OBJS-DIR)/h264-nal-aud.o \
+	$(OBJS-DIR)/h264-nal-sei.o \
+	$(OBJS-DIR)/h264-nal-slice-idr.o \
+	$(OBJS-DIR)/h264-bitstream.o \
+	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/io-udp.o \
+	$(OBJS-DIR)/io-file.o \
+	$(OBJS-DIR)/io-io.o \
+	$(OBJS-DIR)/va-atom-kind.o \
+	$(OBJS-DIR)/va-parser.o \
+	$(OBJS-DIR)/va-parser-worker-read.o \
+	$(OBJS-DIR)/va-parser-worker-parse.o \
 	\
-	$(OBJS_DIR)/apps-2-main.o
+	$(OBJS-DIR)/apps-2-main.o
 
-	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
-main-3: \
-	$(OBJS_DIR)/apps-3-main.o
+app-3: \
+	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/collections-slice.o \
+	\
+	$(OBJS-DIR)/apps-3-cfg.o \
+	\
+	$(OBJS-DIR)/apps-3-main.o
 
-	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
 static: \
-	$(OBJS_DIR)/collections-slice.o \
-	$(OBJS_DIR)/collections-fifo.o \
-	$(OBJS_DIR)/db-db.o \
-	$(OBJS_DIR)/mpegts-mpegts.o \
-	$(OBJS_DIR)/mpegts-header.o \
-	$(OBJS_DIR)/mpegts-adaption.o \
-	$(OBJS_DIR)/mpegts-psi.o \
-	$(OBJS_DIR)/mpegts-psi-cat.o \
-	$(OBJS_DIR)/mpegts-psi-nit.o \
-	$(OBJS_DIR)/mpegts-psi-pat.o \
-	$(OBJS_DIR)/mpegts-psi-pmt.o \
-	$(OBJS_DIR)/mpegts-psi-sdt.o \
-	$(OBJS_DIR)/mpegts-pes.o \
-	$(OBJS_DIR)/mpegts-es.o \
-	$(OBJS_DIR)/h264-h264.o \
-	$(OBJS_DIR)/h264-nal-sps.o \
-	$(OBJS_DIR)/h264-nal-pps.o \
-	$(OBJS_DIR)/h264-nal-aud.o \
-	$(OBJS_DIR)/h264-nal-sei.o \
-	$(OBJS_DIR)/h264-nal-slice-idr.o \
-	$(OBJS_DIR)/h264-bitstream.o \
-	$(OBJS_DIR)/url-url.o \
-	$(OBJS_DIR)/io-udp.o \
-	$(OBJS_DIR)/io-file.o \
-	$(OBJS_DIR)/io-io.o \
-	$(OBJS_DIR)/va-atom-kind.o \
-	$(OBJS_DIR)/va-parser.o \
-	$(OBJS_DIR)/va-parser-worker-read.o \
-	$(OBJS_DIR)/va-parser-worker-parse.o
-	ar -cvq $(LIB_DIR)/libva.a $+
+	$(OBJS-DIR)/collections-slice.o \
+	$(OBJS-DIR)/collections-fifo.o \
+	$(OBJS-DIR)/db-db.o \
+	$(OBJS-DIR)/mpegts-mpegts.o \
+	$(OBJS-DIR)/mpegts-header.o \
+	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-psi.o \
+	$(OBJS-DIR)/mpegts-psi-cat.o \
+	$(OBJS-DIR)/mpegts-psi-nit.o \
+	$(OBJS-DIR)/mpegts-psi-pat.o \
+	$(OBJS-DIR)/mpegts-psi-pmt.o \
+	$(OBJS-DIR)/mpegts-psi-sdt.o \
+	$(OBJS-DIR)/mpegts-pes.o \
+	$(OBJS-DIR)/mpegts-es.o \
+	$(OBJS-DIR)/h264-h264.o \
+	$(OBJS-DIR)/h264-nal-sps.o \
+	$(OBJS-DIR)/h264-nal-pps.o \
+	$(OBJS-DIR)/h264-nal-aud.o \
+	$(OBJS-DIR)/h264-nal-sei.o \
+	$(OBJS-DIR)/h264-nal-slice-idr.o \
+	$(OBJS-DIR)/h264-bitstream.o \
+	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/io-udp.o \
+	$(OBJS-DIR)/io-file.o \
+	$(OBJS-DIR)/io-io.o \
+	$(OBJS-DIR)/va-atom-kind.o \
+	$(OBJS-DIR)/va-parser.o \
+	$(OBJS-DIR)/va-parser-worker-read.o \
+	$(OBJS-DIR)/va-parser-worker-parse.o
+	ar -cvq $(LIB-DIR)/libva.a $+
 
 dynamic: \
-	$(OBJS_DIR)/collections-slice.o \
-	$(OBJS_DIR)/collections-fifo.o \
-	$(OBJS_DIR)/db-db.o \
-	$(OBJS_DIR)/mpegts-mpegts.o \
-	$(OBJS_DIR)/mpegts-header.o \
-	$(OBJS_DIR)/mpegts-adaption.o \
-	$(OBJS_DIR)/mpegts-psi.o \
-	$(OBJS_DIR)/mpegts-psi-cat.o \
-	$(OBJS_DIR)/mpegts-psi-nit.o \
-	$(OBJS_DIR)/mpegts-psi-pat.o \
-	$(OBJS_DIR)/mpegts-psi-pmt.o \
-	$(OBJS_DIR)/mpegts-psi-sdt.o \
-	$(OBJS_DIR)/mpegts-pes.o \
-	$(OBJS_DIR)/mpegts-es.o \
-	$(OBJS_DIR)/h264-h264.o \
-	$(OBJS_DIR)/h264-nal-sps.o \
-	$(OBJS_DIR)/h264-nal-pps.o \
-	$(OBJS_DIR)/h264-nal-aud.o \
-	$(OBJS_DIR)/h264-nal-sei.o \
-	$(OBJS_DIR)/h264-nal-slice-idr.o \
-	$(OBJS_DIR)/h264-bitstream.o \
-	$(OBJS_DIR)/url-url.o \
-	$(OBJS_DIR)/io-udp.o \
-	$(OBJS_DIR)/io-file.o \
-	$(OBJS_DIR)/io-io.o \
-	$(OBJS_DIR)/va-atom-kind.o \
-	$(OBJS_DIR)/va-parser.o \
-	$(OBJS_DIR)/va-parser-worker-read.o \
-	$(OBJS_DIR)/va-parser-worker-parse.o
-	$(CC) $+ -shared -o $(LIB_DIR)/libva.so
+	$(OBJS-DIR)/collections-slice.o \
+	$(OBJS-DIR)/collections-fifo.o \
+	$(OBJS-DIR)/db-db.o \
+	$(OBJS-DIR)/mpegts-mpegts.o \
+	$(OBJS-DIR)/mpegts-header.o \
+	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-psi.o \
+	$(OBJS-DIR)/mpegts-psi-cat.o \
+	$(OBJS-DIR)/mpegts-psi-nit.o \
+	$(OBJS-DIR)/mpegts-psi-pat.o \
+	$(OBJS-DIR)/mpegts-psi-pmt.o \
+	$(OBJS-DIR)/mpegts-psi-sdt.o \
+	$(OBJS-DIR)/mpegts-pes.o \
+	$(OBJS-DIR)/mpegts-es.o \
+	$(OBJS-DIR)/h264-h264.o \
+	$(OBJS-DIR)/h264-nal-sps.o \
+	$(OBJS-DIR)/h264-nal-pps.o \
+	$(OBJS-DIR)/h264-nal-aud.o \
+	$(OBJS-DIR)/h264-nal-sei.o \
+	$(OBJS-DIR)/h264-nal-slice-idr.o \
+	$(OBJS-DIR)/h264-bitstream.o \
+	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/io-udp.o \
+	$(OBJS-DIR)/io-file.o \
+	$(OBJS-DIR)/io-io.o \
+	$(OBJS-DIR)/va-atom-kind.o \
+	$(OBJS-DIR)/va-parser.o \
+	$(OBJS-DIR)/va-parser-worker-read.o \
+	$(OBJS-DIR)/va-parser-worker-parse.o
+	$(CC) $+ -shared -o $(LIB-DIR)/libva.so
 
 collections-slice-test: \
-	$(OBJS_DIR)/collections-slice.o \
-	$(OBJS_DIR)/collections-slice-test.o
-	$(CC) $(CCFLAGS) -o $(BIN_DIR)/$@ $+ $(LDFLAGS)
+	$(OBJS-DIR)/collections-slice.o \
+	$(OBJS-DIR)/collections-slice-test.o
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
 ensure-dirs:
-	mkdir -p $(OBJS_DIR)
-	mkdir -p $(BIN_DIR)
-	mkdir -p $(LIB_DIR)
+	mkdir -p $(OBJS-DIR)
+	mkdir -p $(BIN-DIR)
+	mkdir -p $(LIB-DIR)
 
-build: ensure-dirs static dynamic main-1 main-2 main-3 collections-slice-test
+build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test
 
 clean:
-	rm -rvf $(OBJS_DIR)/*.o
-	rm -rvf $(OBJS_DIR)/*.so
-	rm -rvf $(OBJS_DIR)/*.a
-	rm -rvf $(OBJS_DIR)/main-1
-	rm -rvf $(OBJS_DIR)/main-2
-	rm -rvf $(OBJS_DIR)/collections-slice-test
+	rm -rvf $(OBJS-DIR)/*.o
+	rm -rvf $(OBJS-DIR)/*.so
+	rm -rvf $(OBJS-DIR)/*.a
+	rm -rvf $(OBJS-DIR)/app-1
+	rm -rvf $(OBJS-DIR)/app-2
+	rm -rvf $(OBJS-DIR)/app-3
+	rm -rvf $(OBJS-DIR)/collections-slice-test
 
-	rm -rvf $(BIN_DIR)/*.o
-	rm -rvf $(BIN_DIR)/*.so
-	rm -rvf $(BIN_DIR)/*.a
-	rm -rvf $(BIN_DIR)/main-1
-	rm -rvf $(BIN_DIR)/main-2
-	rm -rvf $(BIN_DIR)/main-3
-	rm -rvf $(BIN_DIR)/collections-slice-test
+	rm -rvf $(BIN-DIR)/*.o
+	rm -rvf $(BIN-DIR)/*.so
+	rm -rvf $(BIN-DIR)/*.a
+	rm -rvf $(BIN-DIR)/app-1
+	rm -rvf $(BIN-DIR)/app-2
+	rm -rvf $(BIN-DIR)/app-3
+	rm -rvf $(BIN-DIR)/collections-slice-test
 
-	rm -rvf $(LIB_DIR)/*.o
-	rm -rvf $(LIB_DIR)/*.so
-	rm -rvf $(LIB_DIR)/*.a
-	rm -rvf $(LIB_DIR)/main-1
-	rm -rvf $(LIB_DIR)/main-2
-	rm -rvf $(LIB_DIR)/main-3
-	rm -rvf $(LIB_DIR)/collections-slice-test
+	rm -rvf $(LIB-DIR)/*.o
+	rm -rvf $(LIB-DIR)/*.so
+	rm -rvf $(LIB-DIR)/*.a
+	rm -rvf $(LIB-DIR)/app-1
+	rm -rvf $(LIB-DIR)/app-2
+	rm -rvf $(LIB-DIR)/app-3
+	rm -rvf $(LIB-DIR)/collections-slice-test
 
 # tsplay ../tmp/hd.ts 239.1.1.1:5500 -loop
 run:
-	# $(OBJS_DIR)/main 2>&1 >out.log
-	$(OBJS_DIR)/main-1 -i 239.1.1.1:5500
+	# $(OBJS-DIR)/app 2>&1 >out.log
+	$(OBJS-DIR)/app-1 -i 239.1.1.1:5500

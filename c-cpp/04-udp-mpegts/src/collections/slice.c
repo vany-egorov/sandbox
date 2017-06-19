@@ -29,13 +29,19 @@ int slice_tail_copy_data(Slice *it, void *el_out) {
 	return 0;
 }
 
-// TODO: handle not enought memory
+/* TODO: handle not enought memory */
 int slice_append(Slice *it, const void *el) {
 	size_t cap_new = 0;
+	void *els_new = NULL;
 
 	if (it->len == it->cap) { // realloc
 		cap_new = it->cap + (size_t)(it->cap * SLICE_REALLOC_FACTOR);
-		it->els = realloc(it->els, cap_new*it->el_size);
+		els_new = realloc(it->els, cap_new*it->el_size);
+
+		/* not enought memory */
+		if (!els_new) return 1;
+
+		it->els = els_new;
 		it->cap = cap_new;
 	}
 

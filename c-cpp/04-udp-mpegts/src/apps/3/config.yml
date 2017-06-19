@@ -30,6 +30,12 @@ i:
       - url: udp://239.255.2.1:5500
       - url: 239.255.2.2:5500
 
+  - id: 3
+    name: NatGeoWildHD
+    url: /tmp/dump-i.ts
+    o:
+      - url: file:///tmp/dump-o.ts
+
 color: true
 
 db:

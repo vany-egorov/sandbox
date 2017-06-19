@@ -1,12 +1,96 @@
 #ifndef __APPS_3_CFG__
 #define __APPS_3_CFG__
 
-typedef struct cfg_i_s CfgI;
+
+#include <url/url.h>
+#include <collections/slice.h>
+
+
+#define CFG_END_OPTIONS "--"
+/* key only */
+#define CFG_MATCH_OPTION_KEY(X, Y) \
+	(                            \
+		(!strcmp(X, "-"Y))     ||  \
+		(!strcmp(X, "--"Y))    ||  \
+		(!strcmp(X, "-"Y":"))  ||  \
+		(!strcmp(X, "-"Y"="))  ||  \
+		(!strcmp(X, "--"Y":")) ||  \
+		(!strcmp(X, "--"Y"="))     \
+	)
+/* key=value */
+#define CFG_MATCH_OPTION_KEY_VALUE(X, Y)   \
+	(                                        \
+		(                                      \
+			(strlen(X) > (strlen(Y)+2)) &&       \
+			(!strncmp(X, "-"Y"=", strlen(Y)+2))  \
+		) ||                                   \
+		(                                      \
+			(strlen(X) > (strlen(Y)+3)) &&       \
+			(!strncmp(X, "--"Y"=", strlen(Y)+3)) \
+		)                                      \
+	)
+#define CFG_MATCH_OPTION(X, Y)       \
+	(                                  \
+		CFG_MATCH_OPTION_KEY(X, Y) ||    \
+		CFG_MATCH_OPTION_KEY_VALUE(X, Y) \
+	)
+#define CFG_IS_OPTION(X)     \
+	(                          \
+		(!strncmp(X, "-", 1)) || \
+		(!strncmp(X, "--", 2))   \
+	)
+
+/* positional arguments */
+#define CFG_STATE_POS 0x01
+/* keyword/option arguments (--i ..., -i ..., i: ..., i=...) */
+#define CFG_STATE_KEY 0x02
+/* got "--" */
+#define CFG_STATE_END 0x04
+#define CFG_STATE_SET_POS(X) \
+	X &= ~CFG_STATE_KEY; \
+	X |= CFG_STATE_POS;
+#define CFG_STATE_SET_KEY(X) \
+	X &= ~CFG_STATE_POS; \
+	X |= CFG_STATE_KEY;
+#define CFG_STATE_SET_END(X) X |= CFG_STATE_END;
+
+
+typedef struct cfg_s   CFG;
+typedef struct cfg_i_s CFGI;
+typedef struct cfg_o_s CFGO;
+
+
+struct cfg_s {
+	int v;  /* show version and exit */
+	int h;  /* show help */
+	char *c;  /* path to config file */
+	int print_cfg;  /* print/log configuration */
+
+	Slice *i;  /* inputs */
+};
 
 struct cfg_i_s {
+	uint64_t id;
+	char *name;
 
-}
+	URL url;
 
+	Slice *o;  /* outputs */
+};
+
+struct cfg_o_s {
+	URL *url;
+};
+
+
+/* memory allocation */
+int cfg_new(CFG **out);
+
+/* set initial state */
+int cfg_init(CFG *it);
+
+/* command-line SAX parser */
+int cfg_parse(CFG *it, int argc, char **argv);
 
 
 #endif // __APPS_3_CFG__
