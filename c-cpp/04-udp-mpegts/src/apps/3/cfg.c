@@ -24,18 +24,57 @@ int cfg_init(CFG *it) {
 	return ret;
 }
 
-static int cfg_get_v(int argc, char **argv, int i, char *k, const char *option, char **v) {
+static int get_v(int argc, char **argv, int i, char *k, const char *option, char **v) {
 	int ret = 0;
-
-	if CFG_MATCH_OPTION_KEY_VALUE(k, option) {
-		printf("!!!!!!!!!\n");
-	}
 
 	*v = argv[i+1];
 
 cleanup:
 	return ret;
 }
+
+
+#define BUFFER_PUSH(X, Y)                             \
+	n = snprintf(rc, rbufsz, Y, r);                     \
+	if ((n > 0) && (n < rbufsz)) {                      \
+		X = rc;                                           \
+		rc += n + 1;  /* n + \0 chracter */               \
+		rbufsz -= (size_t)(n + 1);  /* n + \0 chracter */ \
+	}
+
+/* match left and right
+ l => left
+ r => right */
+static int match_option(char *l, char *r) {
+	int ret = 0;
+	int n = 0;  /* bytes written to buffer */
+	char rbuf[1024] = { 0 },
+	     *rc = NULL,  /* r => right-cursor */
+	     *r1 = NULL,
+	     *r2 = NULL,
+	     *r3 = NULL,
+	     *r4 = NULL,
+	     *r5 = NULL,
+	     *r6 = NULL,
+	     *r7 = NULL;
+	size_t rbufsz = 0;
+
+	rc = rbuf;
+	rbufsz = sizeof(rbuf);
+
+	BUFFER_PUSH(r1, "-%s")
+	BUFFER_PUSH(r2, "--%s")
+	BUFFER_PUSH(r3, "-%s:")
+	BUFFER_PUSH(r4, "--%s:")
+	BUFFER_PUSH(r5, "--%s:")
+	BUFFER_PUSH(r6, "-%s=")
+	BUFFER_PUSH(r7, "--%s=")
+
+	printf("match-option: %s, %s, %s, %s, %s, %s, %s\n", r1, r2, r3, r4, r5, r6 ,r7);
+
+	return ret;
+}
+#undef BUFFER_PUSH
 
 /* command-line SAX parser */
 int cfg_parse(CFG *it, int argc, char **argv) {
@@ -67,8 +106,10 @@ int cfg_parse(CFG *it, int argc, char **argv) {
 			slice_append(it->i, &cfg_i);
 
 		} else if (state & CFG_STATE_KEY) {
+			match_option(k, "i");
+
 			if CFG_MATCH_OPTION(k, "i") {
-				cfg_get_v(argc, argv, i, "i", k, &v);
+				get_v(argc, argv, i, "i", k, &v);
 
 				printf("%s => %s\n", k, v);
 			}
