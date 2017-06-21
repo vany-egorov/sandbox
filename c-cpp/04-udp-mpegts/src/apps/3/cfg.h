@@ -7,38 +7,6 @@
 
 
 #define CFG_END_OPTIONS "--"
-/* key only */
-#define CFG_MATCH_OPTION_KEY(X, Y) \
-	(                            \
-		(!strcmp(X, "-"Y))     ||  \
-		(!strcmp(X, "--"Y))    ||  \
-		(!strcmp(X, "-"Y":"))  ||  \
-		(!strcmp(X, "-"Y"="))  ||  \
-		(!strcmp(X, "--"Y":")) ||  \
-		(!strcmp(X, "--"Y"="))     \
-	)
-/* key=value */
-#define CFG_MATCH_OPTION_KEY_VALUE(X, Y)   \
-	(                                        \
-		(                                      \
-			(strlen(X) > (strlen(Y)+2)) &&       \
-			(!strncmp(X, "-"Y"=", strlen(Y)+2))  \
-		) ||                                   \
-		(                                      \
-			(strlen(X) > (strlen(Y)+3)) &&       \
-			(!strncmp(X, "--"Y"=", strlen(Y)+3)) \
-		)                                      \
-	)
-#define CFG_MATCH_OPTION(X, Y)       \
-	(                                  \
-		CFG_MATCH_OPTION_KEY(X, Y) ||    \
-		CFG_MATCH_OPTION_KEY_VALUE(X, Y) \
-	)
-#define CFG_IS_OPTION(X)     \
-	(                          \
-		(!strncmp(X, "-", 1)) || \
-		(!strncmp(X, "--", 2))   \
-	)
 
 /* positional arguments */
 #define CFG_STATE_POS 0x01

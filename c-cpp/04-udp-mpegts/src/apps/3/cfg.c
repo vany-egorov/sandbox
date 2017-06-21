@@ -33,48 +33,78 @@ cleanup:
 	return ret;
 }
 
-
-#define BUFFER_PUSH(X, Y)                             \
-	n = snprintf(rc, rbufsz, Y, r);                     \
-	if ((n > 0) && (n < rbufsz)) {                      \
-		X = rc;                                           \
-		rc += n + 1;  /* n + \0 chracter */               \
-		rbufsz -= (size_t)(n + 1);  /* n + \0 chracter */ \
-	}
-
-/* match left and right
+/* --key value
+ match left and right
  l => left
- r => right */
-static int match_option(char *l, char *r) {
+ rraw => right raw (not formatted) */
+static int match_option_key(char *l, char *rraw) {
 	int ret = 0;
 	int n = 0;  /* bytes written to buffer */
-	char rbuf[1024] = { 0 },
-	     *rc = NULL,  /* r => right-cursor */
-	     *r1 = NULL,
-	     *r2 = NULL,
-	     *r3 = NULL,
-	     *r4 = NULL,
-	     *r5 = NULL,
-	     *r6 = NULL,
-	     *r7 = NULL;
-	size_t rbufsz = 0;
+	char r[255] = { 0 };  /* formatted buffer / right */
+	size_t rsz = sizeof(r);
 
-	rc = rbuf;
-	rbufsz = sizeof(rbuf);
+	const char *patterns[] = {
+		"-%s", "--%s",
+		"-%s:", "--%s:",
+		"-%s=", "--%s=",
+		NULL
+	};
 
-	BUFFER_PUSH(r1, "-%s")
-	BUFFER_PUSH(r2, "--%s")
-	BUFFER_PUSH(r3, "-%s:")
-	BUFFER_PUSH(r4, "--%s:")
-	BUFFER_PUSH(r5, "--%s:")
-	BUFFER_PUSH(r6, "-%s=")
-	BUFFER_PUSH(r7, "--%s=")
+	{const char **p = NULL; for (p = patterns; *p != NULL; p++) {
+		n = snprintf(r, rsz, *p, rraw);
+		if ((n > 0) && (n < rsz)) {
+			if (!strcmp(l, r)) { ret = 1; goto cleanup; }
+		}
+	}}
 
-	printf("match-option: %s, %s, %s, %s, %s, %s, %s\n", r1, r2, r3, r4, r5, r6 ,r7);
-
+cleanup:
 	return ret;
 }
-#undef BUFFER_PUSH
+
+
+/* --key=value
+ match left and right
+ l => left
+ rraw => right raw (not formatted) */
+static int match_option_key_value(char *l, char *rraw) {
+	int ret = 0;
+	int n = 0;  /* bytes written to buffer */
+	char r[255] = { 0 };  /* formatted buffer / right */
+	size_t rsz = sizeof(r);
+
+	const char *patterns[] = {
+		"-%s=", "--%s=",
+		NULL
+	};
+
+	{const char **p = NULL; for (p = patterns; *p != NULL; p++) {
+		n = snprintf(r, rsz, *p, rraw);
+		if ((n > 0) && (n < rsz)) {
+			if (
+				(strlen(l) > strlen(r)) &&
+				(!strncmp(l, r, strlen(r)))
+			) {
+				ret = 1;
+				goto cleanup;
+			}
+		}
+	}}
+
+cleanup:
+	return ret;
+}
+
+/* match both:
+ --key value
+ --key=value
+*/
+static int match_option(char *l, char *r) {
+	if (match_option_key(l, r)) return 1;
+	if (match_option_key_value(l, r)) return 1;
+
+	return 0;
+}
+
 
 /* command-line SAX parser */
 int cfg_parse(CFG *it, int argc, char **argv) {
@@ -106,12 +136,8 @@ int cfg_parse(CFG *it, int argc, char **argv) {
 			slice_append(it->i, &cfg_i);
 
 		} else if (state & CFG_STATE_KEY) {
-			match_option(k, "i");
-
-			if CFG_MATCH_OPTION(k, "i") {
+			if (match_option(k, "i")) {
 				get_v(argc, argv, i, "i", k, &v);
-
-				printf("%s => %s\n", k, v);
 			}
 		}
 	}}
