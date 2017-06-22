@@ -36,6 +36,10 @@ i:
     o:
       - url: file:///tmp/dump-o.ts
 
+  - id: 4
+    name: RBC
+    url: http://online.video.rbc.ru/online/rbctv_480p/index.m3u8
+
 color: true
 
 db:

@@ -2,9 +2,9 @@
 #define __CONFIG__
 
 
-#include <stdio.h>  // printf
-#include <stdlib.h> // malloc, NULL
-#include <stdint.h> // uint8_t
+#include <stdio.h>  /* printf */
+#include <stdlib.h> /* malloc, NULL */
+#include <stdint.h> /* uint8_t */
 
 #include "../../url/url.h"
 #include "../../common/color.h"
@@ -26,4 +26,4 @@ int config_parse(Config *it, int argc, char **argv);
 void config_print(Config *it);
 void config_help(void);
 
-#endif // __CONFIG__
+#endif /* __CONFIG__ */
