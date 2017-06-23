@@ -1,28 +1,5 @@
-#include "./cfg.h"
+#include "./opt.h"
 
-
-/* memory allocation */
-int cfg_new(CFG **out) {
-	int ret = 0;
-	CFG *it = NULL;
-
-	it = calloc(1, sizeof(CFG));
-	if (!it) {
-		return 1;
-	}
-	*out = it;
-
-	return ret;
-}
-
-/* set initial state */
-int cfg_init(CFG *it) {
-	int ret = 0;
-
-	it->i = NULL;
-
-	return ret;
-}
 
 /* --key value
  match left and right
@@ -53,7 +30,6 @@ static int match_option_key(char *l, char *rraw) {
 cleanup:
 	return ret;
 }
-
 
 /* --key=value
  match left and right
@@ -186,7 +162,7 @@ cleanup:
 }
 
 /* command-line SAX parser */
-int cfg_parse(int argc, char **argv, char **opts, void *opaque, cfg_parse_cb_fn cb) {
+int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb) {
 	char *k = NULL,
 	     *v = NULL;
 	int match = 0;  /* got match? */
@@ -212,12 +188,6 @@ int cfg_parse(int argc, char **argv, char **opts, void *opaque, cfg_parse_cb_fn 
 			cb(opaque, state, NULL, v);
 			match = 1;
 
-			// CFGI cfg_i = { 0 };
-			// url_parse(&cfg_i.url, v);
-
-			// if (it->i == NULL) slice_new(&it->i, sizeof(CFGI));
-			// slice_append(it->i, &cfg_i);
-
 		} else if (state & CFG_STATE_KEY) {
 			if (!is_option(k)) continue;
 
@@ -228,30 +198,10 @@ int cfg_parse(int argc, char **argv, char **opts, void *opaque, cfg_parse_cb_fn 
 					break;
 				}
 			}}
-
-			// if (extract_v(argc, argv, i, k, "i", &v)) {
-			// 	CFGI cfg_i = { 0 };
-			// 	url_parse(&cfg_i.url, v);
-
-			// 	if (it->i == NULL) slice_new(&it->i, sizeof(CFGI));
-			// 	slice_append(it->i, &cfg_i);
-			// }
 		}
 
 		if (!match)
 			fprintf(stderr, "got unknown option \"%s\"\n", k);
-
 	}}
-
-
-	// {int i = 0; for (i = 0; i < (int)it->i->len; i++) {
-	// 	CFGI *cfg_i = slice_get(it->i, (size_t)i);
-
-	// 	char urls[255] = { 0 };
-	// 	char urljson[255] = { 0 };
-	// 	url_sprint(&cfg_i->url, urls, sizeof(urls));
-	// 	url_sprint_json(&cfg_i->url, urljson, sizeof(urljson));
-
-	// 	printf("%s %s\n", urls, urljson);
-	// }}
 }
+

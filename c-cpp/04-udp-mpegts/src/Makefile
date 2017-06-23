@@ -33,6 +33,9 @@ $(OBJS-DIR)/collections-fifo.o: ./collections/fifo.c
 $(OBJS-DIR)/collections-slice-test.o: ./collections/slice-test.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS-DIR)/common-opt.o: ./common/opt.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJS-DIR)/db-db.o: ./db/db.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -203,6 +206,7 @@ app-2: \
 app-3: \
 	$(OBJS-DIR)/url-url.o \
 	$(OBJS-DIR)/collections-slice.o \
+	$(OBJS-DIR)/common-opt.o \
 	\
 	$(OBJS-DIR)/apps-3-cfg.o \
 	\
