@@ -67,18 +67,18 @@ cleanup:
  --key value
  --key=value
 */
-static CFGOptionKind match_option(char *l, char *r) {
-	if (match_option_key(l, r)) return CFG_OPTION_KIND_KEY;
-	if (match_option_key_value(l, r)) return CFG_OPTION_KIND_KEY_VALUE;
+static OptOptionKind match_option(char *l, char *r) {
+	if (match_option_key(l, r)) return OPT_OPTION_KIND_KEY;
+	if (match_option_key_value(l, r)) return OPT_OPTION_KIND_KEY_VALUE;
 
-	return CFG_OPTION_KIND_UNKNOWN;
+	return OPT_OPTION_KIND_UNKNOWN;
 }
 
 static inline int is_option(char *v) {
 	return ((!strncmp(v, "-", 1)) || (!strncmp(v, "--", 2)));
 }
 
-static inline int is_option_end(char *v) { return (!strcmp(v, "--")); }
+static inline int is_option_end(char *v) { return (!strcmp(v, OPT_END_OPTIONS)); }
 
 static int extract_v_from_key_option(int argc, char **argv, int i, char **v) {
 	int ok;
@@ -112,7 +112,7 @@ static int extract_v_from_key_value_option(char *k, char **v) {
 	int ok = 0;
 	char *vtmp = NULL;
 
-	vtmp = strchr(k, CFG_KEY_VALUE_SEPARATOR);
+	vtmp = strchr(k, OPT_KEY_VALUE_SEPARATOR);
 	if (!vtmp) {
 		ok = 0;
 		goto cleanup;
@@ -131,14 +131,14 @@ cleanup:
 */
 static int extract_v(int argc, char **argv, int i, char *l, char *r, char **v) {
 	int ok = 0;
-	CFGOptionKind oknd = CFG_OPTION_KIND_UNKNOWN;
+	OptOptionKind oknd = OPT_OPTION_KIND_UNKNOWN;
 
 	oknd = match_option(l, r);
 
-	if (oknd == CFG_OPTION_KIND_UNKNOWN) {
+	if (oknd == OPT_OPTION_KIND_UNKNOWN) {
 		ok = 0;
 		goto cleanup;
-	} else if (oknd == CFG_OPTION_KIND_KEY) {
+	} else if (oknd == OPT_OPTION_KIND_KEY) {
 		if (extract_v_from_key_option(argc, argv, i, v)) {
 			ok = 1;
 			goto cleanup;
@@ -146,7 +146,7 @@ static int extract_v(int argc, char **argv, int i, char *l, char *r, char **v) {
 			ok = 0;
 			goto cleanup;
 		}
-	} else if (oknd == CFG_OPTION_KIND_KEY_VALUE) {
+	} else if (oknd == OPT_OPTION_KIND_KEY_VALUE) {
 		if (extract_v_from_key_value_option(l, v)) {
 			ok = 1;
 			goto cleanup;
@@ -161,6 +161,49 @@ cleanup:
 	return ok;
 }
 
+// --log_level => --log-level
+static void canonicalize_replace(char *v) {
+	{char *r = NULL; for (r = v; *r; r++) {
+		if (*r == OPT_KEY_VALUE_SEPARATOR) return;
+		if (*r == '_') *r = '-';
+	}}
+}
+
+// --LoG-LeVeL => --log-level
+static void canonicalize_tolower(char *s) {
+	char *start = NULL,
+	     *finish = NULL;
+	int len = 0;
+
+	if (!is_option(s)) return;
+
+	if (!strncmp(s, "--", 2)) start = s + 2;
+	else if (!strncmp(s, "-", 1)) start = s + 1;
+
+	finish = strchr(s, OPT_KEY_VALUE_SEPARATOR);
+	if (!finish) finish = &s[strlen(s)];
+
+	len = (int)(finish - start);
+	if (len <= 1) return;
+
+	{char *r = NULL; for (r = start; r != finish; r++) {
+		*r = tolower(*r);
+	}}
+}
+
+static void canonicalize(int argc, char **argv) {
+	char *k = NULL;
+
+	{int i = 0; for (i = 1; i < argc; i++) {
+		k = argv[i];
+
+		if ((!is_option(k)) || is_option_end(k)) continue;
+
+		canonicalize_replace(k);
+		canonicalize_tolower(k);
+	}}
+}
+
 /* command-line SAX parser */
 int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb) {
 	char *k = NULL,
@@ -168,27 +211,29 @@ int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn 
 	int match = 0;  /* got match? */
 	uint8_t state = 0;
 
-	state |= CFG_STATE_POS;
+	canonicalize(argc, argv);
+
+	state |= OPT_STATE_POS;
 
 	{int i = 0; for (i = 1; i < argc; i++) {
 		k = argv[i];
 		match = 0;
 
 		if (is_option_end(k)) {
-			CFG_STATE_SET_POS(state);
-			CFG_STATE_SET_END(state);
+			OPT_STATE_SET_POS(state);
+			OPT_STATE_SET_END(state);
 			continue;
 		}
 
-		if (!(state & CFG_STATE_END) && is_option(k)) CFG_STATE_SET_KEY(state);
+		if (!(state & OPT_STATE_END) && is_option(k)) OPT_STATE_SET_KEY(state);
 
-		if (state & CFG_STATE_POS) {
+		if (state & OPT_STATE_POS) {
 			v = k;
 
 			cb(opaque, state, NULL, v);
 			match = 1;
 
-		} else if (state & CFG_STATE_KEY) {
+		} else if (state & OPT_STATE_KEY) {
 			if (!is_option(k)) continue;
 
 			{char **opt = NULL; for (opt = opts; *opt != NULL; opt++) {
@@ -200,6 +245,7 @@ int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn 
 			}}
 		}
 
+		// TODO: move warnings to output structute
 		if (!match)
 			fprintf(stderr, "got unknown option \"%s\"\n", k);
 	}}

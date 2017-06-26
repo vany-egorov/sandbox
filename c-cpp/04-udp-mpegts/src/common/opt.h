@@ -2,8 +2,36 @@
 #define __VA_COMMON_OPT__
 
 
-#include <stdint.h> /* uint8_t */
+#include <stdio.h>  /* snprintf */
+#include <string.h>  /* strlen */
+#include <stdint.h>  /* uint8_t */
 
+
+#define OPT_END_OPTIONS         "--"
+#define OPT_KEY_VALUE_SEPARATOR '='
+#define OPT_MTCH1(X, Y1) (!strcmp(X, Y1))
+#define OPT_MTCH2(X, Y1, Y2) ( \
+		(!strcmp(X, Y1)) || \
+		(!strcmp(X, Y2))    \
+	)
+#define OPT_MTCH3(X, Y1, Y2, Y3) ( \
+		(!strcmp(X, Y1)) || \
+		(!strcmp(X, Y2)) || \
+		(!strcmp(X, Y3))    \
+	)
+#define OPT_MTCH4(X, Y1, Y2, Y3, Y4) ( \
+		(!strcmp(X, Y1)) || \
+		(!strcmp(X, Y2)) || \
+		(!strcmp(X, Y3)) || \
+		(!strcmp(X, Y4))    \
+	)
+#define OPT_MTCH5(X, Y1, Y2, Y3, Y4, Y5) ( \
+		(!strcmp(X, Y1)) || \
+		(!strcmp(X, Y2)) || \
+		(!strcmp(X, Y3)) || \
+		(!strcmp(X, Y4)) || \
+		(!strcmp(X, Y5))    \
+	)
 
 typedef enum opt_option_kind_enum OptOptionKind;
 typedef enum opt_state_enum OptState;
@@ -30,6 +58,9 @@ enum opt_option_kind_enum {
 	OPT_OPTION_KIND_KEY       = 0x01,  /* --key */
 	OPT_OPTION_KIND_KEY_VALUE = 0x02,  /* --key=value */
 };
+
+
+int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb);
 
 
 #endif // __VA_COMMON_OPT__
