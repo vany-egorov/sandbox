@@ -291,9 +291,9 @@ int main (int argc, char *argv[]) {
 	io_multi_writer_push(multi, writer_file_1);
 	io_multi_writer_push(multi, writer_file_2);
 
-	if (udp_connect_i(udp_i, url_host(config->i), config->i->port, NULL,
-	                  ebuf, sizeof(ebuf))) {
-		fprintf(stderr, "[udp-i @ %p] connect error: \"%s\"\n", udp_i, ebuf);
+	if (udp_open_i(udp_i, url_host(config->i), config->i->port, NULL,
+	               ebuf, sizeof(ebuf))) {
+		fprintf(stderr, "[udp-i @ %p] open error: \"%s\"\n", udp_i, ebuf);
 		ret = EX_SOFTWARE; goto cleanup;
 	} else
 		printf("[udp-i @ %p] OK {"

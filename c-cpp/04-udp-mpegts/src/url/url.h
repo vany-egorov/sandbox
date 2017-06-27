@@ -21,6 +21,8 @@
 #define URL_SEPARATOR_QUERY    '?'
 #define URL_SEPARATOR_FRAGMENT '#'
 
+#define URL_RELATIVE_PATH_START '.'
+
 
 // scheme://[userinfo@]host/path[?query][#fragment]
 typedef struct url_s URL;

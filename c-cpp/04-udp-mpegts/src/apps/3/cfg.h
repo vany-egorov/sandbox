@@ -40,8 +40,12 @@ struct cfg_o_s {
 
 /* memory allocation */
 int cfg_new(CFG **out);
+/* initialize => set initial state */
+int cfg_initialize(CFG *it);
+/* finalize */
+int cfg_finalize(CFG *it);
 /* set initial state */
-int cfg_init(CFG *it);
+int cfg_del(CFG **out);
 
 
 #endif /* __APPS_3_CFG__ */

@@ -35,9 +35,9 @@ int va_parser_open(VAParser *it, VAParserOpenArgs *args) {
 
 	io_multi_writer_push(it->multi, it->writer_fifo);
 
-	if (udp_connect_i(it->udp, url_host(&it->i), it->i.port, NULL,
-	                  ebuf, sizeof(ebuf))) {
-		fprintf(stderr, "[va @ %p] [udp-i @ %p] connect error: \"%s\"\n", it, it->udp, ebuf);
+	if (udp_open_i(it->udp, url_host(&it->i), it->i.port, NULL,
+	               ebuf, sizeof(ebuf))) {
+		fprintf(stderr, "[va @ %p] [udp-i @ %p] open error: \"%s\"\n", it, it->udp, ebuf);
 		ret = 1; goto cleanup;
 	} else
 		printf("[va @ %p] [udp-i @ %p] OK {"

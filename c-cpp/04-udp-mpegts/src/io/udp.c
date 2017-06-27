@@ -6,8 +6,8 @@ UDP *udp_new(void) {
 	return it;
 }
 
-UDPResult udp_connect_i(UDP *it, const char *group, const uint16_t port, char *ifn,
-                        char *ebuf, size_t ebufsz) {
+UDPResult udp_open_i(UDP *it, const char *group, const uint16_t port, char *ifn,
+                     char *ebuf, size_t ebufsz) {
 	UDPResult ret = UDP_RESULT_OK;
 	struct ip_mreq mreq;
 	char           ifnipv4[255] = { 0 };
@@ -61,8 +61,8 @@ cleanup:
 	return ret;
 }
 
-UDPResult udp_connect_o(UDP *it, const char *group, const uint16_t port, int is_mcast, char *ifn,
-                        char *ebuf, size_t ebufsz) {
+UDPResult udp_open_o(UDP *it, const char *group, const uint16_t port, int is_mcast, char *ifn,
+                     char *ebuf, size_t ebufsz) {
 	int ret = 0;
 	uint8_t ttl = 200;
 	char           ifnipv4[255] = { 0 };

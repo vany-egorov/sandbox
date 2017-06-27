@@ -101,23 +101,31 @@ void url_parse(URL *it, const char *raw) {
 
 	if (it->scheme != URL_SCHEME_FILE) {
 		if ((token=strchr(cursor, URL_SEPARATOR_PATH))) { /* got some data after host:[port]? */
-
 			bufsz = token-cursor;
-			split_host_port(
-				cursor,  /* host[+port] buffer */
-				bufsz,   /* host[+port] buffer size */
-				buf_tail(it),
-				&got_host,
-				&it->port
-			);
 
-			if (got_host) {
-				it->pos_host = it->buf_len;
-				it->buf_len += strlen(&it->buf[it->pos_host]) + 1;
-				it->got_host = 1;
+			/* ensure host != "." && host != ".." */
+			if (!(((bufsz == 1) &&
+			       (cursor[0] == URL_RELATIVE_PATH_START)) ||  /* '.' */
+			      ((bufsz == 2) &&
+			       (cursor[0] == URL_RELATIVE_PATH_START) &&
+			       (cursor[1] == URL_RELATIVE_PATH_START)))) {  /* ".." */
+
+			  split_host_port(
+					cursor,  /* host[+port] buffer */
+					bufsz,   /* host[+port] buffer size */
+					buf_tail(it),
+					&got_host,
+					&it->port
+				);
+
+				if (got_host) {
+					it->pos_host = it->buf_len;
+					it->buf_len += strlen(&it->buf[it->pos_host]) + 1;
+					it->got_host = 1;
+				}
+
+				cursor = token;
 			}
-
-			cursor = token;
 		} else {
 			bufsz = strlen(cursor);
 			split_host_port(cursor, bufsz, buf_tail(it), &got_host, &it->port);
@@ -218,10 +226,12 @@ void url_parse(URL *it, const char *raw) {
 				it->scheme = URL_SCHEME_UDP;
 
 			if ((!it->got_host) &&  /* no host provided */
-				  (it->got_path) &&   /* path provided */
-			    (url_path(it)[0] == '/'))
+					(it->got_path) &&   /* path provided */
+					(
+					  (url_path(it)[0] == '/') ||
+					  (url_path(it)[0] == '.')
+					))
 				it->scheme = URL_SCHEME_FILE;
-
 		}
 
 		if ((it->scheme == URL_SCHEME_HTTP) &&
@@ -358,4 +368,3 @@ const char *url_scheme_string(URLScheme it) {
 
 	return URL_SCHEME_UNKNOWN_STR;
 }
-

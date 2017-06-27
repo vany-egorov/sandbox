@@ -39,10 +39,10 @@ struct udp_s {
 };
 
 UDP *udp_new(void);
-UDPResult udp_connect_i(UDP *it, const char *group, const uint16_t port, char *ifn,
-                        char *ebuf, size_t ebufsz);
-UDPResult udp_connect_o(UDP *it, const char *group, const uint16_t port, int is_mcast, char *ifn,
-                        char *ebuf, size_t ebufsz);
+UDPResult udp_open_i(UDP *it, const char *group, const uint16_t port, char *ifn,
+                     char *ebuf, size_t ebufsz);
+UDPResult udp_open_o(UDP *it, const char *group, const uint16_t port, int is_mcast, char *ifn,
+                     char *ebuf, size_t ebufsz);
 // interface name to IPv4 address
 //
 // - "ifn"  => interface name
