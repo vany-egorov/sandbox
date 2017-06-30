@@ -129,6 +129,9 @@ $(OBJS-DIR)/apps-2-main.o: ./apps/2/main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
+$(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-cfg.o: ./apps/3/cfg.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -211,6 +214,7 @@ app-3: \
 	$(OBJS-DIR)/common-opt.o \
 	\
 	$(OBJS-DIR)/apps-3-cfg.o \
+	$(OBJS-DIR)/apps-3-signal.o \
 	\
 	$(OBJS-DIR)/apps-3-main.o
 
