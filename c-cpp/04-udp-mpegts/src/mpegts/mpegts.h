@@ -63,9 +63,10 @@ enum mpegts_table_id_enum {
 /* es.c */
 typedef enum mpegts_es_type_enum MPEGTSESType;
 
-// Each elementary stream in a transport stream
-// is identified by an 8-bit elementary stream
-// type assignment.
+/* Each elementary stream in a transport stream
+ * is identified by an 8-bit elementary stream
+ * type assignment.
+ */
 enum mpegts_es_type_enum {
 	MPEGTS_STREAM_TYPE_RESERVED                = 0x00,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG1             = 0x01,
@@ -75,7 +76,7 @@ enum mpegts_es_type_enum {
 	MPEGTS_STREAM_TYPE_PRIVATE_SECTIONS        = 0x05,
 	MPEGTS_STREAM_TYPE_PRIVATE_PES_PACKETS     = 0x06,
 	MPEGTS_STREAM_TYPE_MHEG                    = 0x07,
-	MPEGTS_STREAM_TYPE_H222_DSM_CC             = 0x08, // Digital storage media command and control (DSM-CC)
+	MPEGTS_STREAM_TYPE_H222_DSM_CC             = 0x08, /* Digital storage media command and control (DSM-CC) */
 	MPEGTS_STREAM_TYPE_H222_DSM_CC_AUX         = 0x09,
 	MPEGTS_STREAM_TYPE_AUDIO_AAC_ADTS          = 0x0F,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG4_H263        = 0x10,
@@ -128,16 +129,16 @@ const char* mpegts_es_type_string(MPEGTSESType it);
 /* header.c */
 typedef struct mpegts_header_s MPEGTSHeader;
 
-struct mpegts_header_s { // Transport Packet
+struct mpegts_header_s { /* Transport Packet */
 	uint8_t
-		transcport_error_indicator:1,   // TEI
-		payload_unit_start_indicator:1, // PUSI
-		                                // Set when a PES, PSI, or DVB-MIP
-		                                // packet begins immediately following the header.
+		transcport_error_indicator:1,   /* TEI */
+		payload_unit_start_indicator:1, /* PUSI */
+		                                /* Set when a PES, PSI, or DVB-MIP */
+		                                /* packet begins immediately following the header. */
 		transcport_priority:1;
 	uint16_t PID:13;
 	uint8_t
-		transport_scrambling_control:2, // TSC
+		transport_scrambling_control:2, /* TSC */
 		adaption_field_control:1,
 		contains_payload:1,
 		continuity_counter:4;
@@ -289,9 +290,9 @@ struct mpegts_PSI_descriptor_data_undefined_s {
 	uint8_t data[32];
 };
 
-// Program Specific Information
+/* Program Specific Information */
 struct mpegts_PSI_s {
-	// header
+	/* header */
 	uint8_t
 		table_id:8,
 		section_syntax_indicator:1,
@@ -305,7 +306,7 @@ struct mpegts_PSI_s {
 	                            // The section_length shall not
 	                            // exceed 1 021 so that the entire section has a maximum length
 	                            // of 1 024 bytes.
-	// table syntax section
+	/* table syntax section */
 	uint16_t transport_stream_id:16;
 	uint8_t
 		version_number:5,

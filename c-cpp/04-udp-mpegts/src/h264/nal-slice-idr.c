@@ -3,7 +3,7 @@
 
 
 int h264_nal_slice_idr_parse(H264NALSliceIDR *it, H264NALSPS *sps, const uint8_t *data) {
-	if (!sps) return;
+	if (!sps) return 0;
 
 	uint32_t offset = 0;
 	it->first_mb_in_slice = h264_bitstream_decode_u_golomb(data, &offset);
@@ -17,6 +17,8 @@ int h264_nal_slice_idr_parse(H264NALSliceIDR *it, H264NALSPS *sps, const uint8_t
 		}
 	}
 	it->pic_order_cnt_lsb = h264_bitstream_get_bits(data, &offset, sps->log2_max_pic_order_cnt_lsb_minus4+4);
+
+	return 0;
 }
 
 void h264_nal_slice_idr_print_humanized_one_line(H264NALSliceIDR *it) {

@@ -2,6 +2,8 @@
 #define __VA_COMMON_OPT__
 
 
+
+#include <ctype.h>  /* tolower */
 #include <stdio.h>  /* snprintf */
 #include <string.h>  /* strlen */
 #include <stdint.h>  /* uint8_t */

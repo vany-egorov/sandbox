@@ -6,6 +6,7 @@
 
 #include "./cfg.h"
 #include "./signal.h"
+#include "./wrkr.h"
 
 // tsplay ../tmp/HD-NatGeoWild.ts 239.255.1.1:5500 -loop
 // tsplay ../tmp/HD-1.ts 239.255.1.2:5500 -loop
@@ -57,10 +58,10 @@ int main(int argc, char *argv[]) {
 	UDP udp = { 0 };
 	FILE file = { 0 };
 	char ebuf[255] = { 0 };
-	pthread_t wrkr = { 0 };
 	Slice *wrkrs = NULL;
+	Wrkr *wrkr = NULL;
 
-	slice_new(&wrkrs, sizeof(pthread_t));
+	slice_new(&wrkrs, sizeof(Wrkr));
 
 	signal_init();
 
@@ -76,66 +77,87 @@ int main(int argc, char *argv[]) {
 	cfg_initialize(&cfg);
 	opt_parse(argc, argv, opts, (void*)&cfg, opt_parse_cb);
 
-	{int i = 0; for (i = 0; i < (int)cfg.i->len; i++) {
+	{int i = 0; for (i = 0; i < (int)cfg.i->len; i++) {  /* TODO: iterrator */
+		wrkr = NULL;
 		CFGI *cfg_i = slice_get(cfg.i, (size_t)i);
 		URL *u = &cfg_i->url;
 
-		char us[255] = { 0 }; /* url string */
-		url_sprint(u, us, sizeof(us));
+		wrkr_new(&wrkr);  /* TODO: error handling */
+		WrkrCfg wcfg = {
+			.url = u,
+		};
+		wrkr_initialize(wrkr, wcfg);  /* TODO: error handling */
 
-		switch (u->scheme) {
-		case URL_SCHEME_UDP:
-			if (udp_open_i(&udp, url_host(u), u->port,
-			               NULL, ebuf, sizeof(ebuf))) {
-				printf("FAIL udp open %s\n", ebuf);
-			} else
-				printf("OK udp open\n");
+		slice_append(wrkrs, &wrkr);
 
-			printf("UDP %s %d\n", url_host(u), u->port);
 
-			if (pthread_create(&wrkr, NULL, wrkr_udp_do, NULL)) {
-				fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
-				ret = EX_SOFTWARE; goto cleanup;
-			} else {
-				printf("[wrkr-udp-ok @ %p] OK %s\n", &wrkr, us);
-				pthread_setname_np(wrkr, "udp");
-			}
 
-			slice_append(wrkrs, &wrkr);
+		// char us[255] = { 0 }; /* url string */
+		// url_sprint(u, us, sizeof(us));
 
-			break;
-		case URL_SCHEME_FILE:
-			if (file_open(&file, url_path(u), "rb",
-			              ebuf, sizeof(ebuf))) {
-				printf("FAIL file open %s\n", ebuf);
-			} else
-				printf("OK file open\n");
+		// switch (u->scheme) {
+		// case URL_SCHEME_UDP:
+		// case URL_SCHEME_FILE:
+		// 	if (udp_open_i(&udp, url_host(u), u->port,
+		// 	               NULL, ebuf, sizeof(ebuf))) {
+		// 		printf("FAIL udp open %s\n", ebuf);
+		// 	} else
+		// 		printf("OK udp open\n");
 
-			if (pthread_create(&wrkr, NULL, wrkr_file_do, NULL)) {
-				fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
-				ret = EX_SOFTWARE; goto cleanup;
-			} else {
-				printf("[wrkr-file-ok @ %p] OK %s\n", &wrkr, us);
-				pthread_setname_np(wrkr, "file");
-			}
+		// 	break;
+		// default:
+		// 	break;
+		// }
 
-			slice_append(wrkrs, &wrkr);
+		// 	break;
+		// 	if (udp_open_i(&udp, url_host(u), u->port,
+		// 	               NULL, ebuf, sizeof(ebuf))) {
+		// 		printf("FAIL udp open %s\n", ebuf);
+		// 	} else
+		// 		printf("OK udp open\n");
 
-			break;
-		case URL_SCHEME_HTTP:
-			printf("HTTP\n");
-			break;
-		default:
-			break;
-		}
+		// 	printf("UDP %s %d\n", url_host(u), u->port);
 
-		// char urls[255] = { 0 };
-		// char urljson[255] = { 0 };
-		// url_sprint(&cfg_i->url, urls, sizeof(urls));
-		// url_sprint_json(&cfg_i->url, urljson, sizeof(urljson));
+		// 	if (pthread_create(&wrkr, NULL, wrkr_udp_do, NULL)) {
+		// 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
+		// 		ret = EX_SOFTWARE; goto cleanup;
+		// 	} else {
+		// 		printf("[wrkr-udp-ok @ %p] OK %s\n", &wrkr, us);
+		// 		pthread_setname_np(wrkr, "udp");
+		// 	}
 
-		// printf("%s\n", urls);
-		// printf("%s\n", urljson);
+		// 	slice_append(wrkrs, &wrkr);
+
+		// 	break;
+		// case URL_SCHEME_FILE:
+		// 	if (file_open(&file, url_path(u), "rb",
+		// 	              ebuf, sizeof(ebuf))) {
+		// 		printf("FAIL file open %s\n", ebuf);
+		// 	} else
+		// 		printf("OK file open\n");
+
+		// 	if (pthread_create(&wrkr, NULL, wrkr_file_do, NULL)) {
+		// 		fprintf(stderr, "pthread-create error: \"%s\"\n", strerror(errno));
+		// 		ret = EX_SOFTWARE; goto cleanup;
+		// 	} else {
+		// 		printf("[wrkr-file-ok @ %p] OK %s\n", &wrkr, us);
+		// 		pthread_setname_np(wrkr, "file");
+		// 	}
+
+		// 	slice_append(wrkrs, &wrkr);
+
+		// 	break;
+		// case URL_SCHEME_HTTP:
+		// 	printf("HTTP\n");
+		// 	break;
+		// default:
+		// 	break;
+		// }
+	}}
+
+	{int i = 0; for (i = 0; i < (int)cfg.i->len; i++) {  /* TODO: iterrator */
+		wrkr = slice_get(cfg.i, (size_t)i);
+		wrkr_run(wrkr);
 	}}
 
 	signal_wait();

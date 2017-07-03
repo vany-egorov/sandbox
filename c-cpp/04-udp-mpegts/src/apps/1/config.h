@@ -23,6 +23,7 @@ typedef struct _Config Config;
 
 Config *config_new();
 int config_parse(Config *it, int argc, char **argv);
+int config_validate(Config *it);
 void config_print(Config *it);
 void config_help(void);
 

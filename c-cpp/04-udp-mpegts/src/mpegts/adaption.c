@@ -77,8 +77,8 @@ void mpegts_pcr_print_json(MPEGTSPCR *it) {
 		",\"ext\": %d"
 		",\"PCR\": \"0:0:0:XXX (%" PRIu64 ")\""
 		"}\n",
-		it->base,
+		(uint64_t)it->base,
 		it->ext,
-		it->base * 300 // 90kHZ => 27MHz
+		(uint64_t)(it->base * 300)  /* 90kHZ => 27MHz */
 	);
 }

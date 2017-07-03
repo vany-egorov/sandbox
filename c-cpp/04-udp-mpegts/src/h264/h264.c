@@ -165,7 +165,7 @@ void h264_annexb_parse_result_print_humanized_one_line(H264AnnexBParseResult *it
 	for (i = 0; i < it->len; i++) {
 		nal = &it->nals[i];
 
-		printf("ES 0x%08llX | %5zd | ", it->offsets[i], nal->sz);
+		printf("ES 0x%08llX | %5zd | ", (long long unsigned int)it->offsets[i], nal->sz);
 
 		const char *nal_type_name = h264_nal_type_string(nal->type);
 		switch (nal->type) {

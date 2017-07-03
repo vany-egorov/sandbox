@@ -1,7 +1,7 @@
+#include <signal.h>    /* SIGINT, SIGTERM */
 #include <stdio.h>     /* printf */
 #include <stddef.h>    /* NULL */
 #include <errno.h>     /* errno */
-#include <signal.h>    /* SIGINT, SIGTERM */
 #include <sysexits.h>  /* EX_OK, EX_SOFTWARE */
 #include <semaphore.h> /* sem_t, sem_init, sem_wait, sem_post, sem_destroy */
 
@@ -25,7 +25,7 @@ static void signal_handler(int sig) {
 }
 
 static int signal_init(void) {
-	struct sigaction signal_action;
+	struct sigaction signal_action = { 0 };
 	signal_action.sa_handler = &signal_handler;
 	sem_init(&sem, 0, 0);
 

@@ -15,7 +15,7 @@ int slice_new(Slice **out, size_t el_size) {
 	return 0;
 }
 
-inline void *slice_tail(Slice *it) {
+extern inline void *slice_tail(Slice *it) {
 	if (!it) return NULL;
 	return &(((char*)it->els)[it->el_size*it->len]);
 }
@@ -62,7 +62,7 @@ int slice_get_copy_data(Slice *it, size_t index, void *el_out) {
 	return 0;
 }
 
-inline void *slice_get(Slice *it, size_t index) {
+extern inline void *slice_get(Slice *it, size_t index) {
 	if (it->len <= index) return NULL;
 	return &(((char*)it->els)[it->el_size*index]);;
 }

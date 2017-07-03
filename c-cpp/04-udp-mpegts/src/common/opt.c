@@ -23,7 +23,7 @@ static int match_option_key(char *l, char *rraw) {
 	{const char **p = NULL; for (p = patterns; *p != NULL; p++) {
 		n = snprintf(r, rsz, *p, rraw);
 		if ((n > 0) && (n < rsz)) {
-			if (!strcmp(l, r)) { ret = 1; goto cleanup; }
+			if (!strcasecmp(l, r)) { ret = 1; goto cleanup; }
 		}
 	}}
 

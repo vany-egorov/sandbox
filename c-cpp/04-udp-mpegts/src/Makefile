@@ -5,7 +5,7 @@ CXXFLAGS := -g
 
 CC:= gcc
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
-CCFLAGS := -g -lpthread -lrt -fPIC -pthread
+CCFLAGS := -g -std=gnu11 -lpthread -lrt -fPIC -pthread
 
 PATH-PROJECT := $(shell pwd)
 OBJS-DIR := $(shell realpath $(PATH-PROJECT)/../obj)
@@ -129,6 +129,9 @@ $(OBJS-DIR)/apps-2-main.o: ./apps/2/main.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 
+$(OBJS-DIR)/apps-3-wrkr.o: ./apps/3/wrkr.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -215,6 +218,7 @@ app-3: \
 	\
 	$(OBJS-DIR)/apps-3-cfg.o \
 	$(OBJS-DIR)/apps-3-signal.o \
+	$(OBJS-DIR)/apps-3-wrkr.o \
 	\
 	$(OBJS-DIR)/apps-3-main.o
 

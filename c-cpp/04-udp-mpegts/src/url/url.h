@@ -2,12 +2,12 @@
 #define __URL__
 
 
-#include <regex.h>  // regcomp, REG_EXTENDED, REG_ICASE, regex_t
-#include <ctype.h>  // tolower
-#include <stdio.h>  // printf
-#include <stdlib.h> // atoi
-#include <stdint.h> // uint16_t
-#include <string.h> // strstr
+#include <regex.h>  /* regcomp, REG_EXTENDED, REG_ICASE, regex_t */
+#include <ctype.h>  /* tolower */
+#include <stdio.h>  /* printf */
+#include <stdlib.h> /* atoi */
+#include <stdint.h> /* uint16_t */
+#include <string.h> /* strstr */
 
 
 #define URL_DEFAULT_HTTP_PORT  80

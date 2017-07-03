@@ -2,6 +2,8 @@
 #define __DB_DB__
 
 
+#include <time.h>  /* time */
+
 #include "../mpegts/mpegts.h"
 #include "../h264/h264.h"
 #include "../collections/slice.h"

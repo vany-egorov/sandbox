@@ -2,12 +2,15 @@
 #define __APPS_3_INPUT__
 
 
+#include <url/url.h>  /* URL */
+
+
 typedef struct input_s Input;
 typedef struct input_vtable_s InputVt;
 
 
 struct input_s {
-	url *URL;
+	URL url;
 	void *w; /* wrapped, child, opaque */
 
 	const InputVt *vt; /* virtual table */

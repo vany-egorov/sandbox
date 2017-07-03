@@ -167,7 +167,7 @@ static MPEGTSPSISDTService* mpegts_psi_sdt_services_push_unique(MPEGTSPSISDTServ
 	int i = 0;
 	MPEGTSPSISDTService *a;
 
-	if ((!it) || (!b)) return;
+	if ((!it) || (!b)) return NULL;
 
 	for (i = 0; i < (int)it->len; i++) {
 		a = &it->c[i];
@@ -197,7 +197,7 @@ static MPEGTSPSISDTDescriptor* mpegts_psi_sdt_descriptors_push_unique(MPEGTSPSIS
 	int i = 0;
 	MPEGTSPSISDTDescriptor *a;
 
-	if ((!it) || (!b)) return;
+	if ((!it) || (!b)) return NULL;
 
 	for (i = 0; i < (int)it->len; i++) {
 		a = &it->c[i];

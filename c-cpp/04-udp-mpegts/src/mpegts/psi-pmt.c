@@ -154,7 +154,7 @@ static MPEGTSPSIPMTProgramElement* mpegts_psi_pmt_program_elements_push_unique(M
 	int i = 0;
 	MPEGTSPSIPMTProgramElement *a;
 
-	if ((!it) || (!b)) return;
+	if ((!it) || (!b)) return NULL;
 
 	for (i = 0; i < (int)it->len; i++) {
 		a = &it->c[i];
@@ -184,7 +184,7 @@ static MPEGTSPSIPMTESInfo* mpegts_psi_pmt_es_infos_push_unique(MPEGTSPSIPMTESInf
 	int i = 0;
 	MPEGTSPSIPMTESInfo *a;
 
-	if ((!it) || (!b)) return;
+	if ((!it) || (!b)) return NULL;
 
 	for (i = 0; i < (int)it->len; i++) {
 		a = &it->c[i];

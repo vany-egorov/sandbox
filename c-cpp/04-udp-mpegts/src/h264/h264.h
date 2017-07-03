@@ -108,8 +108,8 @@ enum h264_nal_type_enum {
 
 
 /* bitstream.c */
-inline uint32_t h264_bitstream_get_bits(const uint8_t * const base, uint32_t * const offset, uint8_t bits);
-uint32_t bitstream_decode_u_golomb(const uint8_t * const base, uint32_t * const offset);
+uint32_t h264_bitstream_get_bits(const uint8_t * const base, uint32_t * const offset, uint8_t bits);
+uint32_t h264_bitstream_decode_u_golomb(const uint8_t * const base, uint32_t * const offset);
 
 
 /* nal-sps.c */
