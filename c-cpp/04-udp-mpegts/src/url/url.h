@@ -26,11 +26,7 @@
 
 // scheme://[userinfo@]host/path[?query][#fragment]
 typedef struct url_s URL;
-typedef enum url_scheme_enum URLScheme;
-typedef enum url_flag_enum URLFlag;
-
-
-enum url_scheme_enum {
+typedef enum {
 	URL_SCHEME_UDP,
 	URL_SCHEME_RTMP,
 	URL_SCHEME_HTTP,
@@ -42,7 +38,11 @@ enum url_scheme_enum {
 	URL_SCHEME_SSH,
 
 	URL_SCHEME_UNKNOWN,
-};
+} URLScheme;
+typedef enum {
+  URL_FLAG_MULTICAST = 0x01,
+} URLFlag;
+
 
 #define URL_SCHEME_UDP_DESCR      "UDP - User Datagram Protocol"
 #define URL_SCHEME_RTMP_DESCR     "RTMP - Real Time Messaging Protocol"
@@ -65,10 +65,6 @@ enum url_scheme_enum {
 #define URL_SCHEME_FILE_STR     "file"
 #define URL_SCHEME_SSH_STR      "ssh"
 #define URL_SCHEME_UNKNOWN_STR  "unk"
-
-enum url_flag_enum {
-  URL_FLAG_MULTICAST = 0x01,
-};
 
 struct url_s {
 	URLScheme scheme;

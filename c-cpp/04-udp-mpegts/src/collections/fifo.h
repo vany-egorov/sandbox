@@ -20,7 +20,8 @@ struct fifo_s {
 	pthread_mutex_t rw_mutex;
 };
 
-FIFO *fifo_new(size_t cap);
+int fifo_new(FIFO **out);
+int fifo_init(FIFO *it, size_t cap);
 void fifo_print(FIFO *it);
 void fifo_print_safe(FIFO *it);
 void fifo_sprint_safe(FIFO *it, char *buf, size_t bufsz);

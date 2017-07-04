@@ -222,6 +222,7 @@ app-3: \
 	$(OBJS-DIR)/url-url.o \
 	$(OBJS-DIR)/io-udp.o \
 	$(OBJS-DIR)/io-file.o \
+	$(OBJS-DIR)/collections-fifo.o \
 	$(OBJS-DIR)/collections-slice.o \
 	$(OBJS-DIR)/common-opt.o \
 	\

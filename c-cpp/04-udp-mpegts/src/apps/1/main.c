@@ -265,11 +265,12 @@ int main (int argc, char *argv[]) {
 	if (config->help) { config_help(); goto cleanup; }
 	if (config_validate(config)) { ret = EX_CONFIG; goto cleanup; }
 
-	udp_i = udp_new();                     // i
-	file_ts_1 = file_new();                // o
-	file_ts_2 = file_new();                // o
-	fifo = fifo_new(100*7*188);            // o
-	multi = io_multi_writer_new(NULL, 0);  // o
+	udp_i = udp_new();                     /* i */
+	file_ts_1 = file_new();                /* o */
+	file_ts_2 = file_new();                /* o */
+	fifo_new(&fifo);                       /* o */
+	fifo_init(fifo, 100*7*188);
+	multi = io_multi_writer_new(NULL, 0);  /* o */
 	reader_udp = io_reader_new(udp_i, udp_read);
 	reader_fifo = io_reader_new(fifo, fifo_read);
 	writer_file_1 = io_writer_new(file_ts_1, file_write);

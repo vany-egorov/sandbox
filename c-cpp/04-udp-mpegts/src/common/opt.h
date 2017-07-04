@@ -35,16 +35,20 @@
 		(!strcmp(X, Y5))    \
 	)
 
-typedef enum opt_option_kind_enum OptOptionKind;
-typedef enum opt_state_enum OptState;
-typedef int (*opt_parse_cb_fn) (void *opaque, OptState state, char *k, char *v);
-
+/* option kinds */
+typedef enum opt_option_kind_enum {
+	OPT_OPTION_KIND_UNKNOWN   = 0x00,
+	OPT_OPTION_KIND_KEY       = 0x01,  /* --key */
+	OPT_OPTION_KIND_KEY_VALUE = 0x02,  /* --key=value */
+} OptOptionKind;
 /* config parser state */
-enum opt_state_enum {
+typedef enum {
 	OPT_STATE_POS = 0x01,  /* positional arguments */
 	OPT_STATE_KEY = 0x02,  /* keyword/option arguments (--i ..., -i ..., i: ..., i=...) */
 	OPT_STATE_END = 0x04,  /* got "--" */
-};
+} OptState;
+typedef int (*opt_parse_cb_fn) (void *opaque, OptState state, char *k, char *v);
+
 
 #define OPT_STATE_SET_POS(X) \
 	X &= ~OPT_STATE_KEY; \
@@ -53,13 +57,6 @@ enum opt_state_enum {
 	X &= ~OPT_STATE_POS; \
 	X |= OPT_STATE_KEY;
 #define OPT_STATE_SET_END(X) X |= OPT_STATE_END;
-
-/* option kinds */
-enum opt_option_kind_enum {
-	OPT_OPTION_KIND_UNKNOWN   = 0x00,
-	OPT_OPTION_KIND_KEY       = 0x01,  /* --key */
-	OPT_OPTION_KIND_KEY_VALUE = 0x02,  /* --key=value */
-};
 
 
 int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb);

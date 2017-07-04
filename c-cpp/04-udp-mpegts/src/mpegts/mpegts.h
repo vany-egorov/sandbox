@@ -28,18 +28,17 @@
 #define MPEGTS_PES_PTS_DTS_INDICATOR_PTS_DTS   0b11
 
 
-typedef enum mpegts_table_id_enum MPEGTSTableID;
-
-// ETSI EN 300 468 V1.3.1 (1998-02)
-// ETSI EN 300 468 V1.11.1 (2010-04)
-enum mpegts_table_id_enum {
+/* ETSI EN 300 468 V1.3.1 (1998-02)
+ * ETSI EN 300 468 V1.11.1 (2010-04)
+ */
+typedef enum mpegts_table_id_enum {
 	MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION                         = 0x00,
 	MPEGTS_TABLE_ID_CONDITIONAL_ACCESS_SECTION                          = 0x01,
 	MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION                                 = 0x02,
 	MPEGTS_TABLE_ID_TRANSPORT_STREAM_DESCRIPTION_SECTION                = 0x03,
 	MPEGTS_TABLE_ID_NETWORK_INFORMATION_SECTION_ACTUAL_NETWORK          = 0x40,
 	MPEGTS_TABLE_ID_NETWORK_INFORMATION_SECTION_OTHER_NETWORK           = 0x41,
-	MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_ACTUAL_TRANSPORT_STREAM = 0x42,  // 66
+	MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_ACTUAL_TRANSPORT_STREAM = 0x42,  /* 66 */
 	MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_OTHER_TRANSPORT_STREAM  = 0x46,
 	MPEGTS_TABLE_ID_BOUQUET_ASSOCIATION_SECTION                         = 0x4A,
 	MPEGTS_TABLE_ID_EVENT_INFORMATION_SECTION_ACTUAL_TRANSPORT_STREAM   = 0x4E,
@@ -57,17 +56,15 @@ enum mpegts_table_id_enum {
 	MPEGTS_TABLE_ID_MPE_IFEC_SECTION                                    = 0x7A,
 	MPEGTS_TABLE_ID_DISCONTINUITY_INFORMATION_SECTION                   = 0x7E,
 	MPEGTS_TABLE_ID_SELECTION_INFORMATION_SECTION                       = 0x7F,
-};
+} MPEGTSTableID;
 
 
 /* es.c */
-typedef enum mpegts_es_type_enum MPEGTSESType;
-
 /* Each elementary stream in a transport stream
  * is identified by an 8-bit elementary stream
  * type assignment.
  */
-enum mpegts_es_type_enum {
+typedef enum {
 	MPEGTS_STREAM_TYPE_RESERVED                = 0x00,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG1             = 0x01,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG2             = 0x02,
@@ -85,7 +82,8 @@ enum mpegts_es_type_enum {
 	MPEGTS_STREAM_TYPE_VIDEO_H264              = 0x1B,
 	MPEGTS_STREAM_TYPE_VIDEO_H265              = 0x24,
 	MPEGTS_STREAM_TYPE_AUIDO_AAC_AES_128_CBC   = 0xCF,
-};
+} MPEGTSESType;
+
 
 #define MPEGTS_STREAM_TYPE_RESERVED_STR "Reserved"
 #define MPEGTS_STREAM_TYPE_VIDEO_MPEG1_STR "ISO/IEC 11172-2 (MPEG-1 video)" \

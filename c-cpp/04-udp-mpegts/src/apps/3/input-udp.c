@@ -26,8 +26,13 @@ static int input_udp_open(void *ctx, URL *u) {
 	if (udp_open_i(&it->i, url_host(u), u->port,
 	               NULL, ebuf, sizeof(ebuf))) {
 		fprintf(stderr, "[input-udp @ %p] ERROR open %s, reason: %s\n", it, us, ebuf);
-	} else
+	} else {
 		printf("[input-udp @ %p] OK open %s\n", it, us);
+
+		if (!fifo_init(&it->fifo, 100*7*188)) {
+			printf("[input-udp @ %p] OK init fifo\n", (void*)it);
+		}
+	}
 }
 
 static int input_udp_read(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {

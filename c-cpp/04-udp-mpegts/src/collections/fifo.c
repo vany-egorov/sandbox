@@ -1,16 +1,27 @@
 #include "fifo.h"
 
 
-FIFO *fifo_new(size_t cap) {
-	FIFO *it = (FIFO*)calloc(1, sizeof(FIFO));
+int fifo_new(FIFO **out) {
+	int ret = 0;
+	FIFO *it = NULL;
+
+	it = (FIFO*)calloc(1, sizeof(FIFO));
+	if (!it) return 1;
+	*out = it;
+
+	return ret;
+}
+
+int fifo_init(FIFO *it, size_t cap) {
 	it->cap = cap;
 	it->len = 0;
 	it->start = 0;
 	it->finish = 0;
 	it->data = (uint8_t*)calloc(1, cap);
+	if (!it->data) return 1;
 	sem_init(&it->sem, 0, 0);
 
-	return it;
+	return 0;
 }
 
 void fifo_print(FIFO *it) {

@@ -17,8 +17,9 @@ int va_parser_open(VAParser *it, VAParserOpenArgs *args) {
 	if (!args) { ret = 1; goto cleanup; }
 	url_parse(&it->i, args->i_url_raw);
 
-	it->udp = udp_new();                       /* i */
-	it->fifo = fifo_new(100*7*188);            /* o */
+	it->udp = udp_new();             /* i */
+	fifo_new(&it->fifo);             /* o */
+	fifo_init(it->fifo, 100*7*188);
 	it->multi = io_multi_writer_new(NULL, 0);  /* o */
 
 	it->reader_udp = io_reader_new(it->udp, udp_read);
