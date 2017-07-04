@@ -17,13 +17,14 @@ int wrkr_new(Wrkr **out) {
 /* TODO: error code */
 /* TODO: cfg is invalid: i.e. url scheme is not supported */
 int wrkr_initialize(Wrkr *it, WrkrCfg cfg) {
+	input_open(&it->input, cfg.url);
 }
 
 static void* wrkr_do(void *args) {
 	Wrkr *it = (Wrkr*)args;
 
 	for (;;) {
-		printf("[wrkr @ %p] do\n", it);
+		input_read(&it->input);
 		sleep(1);
 	}
 }

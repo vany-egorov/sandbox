@@ -6,14 +6,18 @@
 
 
 typedef struct input_s Input;
-typedef struct input_vtable_s InputVt;
+typedef struct input_vt_s InputVt;
+
+
+extern InputVt input_file_vt;  /* file virtual table */
+extern InputVt input_udp_vt;   /* UDP virtual table */
 
 
 struct input_s {
 	URL url;
 	void *w; /* wrapped, child, opaque */
 
-	const InputVt *vt; /* virtual table */
+	InputVt *vt; /* virtual table */
 };
 
 struct input_vt_s {

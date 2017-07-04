@@ -132,6 +132,15 @@ $(OBJS-DIR)/apps-2-main.o: ./apps/2/main.c
 $(OBJS-DIR)/apps-3-wrkr.o: ./apps/3/wrkr.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-input.o: ./apps/3/input.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-input-udp.o: ./apps/3/input-udp.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-input-file.o: ./apps/3/input-file.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -219,6 +228,9 @@ app-3: \
 	$(OBJS-DIR)/apps-3-cfg.o \
 	$(OBJS-DIR)/apps-3-signal.o \
 	$(OBJS-DIR)/apps-3-wrkr.o \
+	$(OBJS-DIR)/apps-3-input.o \
+	$(OBJS-DIR)/apps-3-input-udp.o \
+	$(OBJS-DIR)/apps-3-input-file.o \
 	\
 	$(OBJS-DIR)/apps-3-main.o
 
