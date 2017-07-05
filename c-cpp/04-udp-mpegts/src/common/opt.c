@@ -248,7 +248,7 @@ int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn 
 		// TODO: handle no value for option value
 		// TODO: move warnings to output structute
 		if (!match)
-			fprintf(stderr, "got unknown option \"%s\"\n", k);
+			fprintf(stderr, "unknown option \"%s\"\n", k);
 	}}
 }
 

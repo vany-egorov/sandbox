@@ -36,6 +36,9 @@ $(OBJS-DIR)/collections-slice-test.o: ./collections/slice-test.c
 $(OBJS-DIR)/common-opt.o: ./common/opt.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS-DIR)/common-daemonize.o: ./common/daemonize.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJS-DIR)/db-db.o: ./db/db.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -220,11 +223,13 @@ app-2: \
 
 app-3: \
 	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/io-io.o \
 	$(OBJS-DIR)/io-udp.o \
 	$(OBJS-DIR)/io-file.o \
 	$(OBJS-DIR)/collections-fifo.o \
 	$(OBJS-DIR)/collections-slice.o \
 	$(OBJS-DIR)/common-opt.o \
+	$(OBJS-DIR)/common-daemonize.o \
 	\
 	$(OBJS-DIR)/apps-3-cfg.o \
 	$(OBJS-DIR)/apps-3-signal.o \
@@ -338,7 +343,8 @@ clean:
 	rm -rvf $(LIB-DIR)/app-3
 	rm -rvf $(LIB-DIR)/collections-slice-test
 
-# tsplay ../tmp/hd.ts 239.1.1.1:5500 -loop
+# tsplay ../tmp/HD-1.ts 239.255.1.1:5500 -loop
+# tsplay ../tmp/HD-NatGeoWild.ts 239.255.1.2:5500 -loop
 run:
 	# $(OBJS-DIR)/app 2>&1 >out.log
 	$(OBJS-DIR)/app-1 -i 239.1.1.1:5500

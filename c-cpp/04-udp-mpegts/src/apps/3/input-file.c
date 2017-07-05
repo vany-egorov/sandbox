@@ -14,7 +14,7 @@ int input_file_new(InputFile **out) {
 	return ret;
 }
 
-static int input_file_open(void *ctx, URL *u) {
+static int opn(void *ctx, URL *u) {
 	char ebuf[255] = { 0 };
 	char us[255] = { 0 }; /* url string */
 	InputFile *it = NULL;
@@ -32,15 +32,15 @@ static int input_file_open(void *ctx, URL *u) {
  	}
 }
 
-int input_file_read(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
+int rd(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
 }
 
-int input_file_close(void *ctx) {
+int cls(void *ctx) {
 }
 
 
 InputVt input_file_vt = {
-	.open = input_file_open,
-	.read = input_file_read,
-	.close = input_file_close,
+	.open = opn,
+	.read = rd,
+	.close = cls,
 };

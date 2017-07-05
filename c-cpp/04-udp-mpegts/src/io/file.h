@@ -9,6 +9,7 @@
 #include <stdint.h> // uint8_t, uint16_t
 
 
+/* TODO: into-reader, into-writer func + virtual-table */
 typedef struct file_s File;
 typedef enum file_result_enum FileResult;
 

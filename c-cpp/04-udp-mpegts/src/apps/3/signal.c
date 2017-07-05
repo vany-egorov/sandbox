@@ -23,11 +23,11 @@ int signal_init(void) {
 	sem_init(&sem, 0, 0);
 
 	if (sigaction(SIGINT, &signal_action, NULL) == -1) {
-		fprintf(stderr, "cannot handle SIGINT: \"%s\"", strerror(errno));
+		fprintf(stderr, "cannot handle SIGINT: \"%s\"\n", strerror(errno));
 		return EX_OSERR;
 	}
 	if (sigaction(SIGTERM, &signal_action, NULL) == -1) {
-		fprintf(stderr, "cannot handle SIGTERM: \"%s\"", strerror(errno));
+		fprintf(stderr, "cannot handle SIGTERM: \"%s\"\n", strerror(errno));
 		return EX_OSERR;
 	}
 

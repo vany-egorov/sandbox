@@ -17,7 +17,7 @@ int input_new(Input **out) {
 
 int input_open(Input *it, URL *u) {
 	char ebuf[255] = { 0 };
-	char us[255] = { 0 }; /* url string */
+	char us[255] = { 0 };  /* url string */
 	url_sprint(u, us, sizeof(us));
 
 	/* guess input format */

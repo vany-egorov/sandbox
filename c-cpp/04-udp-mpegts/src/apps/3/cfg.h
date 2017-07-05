@@ -41,9 +41,11 @@ struct cfg_o_s {
 /* memory allocation */
 int cfg_new(CFG **out);
 /* initialize => set initial state */
-int cfg_initialize(CFG *it);
+int cfg_init(CFG *it);
 /* finalize */
-int cfg_finalize(CFG *it);
+int cfg_validate(CFG *it);
+/* finalize */
+int cfg_fin(CFG *it);
 /* set initial state */
 int cfg_del(CFG **out);
 

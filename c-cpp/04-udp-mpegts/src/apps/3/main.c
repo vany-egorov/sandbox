@@ -55,13 +55,22 @@ int main(int argc, char *argv[]) {
 		"c", "cfg", "config",
 		"i", "input",
 		"o", "output",
-		"v", "vv", "vvv", "h",
+		"v", "vv", "vvv",
 		"min-level", "max-level",
+
+		// TODO: handle bool flags
+		"background", "foreground",
+		"h", "help",
+
 		NULL
 	};
 
-	cfg_initialize(&cfg);
+	cfg_init(&cfg);
 	opt_parse(argc, argv, opts, (void*)&cfg, opt_parse_cb);
+
+	if (!cfg_validate(&cfg)) {
+		ret = EX_CONFIG; goto cleanup;
+	}
 
 	{int i = 0; for (i = 0; i < (int)cfg.i->len; i++) {  /* TODO: iterrator */
 		wrkr = NULL;

@@ -2,23 +2,42 @@
 
 
 /* reader */
-IOReader *io_reader_new(void *w, io_reader_read_func read) {
-	IOReader *it = calloc(1, sizeof(IOReader));
-	if (!it) return it;
+int io_reader_new(IOReader **out) {
+	int ret = 0;
+	IOReader *it = NULL;
 
+	it = (IOReader*)calloc(1, sizeof(IOReader));
+	if (!it) return 1;
+	*out = it;
+
+	return ret;
+}
+
+int io_reader_init(IOReader *it, void *w, io_reader_read_func read) {
 	it->w = w;
 	it->read = read;
 
-	return it;
+	return 0;
 }
 
 int io_reader_read(IOReader *it, uint8_t *buf, size_t bufsz, size_t *n) {
 	return it->read((void*)it->w, buf, bufsz, n);
 }
 
-void io_reader_del(IOReader *it) {
-	if (!it) return;
+int io_reader_del(IOReader **out) {
+	int ret = 0;
+	IOReader *it = NULL;
+
+	if (!out) return ret;
+
+	it = *out;
+
+	if (!it) return ret;
+
 	free(it);
+	*out = NULL;
+
+	return ret;
 }
 
 
@@ -26,22 +45,41 @@ void io_reader_del(IOReader *it) {
 
 
 /* writer */
-IOWriter *io_writer_new(void *w, io_writer_write_func write) {
-	IOWriter *it = calloc(1, sizeof(IOWriter));
-	if (!it) return it;
+int io_writer_new(IOWriter **out) {
+	int ret = 0;
+	IOWriter *it = NULL;
 
+	it = (IOWriter*)calloc(1, sizeof(IOWriter));
+	if (!it) return 1;
+	*out = it;
+
+	return ret;
+}
+
+int io_writer_init(IOWriter *it, void *w, io_writer_write_func write) {
 	it->w = w;
 	it->write = write;
-	return it;
+	return 0;
 }
 
 int io_writer_write(IOWriter *it, uint8_t *buf, size_t bufsz, size_t *n) {
 	return it->write((void*)it->w, buf, bufsz, n);
 }
 
-void io_writer_del(IOWriter *it) {
-	if (!it) return;
+int io_writer_del(IOWriter **out) {
+	int ret = 0;
+	IOWriter *it = NULL;
+
+	if (!out) return ret;
+
+	it = *out;
+
+	if (!it) return ret;
+
 	free(it);
+	*out = NULL;
+
+	return ret;
 }
 
 

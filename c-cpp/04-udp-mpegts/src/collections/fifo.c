@@ -131,6 +131,7 @@ int fifo_write(void *ctx, uint8_t *src, size_t srcsz, size_t *writesz) {
 	if (it->len > it->cap) { // fifo overflow
 		it->len = it->cap;
 		it->start = it->finish;
+		fprintf(stderr, "[fifo @ %p] fifo overflow\n", it);
 	}
 
 	pthread_mutex_unlock(&it->rw_mutex);

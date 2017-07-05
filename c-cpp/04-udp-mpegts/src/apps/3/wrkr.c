@@ -30,7 +30,7 @@ static void* wrkr_do(void *args) {
 }
 
 int wrkr_run(Wrkr *it) {  /* TODO: error code */
-	if (pthread_create(&it->_thread, NULL, wrkr_do, (void*)it)) {
+	if (pthread_create(&it->_thrd, NULL, wrkr_do, (void*)it)) {
 		return 1;
 	}
 	return 0;

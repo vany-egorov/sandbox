@@ -16,7 +16,7 @@ int cfg_new(CFG **out) {
 }
 
 /* initialize => set initial state */
-int cfg_initialize(CFG *it) {
+int cfg_init(CFG *it) {
 	int ret = 0;
 
 	it->i = NULL;
@@ -24,8 +24,19 @@ int cfg_initialize(CFG *it) {
 	return ret;
 }
 
+int cfg_validate(CFG *it) {
+	int ok = 1;
+
+	if (!it->i) {
+		fprintf(stderr, "no inputs provided; -i --input: must be specified;\n");
+		ok = 0;
+	}
+
+	return ok;
+}
+
 /* finalize */
-int cfg_finalize(CFG *it) {
+int cfg_fin(CFG *it) {
 	int ret = 0;
 
 	if (!it) return ret;
@@ -49,7 +60,7 @@ int cfg_del(CFG **out) {
 
 	if (!it) return ret;
 
-	cfg_finalize(it);
+	cfg_fin(it);
 
 	free(it);
 	*out = NULL;

@@ -22,10 +22,15 @@ int va_parser_open(VAParser *it, VAParserOpenArgs *args) {
 	fifo_init(it->fifo, 100*7*188);
 	it->multi = io_multi_writer_new(NULL, 0);  /* o */
 
-	it->reader_udp = io_reader_new(it->udp, udp_read);
-	it->reader_fifo = io_reader_new(it->fifo, fifo_read);
-	it->writer_fifo = io_writer_new(it->fifo, fifo_write);
-	it->writer_multi = io_writer_new(it->multi, io_multi_writer_write);
+	io_reader_new(&it->reader_udp);
+	io_reader_new(&it->reader_fifo);
+	io_writer_new(&it->writer_fifo);
+	io_writer_new(&it->writer_multi);
+
+	io_reader_init(it->reader_udp, it->udp, udp_read);
+	io_reader_init(it->reader_fifo, it->fifo, fifo_read);
+	io_reader_init(it->writer_fifo, it->fifo, fifo_write);
+	io_reader_init(it->writer_multi, it->multi, io_multi_writer_write);
 
 	if ((!it->udp) || (!it->fifo) || (!it->multi) ||
 	    (!it->reader_udp) || (!it->reader_fifo) ||
@@ -86,8 +91,8 @@ int va_parser_close(VAParser *it) {
 	udp_del(it->udp);
 	fifo_del(it->fifo);
 	/* it->multi; */
-	io_reader_del(it->reader_udp);
-	io_reader_del(it->reader_fifo);
+	io_reader_del(&it->reader_udp);
+	io_reader_del(&it->reader_fifo);
 	io_writer_del(it->writer_fifo);
 	io_writer_del(it->writer_multi);
 

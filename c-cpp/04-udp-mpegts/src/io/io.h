@@ -18,9 +18,10 @@ struct io_reader_s {
 	io_reader_read_func read;
 };
 
-IOReader *io_reader_new(void *w, io_reader_read_func read);
+int io_reader_new(IOReader **out);
+int io_reader_init(IOReader *it, void *w, io_reader_read_func read);
 int io_reader_read(IOReader *it, uint8_t *buf, size_t bufsz, size_t *n);
-void io_reader_del(IOReader *it);
+int io_reader_del(IOReader **out);
 
 
 /* multi-reader */
@@ -42,9 +43,10 @@ struct io_writer_s {
 	io_writer_write_func write;
 };
 
-IOWriter *io_writer_new(void *w, io_writer_write_func write);
+int io_writer_new(IOWriter **out);
+int io_writer_init(IOWriter *it, void *w, io_writer_write_func write);
 int io_writer_write(IOWriter *it, uint8_t *buf, size_t bufsz, size_t *n);
-void io_writer_del(IOWriter *it);
+int io_writer_del(IOWriter **out);
 
 
 /* multi-writer */

@@ -18,7 +18,7 @@ struct wrkr_cfg_s {
 };
 
 struct wrkr_s {
-	pthread_t _thread;
+	pthread_t _thrd;
 
 	Input input;
 };

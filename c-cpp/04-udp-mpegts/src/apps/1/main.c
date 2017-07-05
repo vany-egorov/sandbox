@@ -160,7 +160,7 @@ void* read_worker_do(void *args) {
 
 	it = (ReadWorker*)args;
 
-	for(;;)
+	for (;;)
 		io_copy(it->reader, it->writer, buf, sizeof(buf), &copied);
 
 	return NULL;
@@ -271,12 +271,19 @@ int main (int argc, char *argv[]) {
 	fifo_new(&fifo);                       /* o */
 	fifo_init(fifo, 100*7*188);
 	multi = io_multi_writer_new(NULL, 0);  /* o */
-	reader_udp = io_reader_new(udp_i, udp_read);
-	reader_fifo = io_reader_new(fifo, fifo_read);
-	writer_file_1 = io_writer_new(file_ts_1, file_write);
-	writer_file_2 = io_writer_new(file_ts_2, file_write);
-	writer_fifo = io_writer_new(fifo, fifo_write);
-	writer_multi = io_writer_new(multi, io_multi_writer_write);
+	io_reader_new(&reader_udp);
+	io_reader_new(&reader_fifo);
+	io_writer_new(&writer_file_1);
+	io_writer_new(&writer_file_2);
+	io_writer_new(&writer_fifo);
+	io_writer_new(&writer_multi);
+
+	io_reader_init(reader_udp, udp_i, udp_read);
+	io_reader_init(reader_fifo, fifo, fifo_read);
+	io_writer_init(writer_file_1, file_ts_1, file_write);
+	io_writer_init(writer_file_2, file_ts_1, file_write);
+	io_writer_init(writer_fifo, fifo, fifo_write);
+	io_writer_init(writer_multi, multi, io_multi_writer_write);
 
 	if ((!udp_i) ||
 		  (!reader_udp) ||
