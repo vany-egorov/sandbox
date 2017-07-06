@@ -1,12 +1,12 @@
-#include "./cfg.h"
+#include "cfg.h"
 
 
 /* memory allocation */
-int cfg_new(CFG **out) {
+int cfg_new(Cfg **out) {
 	int ret = 0;
-	CFG *it = NULL;
+	Cfg *it = NULL;
 
-	it = calloc(1, sizeof(CFG));
+	it = calloc(1, sizeof(Cfg));
 	if (!it) {
 		return 1;
 	}
@@ -16,7 +16,7 @@ int cfg_new(CFG **out) {
 }
 
 /* initialize => set initial state */
-int cfg_init(CFG *it) {
+int cfg_init(Cfg *it) {
 	int ret = 0;
 
 	it->i = NULL;
@@ -24,7 +24,7 @@ int cfg_init(CFG *it) {
 	return ret;
 }
 
-int cfg_validate(CFG *it) {
+int cfg_validate(Cfg *it) {
 	int ok = 1;
 
 	if (!it->i) {
@@ -36,7 +36,7 @@ int cfg_validate(CFG *it) {
 }
 
 /* finalize */
-int cfg_fin(CFG *it) {
+int cfg_fin(Cfg *it) {
 	int ret = 0;
 
 	if (!it) return ret;
@@ -50,9 +50,9 @@ int cfg_fin(CFG *it) {
 }
 
 /* destructor */
-int cfg_del(CFG **out) {
+int cfg_del(Cfg **out) {
 	int ret = 0;
-	CFG *it = NULL;
+	Cfg *it = NULL;
 
 	if (!out) return ret;
 

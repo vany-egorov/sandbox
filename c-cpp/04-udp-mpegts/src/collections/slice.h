@@ -34,4 +34,4 @@ void slice_print(Slice *it);
 void slice_del(Slice *it);
 
 
-#endif
+#endif  /* __COLLECTIONS_SLICE__ */

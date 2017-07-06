@@ -2,6 +2,9 @@
 #define __URL__
 
 
+/* https://url.spec.whatwg.org */
+
+
 #include <regex.h>  /* regcomp, REG_EXTENDED, REG_ICASE, regex_t */
 #include <ctype.h>  /* tolower */
 #include <stdio.h>  /* printf */
@@ -39,6 +42,7 @@ typedef enum {
 
 	URL_SCHEME_UNKNOWN,
 } URLScheme;
+typedef URLScheme URLProtocol;
 typedef enum {
   URL_FLAG_MULTICAST = 0x01,
 } URLFlag;
@@ -98,6 +102,8 @@ const char* url_host(URL *it);
 const char* url_path(URL *it);
 const char* url_query(URL *it);
 const char* url_fragment(URL *it);
+const URLScheme url_scheme(URL *it);
+const URLProtocol url_protocol(URL *it);
 
 URLScheme url_scheme_parse(char *buf, size_t bufsz);
 const char *url_scheme_string(URLScheme it);

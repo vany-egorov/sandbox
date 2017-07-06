@@ -8,6 +8,9 @@
 #include <string.h> /* strerror */
 
 
+/* TODO: make buffer as struct with read, write, close */
+
+
 /* reader */
 typedef struct io_reader_s IOReader;
 typedef int (*io_reader_read_func) (void *ctx, uint8_t *buf, size_t bufsz, size_t *n);

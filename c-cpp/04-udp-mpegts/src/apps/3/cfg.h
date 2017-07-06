@@ -11,9 +11,9 @@
 #define CFG_KEY_VALUE_SEPARATOR '='
 
 
-typedef struct cfg_s   CFG;
-typedef struct cfg_i_s CFGI;
-typedef struct cfg_o_s CFGO;
+typedef struct cfg_s   Cfg;
+typedef struct cfg_i_s CfgI;
+typedef struct cfg_o_s CfgO;
 
 struct cfg_s {
 	int v;  /* show version and exit */
@@ -39,15 +39,15 @@ struct cfg_o_s {
 
 
 /* memory allocation */
-int cfg_new(CFG **out);
+int cfg_new(Cfg **out);
 /* initialize => set initial state */
-int cfg_init(CFG *it);
+int cfg_init(Cfg *it);
 /* finalize */
-int cfg_validate(CFG *it);
+int cfg_validate(Cfg *it);
 /* finalize */
-int cfg_fin(CFG *it);
+int cfg_fin(Cfg *it);
 /* set initial state */
-int cfg_del(CFG **out);
+int cfg_del(Cfg **out);
 
 
 #endif /* __APPS_3_CFG__ */

@@ -144,6 +144,9 @@ $(OBJS-DIR)/apps-3-input-udp.o: ./apps/3/input-udp.c
 $(OBJS-DIR)/apps-3-input-file.o: ./apps/3/input-file.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-input-build.o: ./apps/3/input-build.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -237,6 +240,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-input.o \
 	$(OBJS-DIR)/apps-3-input-udp.o \
 	$(OBJS-DIR)/apps-3-input-file.o \
+	$(OBJS-DIR)/apps-3-input-build.o \
 	\
 	$(OBJS-DIR)/apps-3-main.o
 

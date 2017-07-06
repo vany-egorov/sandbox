@@ -1,5 +1,4 @@
-#include "./input.h"  /* InputVt */
-#include "./input-file.h"
+#include "input-file.h"
 
 
 int input_file_new(InputFile **out) {
@@ -33,13 +32,18 @@ static int opn(void *ctx, URL *u) {
 }
 
 int rd(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
+	InputFile *it = NULL;
+
+	it = (InputFile*)ctx;
+
+	printf("[input-file @ %p] [<] read\n", it);
 }
 
 int cls(void *ctx) {
 }
 
 
-InputVt input_file_vt = {
+InputVT input_file_vt = {
 	.open = opn,
 	.read = rd,
 	.close = cls,

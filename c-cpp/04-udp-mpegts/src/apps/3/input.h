@@ -4,26 +4,25 @@
 
 #include <url/url.h>  /* URL */
 
+#include "input-vt.h"    /* InputVT */
+#include "input-udp.h"   /* InputUDPCfg */
+#include "input-file.h"  /* InputFileCfg */
+
 
 typedef struct input_s Input;
-typedef struct input_vt_s InputVt;
+typedef struct input_cfg_s InputCfg;
 
 
-extern InputVt input_file_vt;  /* file virtual table */
-extern InputVt input_udp_vt;   /* UDP virtual table */
-
+struct input_cfg_s {
+	InputUDPCfg udp;
+	InputFileCfg file;
+};
 
 struct input_s {
 	URL url;
 	void *w; /* wrapped, child, opaque */
 
-	InputVt *vt; /* virtual table */
-};
-
-struct input_vt_s {
-	int (*open) (void *it, URL *url);
-	int (*read) (void *it, uint8_t *buf, size_t bufsz, size_t *n);
-	int (*close) (void *it);
+	InputVT *vt; /* virtual table */
 };
 
 
@@ -33,4 +32,4 @@ int input_read(Input *it);
 int input_close(Input *out);
 
 
-#endif /* __APPS_3_INPUT__ */
+#endif  /* __APPS_3_INPUT__ */

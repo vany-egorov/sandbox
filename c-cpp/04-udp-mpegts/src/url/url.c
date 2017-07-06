@@ -260,11 +260,13 @@ void url_parse(URL *it, const char *raw) {
 	}
 }
 
-const char* url_user_info(URL *it) { return it->got_user_info ? &it->buf[it->pos_userinfo] : ""; }
-const char* url_host(URL *it)      { return it->got_host ? &it->buf[it->pos_host] : ""; }
-const char* url_path(URL *it)      { return it->got_path ? &it->buf[it->pos_path] : ""; }
-const char* url_query(URL *it)     { return it->got_query ? &it->buf[it->pos_query] : ""; }
-const char* url_fragment(URL *it)  { return it->got_fragment ? &it->buf[it->pos_fragment] : ""; }
+const char* url_user_info(URL *it)      { return it->got_user_info ? &it->buf[it->pos_userinfo] : ""; }
+const char* url_host(URL *it)           { return it->got_host ? &it->buf[it->pos_host] : ""; }
+const char* url_path(URL *it)           { return it->got_path ? &it->buf[it->pos_path] : ""; }
+const char* url_query(URL *it)          { return it->got_query ? &it->buf[it->pos_query] : ""; }
+const char* url_fragment(URL *it)       { return it->got_fragment ? &it->buf[it->pos_fragment] : ""; }
+const URLScheme url_scheme(URL *it)     { return it->scheme; }
+const URLProtocol url_protocol(URL *it) { return (URLProtocol)it->scheme; }
 
 void url_sprint(URL *it, char *buf, size_t bufsz) {
 	snprintf(buf+strlen(buf), bufsz-strlen(buf), "%s%s", url_scheme_string(it->scheme), URL_SEPARATOR_SCHEME);

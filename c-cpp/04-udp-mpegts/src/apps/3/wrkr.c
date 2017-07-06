@@ -1,4 +1,4 @@
-#include "./wrkr.h"
+#include "wrkr.h"
 
 
 int wrkr_new(Wrkr **out) {
@@ -16,8 +16,9 @@ int wrkr_new(Wrkr **out) {
 
 /* TODO: error code */
 /* TODO: cfg is invalid: i.e. url scheme is not supported */
-int wrkr_initialize(Wrkr *it, WrkrCfg cfg) {
-	input_open(&it->input, cfg.url);
+int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
+	input_build(&it->input, url_protocol(cfg->url), cfg->i);
+	input_open(&it->input, cfg->url);
 }
 
 static void* wrkr_do(void *args) {
@@ -36,7 +37,7 @@ int wrkr_run(Wrkr *it) {  /* TODO: error code */
 	return 0;
 }
 
-int wrkr_finalize(Wrkr *it) { return 0; }
+int wrkr_fin(Wrkr *it) { return 0; }
 
 int wrkr_del(Wrkr **out) {
 	int ret = 0;
@@ -48,7 +49,7 @@ int wrkr_del(Wrkr **out) {
 
 	if (!it) return ret;
 
-	wrkr_finalize(it);
+	wrkr_fin(it);
 
 	free(it);
 	*out = NULL;

@@ -1,4 +1,3 @@
-#include "./input.h"  /* InputVt */
 #include "./input-udp.h"
 
 
@@ -10,6 +9,14 @@ int input_udp_new(InputUDP **out) {
 	if (!it)
 		return 1;
 	*out = it;
+
+	return ret;
+}
+
+int input_udp_init(InputUDP *it, InputUDPCfg *c) {
+	int ret = 0;
+
+	it->c = *c;
 
 	return ret;
 }
@@ -45,10 +52,10 @@ static int opn(void *ctx, URL *u) {
 	} else {
 		printf("[input-udp @ %p] OK open %s\n", it, us);
 
-		if (fifo_init(&it->fifo, 100*7*188)) {
+		if (fifo_init(&it->fifo, it->c.fifo_cap)) {
 			fprintf(stderr, "[input-udp @ %p] ERROR init fifo\n", (void*)it);
 		} else {
-			printf("[input-udp @ %p] OK init fifo\n", (void*)it);  /* TODO: move to logger */
+			printf("[input-udp @ %p] OK init fifo, cap: %zu\n", (void*)it, it->c.fifo_cap);  /* TODO: move to logger */
 
 			if (pthread_create(&it->_thrd, NULL, fifo_reader, (void*)it)) {
 				fprintf(stderr, "[input-udp @ %p] ERROR spawn new thread\n", (void*)it);  /* TODO: move to logger */
@@ -60,13 +67,18 @@ static int opn(void *ctx, URL *u) {
 }
 
 static int rd(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
+	InputUDP *it = NULL;
+
+	it = (InputUDP*)ctx;
+
+	printf("[input-udp @ %p] [<] read\n", it);
 }
 
 static int cls(void *ctx) {
 
 }
 
-InputVt input_udp_vt = {
+InputVT input_udp_vt = {
 	.open = opn,
 	.read = rd,
 	.close = cls,

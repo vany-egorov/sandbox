@@ -126,6 +126,7 @@ int io_multi_writer_write(void *ctx, uint8_t *buf, size_t bufsz, size_t *written
 
 
 /* io */
+/* TODO: implement direct copy without buffer */
 int io_copy(IOReader* src, IOWriter* dst, uint8_t *buf, size_t bufsz, size_t *copied) {
 	int ret = 0;
 	size_t readen = 0;

@@ -1,4 +1,4 @@
-#include "./signal.h"
+#include "signal.h"
 
 
 static sem_t sem = { 0 };
