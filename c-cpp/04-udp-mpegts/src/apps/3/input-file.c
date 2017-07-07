@@ -31,21 +31,33 @@ static int opn(void *ctx, URL *u) {
  	}
 }
 
-int rd(void *ctx, void *opaque, input_read_cb_fn cb) {
+static int rd(void *ctx, void *opaque, input_read_cb_fn cb) {
 	InputFile *it = NULL;
 	size_t rln = 0;  /* read length */
-	uint8_t buf[5*MPEGTS_PACKET_SIZE] = { 0 };  /* TODO: move to config and to struct */
+	uint8_t buf[500*MPEGTS_PACKET_SIZE] = { 0 };  /* TODO: move to config and to struct */
 
 	it = (InputFile*)ctx;
 
-	file_read(&it->i, buf, sizeof(buf), &rln);
+	int ret = file_read(&it->i, buf, sizeof(buf), &rln);
+	if (ret == FILE_RESULT_OK) {
+		{int i = 0; for (i = 0; i < rln; i += MPEGTS_PACKET_SIZE) {
+			cb(opaque, &buf[i*MPEGTS_PACKET_SIZE], MPEGTS_PACKET_SIZE);
+		}}
+	} else if (ret == FILE_RESULT_OK_EOF) {
+		file_seek_start(&it->i);
+		printf("[input-file @ %p] seek file to start\n", ctx);
 
-	{int i = 0; for (i = 0; i < rln; i += MPEGTS_PACKET_SIZE) {
-		cb(opaque, &buf[i*MPEGTS_PACKET_SIZE], MPEGTS_PACKET_SIZE);
-	}}
+		/* <read step> */
+		ret = file_read(&it->i, buf, sizeof(buf), &rln);
+
+		{int i = 0; for (i = 0; i < rln; i += MPEGTS_PACKET_SIZE) {
+			cb(opaque, &buf[i*MPEGTS_PACKET_SIZE], MPEGTS_PACKET_SIZE);
+		}}
+		/* </read step> */
+	}
 }
 
-int cls(void *ctx) {
+static int cls(void *ctx) {
 }
 
 

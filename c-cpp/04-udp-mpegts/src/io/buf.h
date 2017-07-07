@@ -5,6 +5,8 @@
 typedef struct buf_s Buf;
 
 struct buf_s {
+	uint8_t *d;  /* data */
+	size_t sz;   /* size */
 };
 
 #endif // __IO_BUF__

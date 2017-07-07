@@ -27,9 +27,13 @@ int file_read(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
 
 	*n = fread((void*)buf, 1, bufsz, it->file);
 	if (*n != bufsz) {
-		fprintf(stderr, "[file-read @ %p] fread error: \"%s\"\n",
-			it, strerror(errno));
-		ret = FILE_RESULT_ERR_READ; goto cleanup;
+		if (feof(it->file)) {
+			ret = FILE_RESULT_OK_EOF; goto cleanup;
+		} else {
+			fprintf(stderr, "[file-read @ %p] fread error: \"%s\"\n",
+				it, strerror(errno));
+			ret = FILE_RESULT_ERR_READ; goto cleanup;
+		}
 	}
 
 cleanup:
@@ -51,6 +55,10 @@ int file_write(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
 
 cleanup:
 	return ret;
+}
+
+int file_seek_start(File *it) {
+	fseek(it->file, 0, SEEK_SET);
 }
 
 void file_del(File *it) {
