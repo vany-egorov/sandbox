@@ -104,5 +104,6 @@ int main(int argc, char *argv[]) {
 	signal_wait();
 
 cleanup:
+	/* TODO: close workers */
 	return ret;
 }

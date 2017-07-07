@@ -17,6 +17,7 @@ enum file_result_enum {
 	FILE_RESULT_OK,
 
 	FILE_RESULT_ERR_FOPEN,
+	FILE_RESULT_ERR_READ,
 };
 
 struct file_s {

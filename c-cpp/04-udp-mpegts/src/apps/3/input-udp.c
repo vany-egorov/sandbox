@@ -66,12 +66,21 @@ static int opn(void *ctx, URL *u) {
 	}
 }
 
-static int rd(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
+static int rd(void *ctx, void *opaque, input_read_cb_fn cb) {
 	InputUDP *it = NULL;
+	size_t rln = 0,  /* read length */
+	       fifo_ln = 0;  /* fifo length */
+	uint8_t pkt[MPEGTS_PACKET_SIZE] = { 0 };
 
 	it = (InputUDP*)ctx;
 
-	printf("[input-udp @ %p] [<] read\n", it);
+	fifo_wait_data(&it->fifo);
+	fifo_ln = fifo_len(&it->fifo);
+
+	{int i = 0; for (i = 0; i < fifo_ln; i += MPEGTS_PACKET_SIZE) {
+		fifo_read(&it->fifo, pkt, sizeof(pkt), &rln);
+		cb(opaque, pkt, sizeof(pkt));
+	}}
 }
 
 static int cls(void *ctx) {

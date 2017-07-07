@@ -19,7 +19,22 @@ cleanup:
 	return ret;
 }
 
-int file_read(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) { return 0; }
+int file_read(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
+	FileResult ret = FILE_RESULT_OK;
+	File *it = NULL;
+
+	it = (File*)ctx;
+
+	*n = fread((void*)buf, 1, bufsz, it->file);
+	if (*n != bufsz) {
+		fprintf(stderr, "[file-read @ %p] fread error: \"%s\"\n",
+			it, strerror(errno));
+		ret = FILE_RESULT_ERR_READ; goto cleanup;
+	}
+
+cleanup:
+	return ret;
+}
 
 int file_write(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
 	int ret = 0;

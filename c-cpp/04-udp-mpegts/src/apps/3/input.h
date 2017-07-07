@@ -19,7 +19,7 @@ struct input_cfg_s {
 };
 
 struct input_s {
-	URL url;
+	URL u;
 	void *w; /* wrapped, child, opaque */
 
 	InputVT *vt; /* virtual table */
@@ -28,7 +28,7 @@ struct input_s {
 
 int input_new(Input **out);
 int input_open(Input *it, URL *url);
-int input_read(Input *it);
+int input_read(Input *it, void *ctx, input_read_cb_fn cb);
 int input_close(Input *out);
 
 

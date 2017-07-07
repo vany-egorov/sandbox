@@ -4,8 +4,9 @@
 
 #include <io/file.h>  /* File */
 #include <url/url.h>  /* URL */
+#include <mpegts/mpegts.h>  /* MPEGTS_PACKET_SIZE */
 
-#include "input-vt.h"  /* InputVT */
+#include "input-vt.h"  /* InputVT, input_read_cb_fn */
 
 
 typedef struct input_file_s InputFile;

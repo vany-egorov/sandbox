@@ -8,7 +8,7 @@
 #include <mpegts/mpegts.h>     /* MPEGTS_PACKET_COUNT, MPEGTS_PACKET_SIZE */
 #include <collections/fifo.h>  /* FIFO */
 
-#include "input-vt.h"  /* InputVT */
+#include "input-vt.h"  /* InputVT, input_read_cb_fn */
 
 
 typedef struct input_udp_s InputUDP;

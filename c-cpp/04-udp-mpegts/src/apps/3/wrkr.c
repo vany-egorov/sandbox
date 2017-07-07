@@ -21,19 +21,30 @@ int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
 	input_open(&it->input, cfg->url);
 }
 
-static void* wrkr_do(void *args) {
+static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {
+	Wrkr *it = (Wrkr*)ctx;
+	char us[255] = { 0 };
+
+	url_sprint(&it->input.u, us, sizeof(us));
+
+	// printf("[< @ %p] %s %zu\n", it, us, bufsz);
+
+	return 0;
+}
+
+static void* go(void *args) {
 	Wrkr *it = (Wrkr*)args;
 
 	for (;;) {
-		input_read(&it->input);
-		sleep(1);
+		input_read(&it->input, (void*)it, on_read);
+		// sleep(1);
 	}
 }
 
 int wrkr_run(Wrkr *it) {  /* TODO: error code */
-	if (pthread_create(&it->_thrd, NULL, wrkr_do, (void*)it)) {
+	if (pthread_create(&it->_thrd, NULL, go, (void*)it))
 		return 1;
-	}
+
 	return 0;
 }
 

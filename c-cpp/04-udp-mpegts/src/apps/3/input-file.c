@@ -31,12 +31,18 @@ static int opn(void *ctx, URL *u) {
  	}
 }
 
-int rd(void *ctx, uint8_t *buf, size_t bufsz, size_t *n) {
+int rd(void *ctx, void *opaque, input_read_cb_fn cb) {
 	InputFile *it = NULL;
+	size_t rln = 0;  /* read length */
+	uint8_t buf[5*MPEGTS_PACKET_SIZE] = { 0 };  /* TODO: move to config and to struct */
 
 	it = (InputFile*)ctx;
 
-	printf("[input-file @ %p] [<] read\n", it);
+	file_read(&it->i, buf, sizeof(buf), &rln);
+
+	{int i = 0; for (i = 0; i < rln; i += MPEGTS_PACKET_SIZE) {
+		cb(opaque, &buf[i*MPEGTS_PACKET_SIZE], MPEGTS_PACKET_SIZE);
+	}}
 }
 
 int cls(void *ctx) {

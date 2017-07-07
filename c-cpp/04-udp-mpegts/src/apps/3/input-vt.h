@@ -6,11 +6,12 @@
 
 
 typedef struct input_vt_s InputVT;
+typedef int (*input_read_cb_fn) (void *ctx, uint8_t *buf, size_t bufsz);
 
 
 struct input_vt_s {
 	int (*open) (void *it, URL *url);
-	int (*read) (void *it, uint8_t *buf, size_t bufsz, size_t *n);
+	int (*read) (void *it, void *opaque, input_read_cb_fn cb);
 	int (*close) (void *it);
 };
 
