@@ -7,6 +7,8 @@
 #include <url/url.h>           /* URL */
 #include <mpegts/mpegts.h>     /* MPEGTS_PACKET_COUNT, MPEGTS_PACKET_SIZE */
 #include <collections/fifo.h>  /* FIFO */
+#include <log/logger.h>        /* Logger */
+#include <log/std.h>           /* logger_std */
 
 #include "input-vt.h"  /* InputVT, input_read_cb_fn */
 

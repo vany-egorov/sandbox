@@ -137,37 +137,9 @@ void log_del(log_t *it) {
 	if (it != NULL) free(it);
 }
 
-
-static inline void log_datetime(char* buffer, int size) {
-	time_t rawtime;
-	struct tm *timeinfo;
-
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-
-	strftime(buffer, size, "%d/%b/%Y %H:%M:%S", timeinfo);
-
-	return;
-}
-
-static inline int log_level_shortname(log_level_t level) {
-	switch (level) {
-	case LOG_LEVEL_TRACE:     return 't';
-	case LOG_LEVEL_DEBUG:     return 'd';
-	case LOG_LEVEL_INFO:      return 'i';
-	case LOG_LEVEL_WARN:      return 'w';
-	case LOG_LEVEL_ERROR:     return 'e';
-	case LOG_LEVEL_CRITICAL:  return 'c';
-	case LOG_LEVEL_OFF:       break;
-	default:                  return '~';
-	}
-
-	return '~';
-}
-
 static void log_printf(log_t *it, log_level_t level, int is_endl, const char* format, va_list args) {
-	char *color1 = &COLOR_BRIGHT_CYAN[0],
-	     *color2 = &COLOR_BRIGHT_CYAN[0];
+	char *c1 = NULL,
+	     *c2 = NULL;
 	char message[LOG_MAX_MESSAGE_SIZE];
 	char datetime[30];
 
@@ -175,17 +147,9 @@ static void log_printf(log_t *it, log_level_t level, int is_endl, const char* fo
 
 	vsprintf(message, format, args);
 
-	switch (level) {
-	case LOG_LEVEL_TRACE:     color1 = &COLOR_BRIGHT_CYAN[0];     color2 = &COLOR_DIM_CYAN[0];		break;
-	case LOG_LEVEL_DEBUG:     color1 = &COLOR_BRIGHT_BLUE[0];     color2 = &COLOR_BRIGHT_BLUE[0];	break;
-	case LOG_LEVEL_INFO:      color1 = &COLOR_BRIGHT_GREEN[0];    color2 = &COLOR_DIM_GREEN[0];		break;
-	case LOG_LEVEL_WARN:      color1 = &COLOR_BRIGHT_YELLOW[0];   color2 = &COLOR_DIM_YELLOW[0];	break;
-	case LOG_LEVEL_ERROR:     color1 = &COLOR_BRIGHT_RED[0];      color2 = &COLOR_DIM_RED[0];			break;
-	case LOG_LEVEL_CRITICAL:  color1 = &COLOR_BRIGHT_MAGENTA[0];  color2 = &COLOR_DIM_MAGENTA[0];	break;
-	case LOG_LEVEL_OFF:       return;
-	}
-
-	log_datetime(datetime, 30);
+	c1 = log_level_color1(level);
+	c2 = log_level_color1(level);
+	log_datetime(datetime, sizeof(datetime));
 
 	pthread_mutex_lock(&it->lock);
 
@@ -193,7 +157,7 @@ static void log_printf(log_t *it, log_level_t level, int is_endl, const char* fo
 		fprintf(it->file_access,
 			"[%s] [%c] %s%c",
 			datetime,
-			log_level_shortname(level),
+			log_level_short(level),
 			message,
 			is_endl ? '\n' : ' ');
 		fflush(it->file_access);
@@ -206,7 +170,7 @@ static void log_printf(log_t *it, log_level_t level, int is_endl, const char* fo
 			fprintf(it->file_error,
 				"[%s] [%c] %s%c",
 				datetime,
-				log_level_shortname(level),
+				log_level_short(level),
 				message,
 				is_endl ? '\n' : ' ');
 			fflush(it->file_error);
@@ -216,9 +180,9 @@ static void log_printf(log_t *it, log_level_t level, int is_endl, const char* fo
 	if (it->is_stderr_stdout_enabled) {
 		printf(
 			"%s[%s]%s %s[%c]%s %s%s%s%c",
-			COLOR_BRIGHT_WHITE, datetime,                   COLOR_RESET,
-			color1,             log_level_shortname(level), COLOR_RESET,
-			color2,             message,                    COLOR_RESET,
+			COLOR_BRIGHT_WHITE, datetime, COLOR_RESET,
+			c1, log_level_short(level), COLOR_RESET,
+			c2, message, COLOR_RESET,
 			is_endl ? '\n' : ' ');
 	}
 

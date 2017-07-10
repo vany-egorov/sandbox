@@ -24,5 +24,6 @@ libwebsockets
 !**/ui/src/lib/*
 *.swp
 *.swo
+.vscode
 
 tags

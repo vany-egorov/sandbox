@@ -1,5 +1,10 @@
-#ifndef __VA_LOG_STD__
-#define __VA_LOG_STD__
+#ifndef __LOG_LEVEL__
+#define __LOG_LEVEL__
+
+
+#include <strings.h>  /* strcasecmp */
+
+#include <common/color.h>
 
 
 typedef enum log_level_enum {
@@ -39,6 +44,9 @@ typedef enum log_level_enum {
 
 
 LogLevel log_level_parse(char* s);
+char log_level_short(LogLevel it);
+char *log_level_color1(LogLevel it);
+char *log_level_color2(LogLevel it);
 
 
-#endif /* __VA_LOG_STD__ */
+#endif /* __LOG_LEVEL__ */

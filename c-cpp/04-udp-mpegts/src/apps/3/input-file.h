@@ -2,9 +2,11 @@
 #define __APPS_3_INPUT_FILE__
 
 
-#include <io/file.h>  /* File */
-#include <url/url.h>  /* URL */
+#include <io/file.h>        /* File */
+#include <url/url.h>        /* URL */
 #include <mpegts/mpegts.h>  /* MPEGTS_PACKET_SIZE */
+#include <log/logger.h>     /* Logger */
+#include <log/std.h>        /* logger_std */
 
 #include "input-vt.h"  /* InputVT, input_read_cb_fn */
 

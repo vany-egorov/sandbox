@@ -27,7 +27,7 @@ static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {
 
 	url_sprint(&it->input.u, us, sizeof(us));
 
-	// printf("[< @ %p] %s %zu\n", it, us, bufsz);
+	printf("[< @ %p] %s %zu\n", it, us, bufsz);
 
 	return 0;
 }

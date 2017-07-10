@@ -55,10 +55,10 @@ int main(int argc, char *argv[]) {
 		"c", "cfg", "config",
 		"i", "input",
 		"o", "output",
-		"v", "vv", "vvv",
 		"min-level", "max-level",
 
 		// TODO: handle bool flags
+		"v", "vv", "vvv",
 		"background", "foreground",
 		"h", "help",
 

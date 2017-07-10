@@ -99,6 +99,9 @@ $(OBJS-DIR)/h264-bitstream.o: ./h264/bitstream.c
 $(OBJS-DIR)/url-url.o: ./url/url.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS-DIR)/url-test.o: ./url/url-test.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJS-DIR)/io-io.o: ./io/io.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -107,6 +110,21 @@ $(OBJS-DIR)/io-udp.o: ./io/udp.c
 
 $(OBJS-DIR)/io-file.o: ./io/file.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
+
+$(OBJS-DIR)/log-level.o: ./log/level.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/log-common.o: ./log/common.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/log-logger.o: ./log/logger.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/log-std.o: ./log/std.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/log-std-test.o: ./log/std-test.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/va-atom-kind.o: ./va/atom-kind.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
@@ -231,8 +249,14 @@ app-3: \
 	$(OBJS-DIR)/io-file.o \
 	$(OBJS-DIR)/collections-fifo.o \
 	$(OBJS-DIR)/collections-slice.o \
+	\
 	$(OBJS-DIR)/common-opt.o \
 	$(OBJS-DIR)/common-daemonize.o \
+	\
+	$(OBJS-DIR)/log-level.o \
+	$(OBJS-DIR)/log-common.o \
+	$(OBJS-DIR)/log-logger.o \
+	$(OBJS-DIR)/log-std.o \
 	\
 	$(OBJS-DIR)/apps-3-cfg.o \
 	$(OBJS-DIR)/apps-3-signal.o \
@@ -310,6 +334,19 @@ dynamic: \
 	$(OBJS-DIR)/va-parser-worker-parse.o
 	$(CC) $+ -shared -o $(LIB-DIR)/libva.so
 
+log-std-test: \
+	$(OBJS-DIR)/log-level.o \
+	$(OBJS-DIR)/log-common.o \
+	$(OBJS-DIR)/log-logger.o \
+	$(OBJS-DIR)/log-std.o \
+	$(OBJS-DIR)/log-std-test.o
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+
+url-test: \
+	$(OBJS-DIR)/url-url.o \
+	$(OBJS-DIR)/url-test.o
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+
 collections-slice-test: \
 	$(OBJS-DIR)/collections-slice.o \
 	$(OBJS-DIR)/collections-slice-test.o
@@ -320,7 +357,7 @@ ensure-dirs:
 	mkdir -p $(BIN-DIR)
 	mkdir -p $(LIB-DIR)
 
-build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test
+build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test url-test log-std-test
 
 clean:
 	rm -rvf $(OBJS-DIR)/*.o
@@ -330,6 +367,8 @@ clean:
 	rm -rvf $(OBJS-DIR)/app-2
 	rm -rvf $(OBJS-DIR)/app-3
 	rm -rvf $(OBJS-DIR)/collections-slice-test
+	rm -rvf $(OBJS-DIR)/url-test
+	rm -rvf $(OBJS-DIR)/log-std-test
 
 	rm -rvf $(BIN-DIR)/*.o
 	rm -rvf $(BIN-DIR)/*.so
@@ -338,6 +377,8 @@ clean:
 	rm -rvf $(BIN-DIR)/app-2
 	rm -rvf $(BIN-DIR)/app-3
 	rm -rvf $(BIN-DIR)/collections-slice-test
+	rm -rvf $(BIN-DIR)/url-test
+	rm -rvf $(BIN-DIR)/log-std-test
 
 	rm -rvf $(LIB-DIR)/*.o
 	rm -rvf $(LIB-DIR)/*.so
@@ -346,6 +387,8 @@ clean:
 	rm -rvf $(LIB-DIR)/app-2
 	rm -rvf $(LIB-DIR)/app-3
 	rm -rvf $(LIB-DIR)/collections-slice-test
+	rm -rvf $(LIB-DIR)/url-test
+	rm -rvf $(LIB-DIR)/log-std-test
 
 # tsplay ../tmp/HD-1.ts 239.255.1.1:5500 -loop
 # tsplay ../tmp/HD-NatGeoWild.ts 239.255.1.2:5500 -loop
