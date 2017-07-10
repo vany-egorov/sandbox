@@ -37,7 +37,7 @@ void mpegts_adaption_sprint_json(MPEGTSAdaption *it, char *buf, size_t bufsz) {
 		", \"splicing-point-flag\": %d"
 		", \"transport-private-data-flag\": %d"
 		", \"adaptation-field-extension-flag\": %d"
-		"}\n",
+		"}",
 		it->adaptation_field_length,
 		it->discontinuity_indicator,
 		it->random_access_indicator,
@@ -76,7 +76,7 @@ void mpegts_pcr_sprint_json(MPEGTSPCR *it, char *buf, size_t bufsz) {
 		"{\"base\": %" PRIu64 ""
 		",\"ext\": %d"
 		",\"PCR\": \"0:0:0:XXX (%" PRIu64 ")\""
-		"}\n",
+		"}",
 		(uint64_t)it->base,
 		it->ext,
 		(uint64_t)(it->base * 300)  /* 90kHZ => 27MHz */

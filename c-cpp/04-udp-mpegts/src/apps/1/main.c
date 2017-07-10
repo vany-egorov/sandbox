@@ -172,6 +172,7 @@ void* parse_worker_do(void *args) {
 	size_t readed_len = 0,
 	       fifo_length = 0;
 	ParseWorker *it = (ParseWorker*)args;
+	char sbuf[255] = { 0 };
 
 	for(;;) {
 
@@ -199,6 +200,8 @@ void* parse_worker_do(void *args) {
 			h264_nal_pps_print_humanized(&it->h264.nal_pps);
 			h264_nal_aud_print_humanized(&it->h264.nal_aud);
 
+
+
 			if (0) {
 				MPEGTSHeader *mpegts_header = NULL;
 				MPEGTSAdaption *mpegts_adaption = NULL;
@@ -213,9 +216,9 @@ void* parse_worker_do(void *args) {
 						break;
 					case DB_MPEGTS_ADAPTION:
 						mpegts_adaption = (MPEGTSAdaption*)atom->data;
-						mpegts_adaption_print_json(mpegts_adaption);
+						mpegts_adaption_sprint_json(mpegts_adaption, sbuf, sizeof(sbuf));
 						if (mpegts_adaption->PCR_flag)
-							mpegts_pcr_print_json(&mpegts_adaption->PCR);
+							mpegts_pcr_sprint_json(&mpegts_adaption->PCR, sbuf, sizeof(sbuf));
 						break;
 					case DB_MPEGTS_PES:
 						mpegts_pes = (MPEGTSPES*)atom->data;

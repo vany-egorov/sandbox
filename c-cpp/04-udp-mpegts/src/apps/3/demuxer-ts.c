@@ -40,7 +40,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 
 		if (mpegts_adaption.PCR_flag) {
 			mpegts_pcr_sprint_json(&mpegts_adaption.PCR, sbuf, sizeof(sbuf));
-			log_trace(lgr, "[demux-ts @ %p] %s \n", sbuf);
+			log_trace(lgr, "[demux-ts @ %p] %s\n", ctx, sbuf);
 		}
 	}
 
