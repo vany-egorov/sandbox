@@ -47,6 +47,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 	MPEGTSAdaption mpegts_adaption = { 0 };
 	MPEGTSPSIPMT mpegts_pmt = {0};
 	MPEGTSPSI mpegts_psi = { 0 };
+	char sbuf[255] = { 0 };
 
 	if (msg[0] != MPEGTS_SYNC_BYTE) return;
 
@@ -58,7 +59,7 @@ void on_msg(ParseWorker *it, uint8_t *msg) {
 		db_store_mpegts_adaption(it->db, &mpegts_adaption, it->offset+4);
 
 		if (mpegts_adaption.PCR_flag)
-			mpegts_pcr_print_json(&mpegts_adaption.PCR);
+			mpegts_pcr_sprint_json(&mpegts_adaption.PCR, sbuf, sizeof(sbuf));
 	}
 
 	// PSI-PAT

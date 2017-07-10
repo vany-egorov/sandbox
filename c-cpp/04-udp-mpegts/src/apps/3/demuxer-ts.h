@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>  /* calloc */
 
-#include <mpegts/mpegts.h>  /* calloc */
+#include <mpegts/mpegts.h>  /* MPEGTS_SYNC_BYTE, mpegts_* */
+#include <log/logger.h>     /* Logger */
+#include <log/std.h>        /* logger_std */
 
 #include "demuxer.h"  /* DemuxerVT */
 

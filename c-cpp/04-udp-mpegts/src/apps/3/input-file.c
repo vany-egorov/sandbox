@@ -40,7 +40,7 @@ static int rd_step(InputFile *it, void *opaque, input_read_cb_fn cb) {
 	ret = file_read(&it->i, buf, sizeof(buf), &rln);
 	if (ret == FILE_RESULT_OK) {
 		{int i = 0; for (i = 0; i < rln; i += MPEGTS_PACKET_SIZE) {
-			cb(opaque, &buf[i*MPEGTS_PACKET_SIZE], MPEGTS_PACKET_SIZE);
+			cb(opaque, &buf[i], MPEGTS_PACKET_SIZE);
 		}}
 	}
 

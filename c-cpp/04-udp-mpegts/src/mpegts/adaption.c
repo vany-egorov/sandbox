@@ -26,8 +26,8 @@ void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
 		mpegts_pcr_parse(&it->PCR, &data[2]);
 }
 
-void mpegts_adaption_print_json(MPEGTSAdaption *it) {
-	printf(
+void mpegts_adaption_sprint_json(MPEGTSAdaption *it, char *buf, size_t bufsz) {
+	snprintf(buf, bufsz,
 		"{\"adaptation-field-length\": %d"
 		", \"discontinuity-indicator\": %d"
 		", \"random-access-indicator\": %d"
@@ -71,8 +71,8 @@ void mpegts_pcr_parse(MPEGTSPCR *it, uint8_t *data) {
 	it->ext = ext;
 }
 
-void mpegts_pcr_print_json(MPEGTSPCR *it) {
-	printf(
+void mpegts_pcr_sprint_json(MPEGTSPCR *it, char *buf, size_t bufsz) {
+	snprintf(buf, bufsz,
 		"{\"base\": %" PRIu64 ""
 		",\"ext\": %d"
 		",\"PCR\": \"0:0:0:XXX (%" PRIu64 ")\""

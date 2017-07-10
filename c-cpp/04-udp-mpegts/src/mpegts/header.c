@@ -35,21 +35,21 @@ void mpegts_header_parse(MPEGTSHeader *it, uint8_t *data) {
 	it->continuity_counter = continuity_counter;
 }
 
-void mpegts_header_print_json(MPEGTSHeader *it) {
-	printf(
+void mpegts_header_sprint_json(MPEGTSHeader *it, char *buf, size_t bufsz) {
+	snprintf(buf, bufsz,
 		"{\"TEI\": %d"
 		", \"PUSI\": %d"
 		", \"TP\": %d"
-		", \"PID\": 0x%04x"
+		", \"PID\": 0x%04x / %d"
 		", \"TSC\": 0x%02x"
 		", \"adaption\": %d"
 		", \"payload\": %d"
 		", \"continuity-counter\": %d"
-		"}\n",
+		"}",
 		it->transcport_error_indicator,
 		it->payload_unit_start_indicator,
 		it->transcport_priority,
-		it->PID,
+		it->PID, it->PID,
 		it->transport_scrambling_control,
 		it->adaption_field_control,
 		it->contains_payload,

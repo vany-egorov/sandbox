@@ -282,6 +282,18 @@ app-3: \
 	$(OBJS-DIR)/apps-3-input-file.o \
 	$(OBJS-DIR)/apps-3-input-build.o \
 	\
+	$(OBJS-DIR)/mpegts-mpegts.o \
+	$(OBJS-DIR)/mpegts-header.o \
+	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-psi.o \
+	$(OBJS-DIR)/mpegts-psi-cat.o \
+	$(OBJS-DIR)/mpegts-psi-nit.o \
+	$(OBJS-DIR)/mpegts-psi-pat.o \
+	$(OBJS-DIR)/mpegts-psi-pmt.o \
+	$(OBJS-DIR)/mpegts-psi-sdt.o \
+	$(OBJS-DIR)/mpegts-pes.o \
+	$(OBJS-DIR)/mpegts-es.o \
+	\
 	$(OBJS-DIR)/apps-3-main.o
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)

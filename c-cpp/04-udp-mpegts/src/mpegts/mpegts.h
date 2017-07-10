@@ -143,9 +143,9 @@ struct mpegts_header_s { /* Transport Packet */
 };
 
 MPEGTSHeader *mpegts_header_new(void);
-void          mpegts_header_parse(MPEGTSHeader *it, uint8_t *data);
-void          mpegts_header_print_json(MPEGTSHeader *it);
-void          mpegts_header_del(MPEGTSHeader* it);
+void mpegts_header_parse(MPEGTSHeader *it, uint8_t *data);
+void mpegts_header_sprint_json(MPEGTSHeader *it, char *buf, size_t bufsz);
+void mpegts_header_del(MPEGTSHeader* it);
 
 
 /* adaption.c */
@@ -174,10 +174,10 @@ struct mpegts_adaption_s {
 };
 
 void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data);
-void mpegts_adaption_print_json(MPEGTSAdaption *it);
+void mpegts_adaption_sprint_json(MPEGTSAdaption *it, char *buf, size_t bufsz);
 
 void mpegts_pcr_parse(MPEGTSPCR *it, uint8_t *data);
-void mpegts_pcr_print_json(MPEGTSPCR *it);
+void mpegts_pcr_sprint_json(MPEGTSPCR *it, char *buf, size_t bufsz);
 
 
 /* psi.c */
