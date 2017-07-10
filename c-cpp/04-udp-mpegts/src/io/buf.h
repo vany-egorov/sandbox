@@ -9,4 +9,4 @@ struct buf_s {
 	size_t sz;   /* size */
 };
 
-#endif // __IO_BUF__
+#endif /* __IO_BUF__ */

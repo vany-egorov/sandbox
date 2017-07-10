@@ -36,6 +36,7 @@ struct fixture_s {
 		char      host[100];
 		uint16_t  port;
 		char      path[255];
+		char      ext[255];
 		char      query[255];
 		char      fragment[100];
 		int       flags;
@@ -51,6 +52,7 @@ static Fixture fixtures[] = {
 		{
 			.scheme=URL_SCHEME_FILE,
 			.path="../tmp/1.ts",
+			.ext="ts",
 		},
 	},
 	{
@@ -59,6 +61,7 @@ static Fixture fixtures[] = {
 		{
 			.scheme=URL_SCHEME_FILE,
 			.path="./tmp/1.ts",
+			.ext="ts",
 		},
 	},
 	{
@@ -86,6 +89,7 @@ static Fixture fixtures[] = {
 			.scheme=URL_SCHEME_UDP,
 			.host="128.201.1.1",
 			.path="/foo/bar/buz",
+			.ext="",
 		},
 	},
 	{
@@ -105,6 +109,7 @@ static Fixture fixtures[] = {
 			.host="",
 			.port=0,
 			.path="/mnt/data/ts.ts",
+			.ext="ts",
 		},
 	},
 	{
@@ -115,16 +120,18 @@ static Fixture fixtures[] = {
 			.host="",
 			.port=0,
 			.path="/mnt/data/ts.ts",
+			.ext="ts",
 		},
 	},
 	{
-		"/tmp/ts.ts",
-		"file:///tmp/ts.ts",
+		"/tmp/ts.mp4",
+		"file:///tmp/ts.mp4",
 		{
 			.scheme=URL_SCHEME_FILE,
 			.host="",
 			.port=0,
-			.path="/tmp/ts.ts",
+			.path="/tmp/ts.mp4",
+			.ext="mp4",
 		},
 	},
 	{
@@ -136,6 +143,7 @@ static Fixture fixtures[] = {
 			.host="github.com",
 			.port=22,
 			.path="/vany-egorov/absolut.git",
+			.ext="git",
 		},
 	},
 	{
@@ -189,6 +197,7 @@ static Fixture fixtures[] = {
 		{
 			.scheme=URL_SCHEME_FILE,
 			.path="/221.1.1.1:5500",
+			.ext="1:5500"
 		},
 	},
 
@@ -244,6 +253,9 @@ int main(int argc, char **argv) {
 
 		(!strcmp(fixture->u.path, url_path(&u))) ? ppass() : pfail();
 		printf("\"%s\" | \"%s\"\n", fixture->u.path, url_path(&u));
+
+		(!strcmp(fixture->u.ext, url_ext(&u))) ? ppass() : pfail();
+		printf("\"%s\" | \"%s\"\n", fixture->u.ext, url_ext(&u));
 
 		(!strcmp(fixture->u.query, url_query(&u))) ? ppass() : pfail();
 		printf("\"%s\" | \"%s\"\n", fixture->u.query, url_query(&u));

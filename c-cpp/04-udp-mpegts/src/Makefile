@@ -39,6 +39,9 @@ $(OBJS-DIR)/common-opt.o: ./common/opt.c
 $(OBJS-DIR)/common-daemonize.o: ./common/daemonize.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS-DIR)/common-container.o: ./common/container.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/db-db.o: ./db/db.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -165,6 +168,15 @@ $(OBJS-DIR)/apps-3-input-file.o: ./apps/3/input-file.c
 $(OBJS-DIR)/apps-3-input-build.o: ./apps/3/input-build.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-demuxer.o: ./apps/3/demuxer.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-demuxer-ts.o: ./apps/3/demuxer-ts.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-demuxer-build.o: ./apps/3/demuxer-build.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -251,6 +263,7 @@ app-3: \
 	$(OBJS-DIR)/collections-slice.o \
 	\
 	$(OBJS-DIR)/common-opt.o \
+	$(OBJS-DIR)/common-container.o \
 	$(OBJS-DIR)/common-daemonize.o \
 	\
 	$(OBJS-DIR)/log-level.o \
@@ -261,6 +274,9 @@ app-3: \
 	$(OBJS-DIR)/apps-3-cfg.o \
 	$(OBJS-DIR)/apps-3-signal.o \
 	$(OBJS-DIR)/apps-3-wrkr.o \
+	$(OBJS-DIR)/apps-3-demuxer.o \
+	$(OBJS-DIR)/apps-3-demuxer-ts.o \
+	$(OBJS-DIR)/apps-3-demuxer-build.o \
 	$(OBJS-DIR)/apps-3-input.o \
 	$(OBJS-DIR)/apps-3-input-udp.o \
 	$(OBJS-DIR)/apps-3-input-file.o \

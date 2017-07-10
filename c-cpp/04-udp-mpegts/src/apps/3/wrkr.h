@@ -6,8 +6,13 @@
 #include <unistd.h>   /* sleep */
 #include <pthread.h>  /* pthread_t, pthread_create */
 
-#include "input.h"
-#include "input-build.h"
+#include <log/logger.h> /* Logger */
+#include <log/std.h>    /* logger_std */
+
+#include "input.h"  /* Input */
+#include "demuxer.h"  /* Demuxer */
+#include "input-build.h"  /* input_build */
+#include "demuxer-build.h" /* demuxer_build */
 
 
 typedef struct wrkr_s Wrkr;
@@ -24,6 +29,7 @@ struct wrkr_s {
 	pthread_t _thrd;
 
 	Input input;
+	Demuxer demuxer;
 };
 
 

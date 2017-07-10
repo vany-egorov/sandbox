@@ -257,12 +257,24 @@ void url_parse(URL *it, const char *raw) {
 				regfree(&reg);
 			}
 		}
+
+		if (it->got_path) {
+			cursor = (char*)url_path(it);
+			token = strrchr(cursor, URL_PATH_EXT_START);
+			if ((token) &&
+			    (strlen(token) != 1))  /* /foo/bar/buz. */ {
+				bufsz = token-cursor;
+				it->got_ext = 1;
+				it->pos_ext = it->pos_path + (uint16_t)bufsz + 1;
+			}
+		}
 	}
 }
 
 const char* url_user_info(URL *it)      { return it->got_user_info ? &it->buf[it->pos_userinfo] : ""; }
 const char* url_host(URL *it)           { return it->got_host ? &it->buf[it->pos_host] : ""; }
 const char* url_path(URL *it)           { return it->got_path ? &it->buf[it->pos_path] : ""; }
+const char* url_ext(URL *it)            { return it->got_ext ? &it->buf[it->pos_ext] : ""; }
 const char* url_query(URL *it)          { return it->got_query ? &it->buf[it->pos_query] : ""; }
 const char* url_fragment(URL *it)       { return it->got_fragment ? &it->buf[it->pos_fragment] : ""; }
 const URLScheme url_scheme(URL *it)     { return it->scheme; }
@@ -291,6 +303,7 @@ void url_sprint_json(URL *it, char *buf, size_t bufsz) {
 		", \"host\": \"%s\""
 		", \"port\": %d"
 		", \"path\": \"%s\""
+		", \"ext\": \"%s\""
 		", \"query\": \"%s\""
 		", \"fragment\": \"%s\""
 		", \"multicast?\": %d"
@@ -300,6 +313,7 @@ void url_sprint_json(URL *it, char *buf, size_t bufsz) {
 		url_host(it),
 		it->port,
 		url_path(it),
+		url_ext(it),
 		url_query(it),
 		url_fragment(it),
 		it->flags & URL_FLAG_MULTICAST

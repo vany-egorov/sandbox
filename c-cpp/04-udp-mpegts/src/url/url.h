@@ -25,6 +25,7 @@
 #define URL_SEPARATOR_FRAGMENT '#'
 
 #define URL_RELATIVE_PATH_START '.'
+#define URL_PATH_EXT_START '.'
 
 
 // scheme://[userinfo@]host/path[?query][#fragment]
@@ -80,13 +81,15 @@ struct url_s {
 		got_user_info       :1,
 		got_host            :1,
 		got_path            :1,
+		got_ext             :1,
 		got_query           :1,
 		got_fragment        :1,
-		reserved_bit_fields :3;
+		reserved_bit_fields :2;
 	uint16_t
 		pos_userinfo,
 		pos_host,
 		pos_path,
+		pos_ext,
 		pos_query,
 		pos_fragment;
 	uint8_t flags;
@@ -100,6 +103,7 @@ void url_sprint(URL *it, char *buf, size_t bufsz);
 const char* url_user_info(URL *it);
 const char* url_host(URL *it);
 const char* url_path(URL *it);
+const char* url_ext(URL *it);
 const char* url_query(URL *it);
 const char* url_fragment(URL *it);
 const URLScheme url_scheme(URL *it);

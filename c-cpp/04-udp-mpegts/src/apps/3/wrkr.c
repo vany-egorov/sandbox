@@ -1,6 +1,9 @@
 #include "wrkr.h"
 
 
+static Logger *lgr = &logger_std;
+
+
 int wrkr_new(Wrkr **out) {
 	int ret = 0;
 	Wrkr *it = NULL;
@@ -19,16 +22,13 @@ int wrkr_new(Wrkr **out) {
 int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
 	input_build(&it->input, url_protocol(cfg->url), cfg->i);
 	input_open(&it->input, cfg->url);
+	demuxer_build(&it->demuxer, cfg->url);
 }
 
 static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {
 	Wrkr *it = (Wrkr*)ctx;
-	char us[255] = { 0 };
 
-	url_sprint(&it->input.u, us, sizeof(us));
-
-	printf("[< @ %p] %s %zu\n", it, us, bufsz);
-
+	demuxer_consume_pkt_raw(&it->demuxer, buf, bufsz);
 	return 0;
 }
 

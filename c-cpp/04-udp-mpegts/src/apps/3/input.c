@@ -1,6 +1,4 @@
 #include "input.h"
-#include "input-udp.h"   /* InputUDP */
-#include "input-file.h"  /* InputFile */
 
 
 int input_new(Input **out) {
