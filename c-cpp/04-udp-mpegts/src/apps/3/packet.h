@@ -5,9 +5,13 @@
 typedef struct packet_s Packet;
 
 struct packet_s {
-	int64_t index;
+	/* offset inside stream */
 	int64_t offset;
+
+	/* presentation time stamp */
 	int64_t PTS;
+
+	/* decode time stamp */
 	int64_t DTS;
 
 	/* buffer */
