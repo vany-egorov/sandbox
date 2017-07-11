@@ -3,7 +3,7 @@
 
 
 #include <url/url.h>
-#include <common/container.h>  /* Container */
+#include <common/container-kind.h>  /* ContainerKind */
 
 #include "demuxer.h"  /* Demuxer */
 #include "demuxer-ts.h"  /* demuxer_ts_vt */

@@ -2,12 +2,12 @@
 
 
 int demuxer_build(Demuxer *it, URL *u) {
-	Container c = CONTAINER_UNKNOWN;
+	ContainerKind ck = CONTAINER_KIND_UNKNOWN;
 
-	c = container_from_url(u);
+	ck = container_kind_from_url(u);
 
-	switch (c) {
-		case CONTAINER_MPEGTS: {
+	switch (ck) {
+		case CONTAINER_KIND_MPEGTS: {
 			DemuxerTS *i = NULL;
 			demuxer_ts_new(&i);
 			demuxer_ts_init(i, u);

@@ -1,9 +1,9 @@
 SHELL := /bin/bash
 
-CXX := g++
+CXX := g++-7
 CXXFLAGS := -g
 
-CC:= gcc
+CC:= gcc-7
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
 CCFLAGS := -g -std=gnu11 -lpthread -lrt -fPIC -pthread
 
@@ -14,7 +14,7 @@ LIB-DIR := $(shell realpath $(PATH-PROJECT)/../lib)
 
 PROJECT-INCLUDES := -I$(PATH-PROJECT)
 
-LDFLAGS += -L/usr/lib64 -ldl -lstdc++
+LDFLAGS += -L/usr/lib64 -ldl
 
 
 .DEFAULT: default
@@ -39,7 +39,7 @@ $(OBJS-DIR)/common-opt.o: ./common/opt.c
 $(OBJS-DIR)/common-daemonize.o: ./common/daemonize.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS-DIR)/common-container.o: ./common/container.c
+$(OBJS-DIR)/common-container-kind.o: ./common/container-kind.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/db-db.o: ./db/db.c
@@ -177,6 +177,15 @@ $(OBJS-DIR)/apps-3-demuxer-ts.o: ./apps/3/demuxer-ts.c
 $(OBJS-DIR)/apps-3-demuxer-build.o: ./apps/3/demuxer-build.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-stream.o: ./apps/3/stream.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-track.o: ./apps/3/track.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-packet.o: ./apps/3/packet.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -219,6 +228,9 @@ app-1: \
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
+app-1-strip:
+	strip $(BIN-DIR)/app-1
+
 app-2: \
 	$(OBJS-DIR)/collections-slice.o \
 	$(OBJS-DIR)/collections-fifo.o \
@@ -254,6 +266,9 @@ app-2: \
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
+app-2-strip:
+	strip $(BIN-DIR)/app-2
+
 app-3: \
 	$(OBJS-DIR)/url-url.o \
 	$(OBJS-DIR)/io-io.o \
@@ -263,7 +278,7 @@ app-3: \
 	$(OBJS-DIR)/collections-slice.o \
 	\
 	$(OBJS-DIR)/common-opt.o \
-	$(OBJS-DIR)/common-container.o \
+	$(OBJS-DIR)/common-container-kind.o \
 	$(OBJS-DIR)/common-daemonize.o \
 	\
 	$(OBJS-DIR)/log-level.o \
@@ -274,13 +289,16 @@ app-3: \
 	$(OBJS-DIR)/apps-3-cfg.o \
 	$(OBJS-DIR)/apps-3-signal.o \
 	$(OBJS-DIR)/apps-3-wrkr.o \
-	$(OBJS-DIR)/apps-3-demuxer.o \
-	$(OBJS-DIR)/apps-3-demuxer-ts.o \
-	$(OBJS-DIR)/apps-3-demuxer-build.o \
 	$(OBJS-DIR)/apps-3-input.o \
 	$(OBJS-DIR)/apps-3-input-udp.o \
 	$(OBJS-DIR)/apps-3-input-file.o \
 	$(OBJS-DIR)/apps-3-input-build.o \
+	$(OBJS-DIR)/apps-3-demuxer.o \
+	$(OBJS-DIR)/apps-3-demuxer-ts.o \
+	$(OBJS-DIR)/apps-3-demuxer-build.o \
+	$(OBJS-DIR)/apps-3-stream.o \
+	$(OBJS-DIR)/apps-3-track.o \
+	$(OBJS-DIR)/apps-3-packet.o \
 	\
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
@@ -297,6 +315,9 @@ app-3: \
 	$(OBJS-DIR)/apps-3-main.o
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+
+app-3-strip:
+	strip $(BIN-DIR)/app-3
 
 static: \
 	$(OBJS-DIR)/collections-slice.o \
@@ -385,7 +406,7 @@ ensure-dirs:
 	mkdir -p $(BIN-DIR)
 	mkdir -p $(LIB-DIR)
 
-build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test url-test log-std-test
+build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test url-test log-std-test app-1-strip app-2-strip app-3-strip
 
 clean:
 	rm -rvf $(OBJS-DIR)/*.o

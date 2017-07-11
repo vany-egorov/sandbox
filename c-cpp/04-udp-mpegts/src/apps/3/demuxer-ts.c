@@ -81,13 +81,13 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 	    (ts->psi_sdt) &&
 	    (!it->is_psi_printed)) {
 		mpegts_psi_pat_sprint_humanized(ts->psi_pat, sbuf, sizeof(sbuf));
-		log_warn(lgr, "%s %s\n", it->us, sbuf);
+		log_info(lgr, "%s %s\n", it->us, sbuf);
 
 		mpegts_psi_sdt_sprint_humanized(ts->psi_sdt, sbuf, sizeof(sbuf));
-		log_warn(lgr, "%s %s\n", it->us, sbuf);
+		log_info(lgr, "%s %s\n", it->us, sbuf);
 
 		mpegts_psi_pmt_sprint_humanized(ts->psi_pmt, sbuf, sizeof(sbuf));
-		log_warn(lgr, "%s %s\n", it->us, sbuf);
+		log_info(lgr, "%s %s\n", it->us, sbuf);
 
 		it->is_psi_printed = 1;
 	}

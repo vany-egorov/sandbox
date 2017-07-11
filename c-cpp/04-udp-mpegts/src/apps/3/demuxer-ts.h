@@ -11,6 +11,7 @@
 #include <mpegts/mpegts.h>  /* MPEGTS_SYNC_BYTE, mpegts_* */
 
 #include "demuxer.h"  /* DemuxerVT */
+#include "stream.h"   /* Stream */
 
 
 typedef struct demuxer_ts_s DemuxerTS;
@@ -20,11 +21,13 @@ extern DemuxerVT demuxer_ts_vt;  /* MPEGTS virtual table */
 
 
 struct demuxer_ts_s {
-	URL u;
-	char us[255];
+	Stream strm;  /* TODO: move to base? */
 
-	int is_psi_printed;
+	URL u;         /* debug */
+	char us[255];  /* debug */
+
 	MPEGTS ts;
+	int is_psi_printed;
 };
 
 
