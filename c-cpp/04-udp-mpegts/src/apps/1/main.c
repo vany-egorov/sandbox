@@ -172,7 +172,7 @@ void* parse_worker_do(void *args) {
 	size_t readed_len = 0,
 	       fifo_length = 0;
 	ParseWorker *it = (ParseWorker*)args;
-	char sbuf[255] = { 0 };
+	char sbuf[510] = { 0 };
 
 	for(;;) {
 
@@ -193,9 +193,9 @@ void* parse_worker_do(void *args) {
 		    (it->h264.got_nal_sps) &&
 		    (it->h264.got_nal_pps) &&
 		    (it->h264.got_nal_aud)) {
-			mpegts_psi_pat_print_humanized(it->mpegts.psi_pat);
-			mpegts_psi_sdt_print_humanized(it->mpegts.psi_sdt);
-			mpegts_psi_pmt_print_humanized(it->mpegts.psi_pmt);
+			mpegts_psi_pat_sprint_humanized(it->mpegts.psi_pat, sbuf, sizeof(sbuf));
+			mpegts_psi_sdt_sprint_humanized(it->mpegts.psi_sdt, sbuf, sizeof(sbuf));
+			mpegts_psi_pmt_sprint_humanized(it->mpegts.psi_pmt, sbuf, sizeof(sbuf));
 			h264_nal_sps_print_humanized(&it->h264.nal_sps);
 			h264_nal_pps_print_humanized(&it->h264.nal_pps);
 			h264_nal_aud_print_humanized(&it->h264.nal_aud);

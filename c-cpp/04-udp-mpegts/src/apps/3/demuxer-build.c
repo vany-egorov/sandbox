@@ -10,7 +10,7 @@ int demuxer_build(Demuxer *it, URL *u) {
 		case CONTAINER_MPEGTS: {
 			DemuxerTS *i = NULL;
 			demuxer_ts_new(&i);
-			demuxer_ts_init(i);
+			demuxer_ts_init(i, u);
 			it->w = (void*)i;
 			it->vt = &demuxer_ts_vt;
 

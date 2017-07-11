@@ -228,52 +228,106 @@ MPEGTSPSIPMTProgramElement *mpegts_psi_pmt_search_by_es_type(MPEGTSPSIPMT *it, M
 
 void mpegts_psi_pmt_print_json(MPEGTSPSIPMT *it) {}
 
-void mpegts_psi_pmt_print_humanized(MPEGTSPSIPMT *it) {
-	int i = 0,
-	    j = 0;
-	MPEGTSPSIPMTProgramElement *pe;
-	MPEGTSPSIPMTESInfo *ei;
+void mpegts_psi_pmt_sprint_humanized(MPEGTSPSIPMT *it, char *buf, size_t bufsz) {
+	int n = 0;
+	MPEGTSPSIPMTProgramElement *pe = NULL;
+	MPEGTSPSIPMTESInfo *ei = NULL;
 	MPEGTSPSIDescriptorDataLanguage *dlanguage = NULL;
 	MPEGTSPSIDescriptorDataUndefined *dund = NULL;
 
-	printf("PMT:\n");
-	printf("  psi-transport-stream-id: %d (0x%02X)\n", it->psi.transport_stream_id, it->psi.transport_stream_id);
-	printf("  psi-CRC32: 0x%02X\n", it->psi.CRC32);
-	printf("  PCR-PID: %d (0x%02X)\n", it->PCR_PID, it->PCR_PID);
+	n = snprintf(buf, bufsz,
+		"PMT:\n"
+		"  psi-transport-stream-id: %d (0x%02X)\n"
+		"  psi-CRC32: 0x%02X\n"
+		"  PCR-PID: %d (0x%02X)\n",
+		it->psi.transport_stream_id, it->psi.transport_stream_id,
+		it->psi.CRC32,
+		it->PCR_PID, it->PCR_PID
+	);
+
+	if ((n < 0) || ((size_t)n >= bufsz)) return;
+	buf += n;
+	bufsz -= (size_t)n;
 
 	if (it->program_elements.c) {
-		printf("  program-elements:\n");
-		for (i = 0; i < it->program_elements.len; i++) {
+		n = snprintf(buf, bufsz,
+			"  program-elements:\n");
+
+		if ((n < 0) || ((size_t)n >= bufsz)) return;
+		buf += n;
+		bufsz -= (size_t)n;
+
+		{int i = 0; for (i = 0; i < it->program_elements.len; i++) {
 			pe = &it->program_elements.c[i];
 
-			printf("    - PID: %d (0x%02X)\n", pe->elementary_PID, pe->elementary_PID);
-			printf("      stream-type: %d (0x%02X) / \"%s\"\n", pe->stream_type, pe->stream_type, mpegts_es_type_string(pe->stream_type));
+			n = snprintf(buf, bufsz,
+				"    - PID: %d (0x%02X)\n"
+				"      stream-type: %d (0x%02X) / \"%s\"\n",
+				pe->elementary_PID, pe->elementary_PID,
+				pe->stream_type, pe->stream_type, mpegts_es_type_string(pe->stream_type)
+			);
+
+			if ((n < 0) || ((size_t)n >= bufsz)) return;
+			buf += n;
+			bufsz -= (size_t)n;
 
 			if (pe->es_infos.c) {
-				printf("      ES-info:\n");
-				for (j = 0; j < pe->es_infos.len; j++) {
+				n = snprintf(buf, bufsz,
+					"      ES-info:\n");
+
+				if ((n < 0) || ((size_t)n >= bufsz)) return;
+				buf += n;
+				bufsz -= (size_t)n;
+
+				{int j = 0; for (j = 0; j < pe->es_infos.len; j++) {
 					ei = &pe->es_infos.c[j];
 
-					printf("        - descriptor-tag: %d (0x%02X) / \"%s\"\n", ei->descriptor_tag, ei->descriptor_tag, mpegts_psi_ped_tag_string(ei->descriptor_tag));
-					printf("          descriptor-data:\n");
+					n = snprintf(buf, bufsz,
+						"        - descriptor-tag: %d (0x%02X) / \"%s\"\n"
+						"          descriptor-data:\n",
+						ei->descriptor_tag, ei->descriptor_tag, mpegts_psi_ped_tag_string(ei->descriptor_tag)
+					);
+
+					if ((n < 0) || ((size_t)n >= bufsz)) return;
+					buf += n;
+					bufsz -= (size_t)n;
+
 					switch (ei->descriptor_tag) {
 						case MPEGTS_PSI_PED_TAG_ISO_639: {
 							dlanguage = &ei->descriptor_data.language;
-							printf("            code: \"%s\"\n", dlanguage->code);
-							printf("            audio-type: %d (0x%02X)\n", dlanguage->audio_type, dlanguage->audio_type);
+
+							n = snprintf(buf, bufsz,
+								"            code: \"%s\"\n"
+								"            audio-type: %d (0x%02X)\n",
+								dlanguage->code,
+								dlanguage->audio_type, dlanguage->audio_type
+							);
+
+							if ((n < 0) || ((size_t)n >= bufsz)) return;
+							buf += n;
+							bufsz -= (size_t)n;
+
 							break;
 						}
 						default: {
 							dund = &ei->descriptor_data.undefined;
-							printf("            service-type: \"undefined\"\n");
-							printf("            data: \"%s\"\n", dund->data);
+
+							n = snprintf(buf, bufsz,
+								"            service-type: \"undefined\"\n"
+								"            data: \"%s\"\n",
+								dund->data
+							);
+
+							if ((n < 0) || ((size_t)n >= bufsz)) return;
+							buf += n;
+							bufsz -= (size_t)n;
 						}
 					}
 
-				}
+				}}
 			}
 
-		}
+		}}
 	}
 }
 

@@ -223,55 +223,114 @@ static MPEGTSPSISDTDescriptor* mpegts_psi_sdt_descriptors_push_unique(MPEGTSPSIS
 	return a;
 }
 
-void mpegts_psi_sdt_print_humanized(MPEGTSPSISDT *it) {
-	int i = 0,
-	    j = 0;
+void mpegts_psi_sdt_sprint_humanized(MPEGTSPSISDT *it, char *buf, size_t bufsz) {
+	int n = 0;
 	MPEGTSPSISDTService *service = NULL;
 	MPEGTSPSISDTDescriptor *descriptor = NULL;
 	MPEGTSPSIDescriptorDataService *dservice = NULL;
 	MPEGTSPSIDescriptorDataUndefined *dund = NULL;
 
-	printf("SDT:\n");
-	printf("  psi-transport-stream-id: %d (0x%02X)\n", it->psi.transport_stream_id, it->psi.transport_stream_id);
-	printf("  psi-CRC32: 0x%02X\n", it->psi.CRC32);
-	printf("  original-network-id: %d (0x%02X)\n", it->original_network_id, it->original_network_id);
+	n = snprintf(buf, bufsz,
+		"SDT:\n"
+		"  psi-transport-stream-id: %d (0x%02X)\n"
+		"  psi-CRC32: 0x%02X\n"
+		"  original-network-id: %d (0x%02X)\n",
+		it->psi.transport_stream_id, it->psi.transport_stream_id,
+		it->psi.CRC32,
+		it->original_network_id, it->original_network_id
+	);
+
+	if ((n < 0) || ((size_t)n >= bufsz)) return;
+	buf += n;
+	bufsz -= (size_t)n;
+
 	if (it->services.c) {
-		printf("  services:\n");
-		for (i = 0; i < it->services.len; i++) {
+		n = snprintf(buf, bufsz,
+			"  services:\n");
+
+		if ((n < 0) || ((size_t)n >= bufsz)) return;
+		buf += n;
+		bufsz -= (size_t)n;
+
+		{int i = 0; for (i = 0; i < it->services.len; i++) {
 			service = &it->services.c[i];
 
-			printf("    - service-id: %d (0x%02X)\n", service->service_id, service->service_id);
-			printf("      EIT-schedule-flag: %d (0x%02X)\n", service->EIT_schedule_flag, service->EIT_schedule_flag);
-			printf("      EIT-present-following-flag: %d (0x%02X)\n", service->EIT_present_following_flag, service->EIT_present_following_flag);
-			printf("      running-status: %d (0x%02X) / \"%s\"\n", service->running_status, service->running_status, mpegts_psi_sdt_service_running_status_string(service->running_status));
-			printf("      free-CA-mode: %d (0x%02X)\n", service->free_CA_mode, service->free_CA_mode);
+			n = snprintf(buf, bufsz,
+				"    - service-id: %d (0x%02X)\n"
+				"      EIT-schedule-flag: %d (0x%02X)\n"
+				"      EIT-present-following-flag: %d (0x%02X)\n"
+				"      running-status: %d (0x%02X) / \"%s\"\n"
+				"      free-CA-mode: %d (0x%02X)\n",
+				service->service_id, service->service_id,
+				service->EIT_schedule_flag, service->EIT_schedule_flag,
+				service->EIT_present_following_flag, service->EIT_present_following_flag,
+				service->running_status, service->running_status, mpegts_psi_sdt_service_running_status_string(service->running_status),
+				service->free_CA_mode, service->free_CA_mode
+			);
+
+			if ((n < 0) || ((size_t)n >= bufsz)) return;
+			buf += n;
+			bufsz -= (size_t)n;
 
 			if (service->descriptors.c) {
-				printf("      descriptors:\n");
-				for (j = 0; j < service->descriptors.len; j++) {
+				n = snprintf(buf, bufsz,
+					"      descriptors:\n");
+
+				if ((n < 0) || ((size_t)n >= bufsz)) return;
+				buf += n;
+				bufsz -= (size_t)n;
+
+				{int j = 0; for (j = 0; j < service->descriptors.len; j++) {
 					descriptor = &service->descriptors.c[j];
 
-					printf("        - descriptor-tag: %d (0x%02X) / \"%s\"\n", descriptor->descriptor_tag, descriptor->descriptor_tag, mpegts_psi_ped_tag_string(descriptor->descriptor_tag));
-					printf("          descriptor-data:\n");
+					n = snprintf(buf, bufsz,
+						"        - descriptor-tag: %d (0x%02X) / \"%s\"\n"
+						"          descriptor-data:\n",
+						descriptor->descriptor_tag, descriptor->descriptor_tag, mpegts_psi_ped_tag_string(descriptor->descriptor_tag)
+					);
+
+					if ((n < 0) || ((size_t)n >= bufsz)) return;
+					buf += n;
+					bufsz -= (size_t)n;
+
 					switch (descriptor->descriptor_tag) {
 						case MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR: {
 							dservice = &descriptor->descriptor_data.service;
-							printf("            service-type: %d (0x%02x)\n", dservice->service_type, dservice->service_type);
-							printf("            service-provider-name: \"%s\"\n", dservice->service_provider_name);
-							printf("            service-name: \"%s\"\n", dservice->service_name);
+
+							n = snprintf(buf, bufsz,
+								"            service-type: %d (0x%02x)\n"
+								"            service-provider-name: \"%s\"\n"
+								"            service-name: \"%s\"\n",
+								dservice->service_type, dservice->service_type,
+								dservice->service_provider_name,
+								dservice->service_name
+							);
+
+							if ((n < 0) || ((size_t)n >= bufsz)) return;
+							buf += n;
+							bufsz -= (size_t)n;
+
 							break;
 						}
 						default: {
 							dund = &descriptor->descriptor_data.undefined;
-							printf("            service-type: \"undefined\"\n");
-							printf("            data: \"%s\"\n", dund->data);
+
+							n = snprintf(buf, bufsz,
+								"            service-type: \"undefined\"\n"
+								"            data: \"%s\"\n",
+								dund->data
+							);
+
+							if ((n < 0) || ((size_t)n >= bufsz)) return;
+							buf += n;
+							bufsz -= (size_t)n;
 						}
 					}
 
-				}
+				}}
 			}
 
-		}
+		}}
 	}
 }
 
