@@ -23,6 +23,8 @@ int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
 	input_build(&it->input, url_protocol(cfg->url), cfg->i);
 	input_open(&it->input, cfg->url);
 	demuxer_build(&it->demuxer, cfg->url);
+
+	/* build-pipeline */
 }
 
 static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {

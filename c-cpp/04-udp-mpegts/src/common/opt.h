@@ -62,4 +62,4 @@ typedef int (*opt_parse_cb_fn) (void *opaque, OptState state, char *k, char *v);
 int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb);
 
 
-#endif // __VA_COMMON_OPT__
+#endif /* __VA_COMMON_OPT__ */

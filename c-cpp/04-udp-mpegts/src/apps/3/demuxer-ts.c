@@ -17,8 +17,39 @@ int demuxer_ts_new(DemuxerTS **out) {
 
 int demuxer_ts_init(DemuxerTS *it, URL *u) {
 	it->u = *u;
-	it->is_psi_printed = 0;
+	it->is_psi_logged = 0;
+	it->is_stream_builded = 0;
 	url_sprint(&it->u, it->us, sizeof(it->us));
+}
+
+/* log down PSI tables */
+static void log_psi(DemuxerTS *it) {
+	char buf[8*255] = { 0 };
+	MPEGTS *ts = NULL;
+
+	ts = &it->ts;
+
+	if (it->is_psi_logged) return;
+
+	mpegts_psi_pat_sprint_humanized(ts->psi_pat, buf, sizeof(buf));
+	log_trace(lgr, "%s %s\n", it->us, buf);
+
+	mpegts_psi_sdt_sprint_humanized(ts->psi_sdt, buf, sizeof(buf));
+	log_trace(lgr, "%s %s\n", it->us, buf);
+
+	mpegts_psi_pmt_sprint_humanized(ts->psi_pmt, buf, sizeof(buf));
+	log_trace(lgr, "%s %s\n", it->us, buf);
+
+	it->is_psi_logged = 1;
+}
+
+/* build stream from PSI PMT table */
+static void build_stream(DemuxerTS *it) {
+	if (it->is_stream_builded) return;
+
+	stream_from_mpegts_psi_pmt(&it->strm, it->ts.psi_pmt);
+
+	it->is_stream_builded = 1;
 }
 
 static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
@@ -27,7 +58,6 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 	MPEGTSHeader ts_hdr = { 0 };
 	MPEGTSAdaption ts_adaption = { 0 };
 	MPEGTS *ts = NULL;
-	char sbuf[8*255] = { 0 };
 	DemuxerTS *it = NULL;
 
 	it = (DemuxerTS*)ctx;
@@ -44,11 +74,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 		mpegts_adaption_parse(&ts_adaption, cursor);
 		cursor += 2;
 
-		if (ts_adaption.PCR_flag) {
-			// mpegts_pcr_sprint_json(&mpegts_adaption.PCR, sbuf, sizeof(sbuf));
-			// log_trace(lgr, "%31s [demux-ts @ %p] %s\n", it->us, ctx, sbuf);
-			cursor += 6;
-		}
+		if (ts_adaption.PCR_flag) cursor += 6;
 	} else {
 		/* PSI-PAT */
 		if ((!ts->psi_pat) &&
@@ -78,18 +104,25 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 
 	if ((ts->psi_pat) &&
 	    (ts->psi_pmt) &&
-	    (ts->psi_sdt) &&
-	    (!it->is_psi_printed)) {
-		mpegts_psi_pat_sprint_humanized(ts->psi_pat, sbuf, sizeof(sbuf));
-		log_info(lgr, "%s %s\n", it->us, sbuf);
+	    (ts->psi_sdt)) {
+		// if (!it->is_psi_logged) log_psi(it);
+		if (!it->is_stream_builded) {
+			build_stream(it);
 
-		mpegts_psi_sdt_sprint_humanized(ts->psi_sdt, sbuf, sizeof(sbuf));
-		log_info(lgr, "%s %s\n", it->us, sbuf);
+			if (it->strm.trks) {
+				log_info(lgr, "input: %s\n", it->us);
+				{int i = 0; for (i = 0; i < (int)it->strm.trks->len; i++) {
+					Track *trk = slice_get(it->strm.trks, (size_t)i);
+					log_info(lgr, "  #%d %3d/0x%04X [%s]\n", trk->i+1, trk->id, trk->id, codec_kind_str(trk->codec_kind));
+				}}
+			}
+		}
+	}
 
-		mpegts_psi_pmt_sprint_humanized(ts->psi_pmt, sbuf, sizeof(sbuf));
-		log_info(lgr, "%s %s\n", it->us, sbuf);
-
-		it->is_psi_printed = 1;
+	if (ts_hdr.contains_payload) {
+		if (ts_hdr.payload_unit_start_indicator) {
+		} else {
+		}
 	}
 
 	return ret;

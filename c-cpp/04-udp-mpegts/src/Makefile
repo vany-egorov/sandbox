@@ -42,6 +42,9 @@ $(OBJS-DIR)/common-daemonize.o: ./common/daemonize.c
 $(OBJS-DIR)/common-container-kind.o: ./common/container-kind.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/common-codec-kind.o: ./common/codec-kind.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/db-db.o: ./db/db.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -186,6 +189,9 @@ $(OBJS-DIR)/apps-3-track.o: ./apps/3/track.c
 $(OBJS-DIR)/apps-3-packet.o: ./apps/3/packet.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-filter.o: ./apps/3/filter.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -228,7 +234,7 @@ app-1: \
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
-app-1-strip:
+app-1-strip: app-1
 	strip $(BIN-DIR)/app-1
 
 app-2: \
@@ -266,7 +272,7 @@ app-2: \
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
-app-2-strip:
+app-2-strip: app-2
 	strip $(BIN-DIR)/app-2
 
 app-3: \
@@ -279,6 +285,7 @@ app-3: \
 	\
 	$(OBJS-DIR)/common-opt.o \
 	$(OBJS-DIR)/common-container-kind.o \
+	$(OBJS-DIR)/common-codec-kind.o \
 	$(OBJS-DIR)/common-daemonize.o \
 	\
 	$(OBJS-DIR)/log-level.o \
@@ -299,6 +306,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-stream.o \
 	$(OBJS-DIR)/apps-3-track.o \
 	$(OBJS-DIR)/apps-3-packet.o \
+	$(OBJS-DIR)/apps-3-filter.o \
 	\
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
@@ -316,7 +324,7 @@ app-3: \
 
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
-app-3-strip:
+app-3-strip: app-3
 	strip $(BIN-DIR)/app-3
 
 static: \

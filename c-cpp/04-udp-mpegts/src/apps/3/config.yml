@@ -13,6 +13,7 @@ i:
       - iat
       - mlr
       - h264-frames
+      - PID/ID change, add, remove
 
     o:
       - url: file:///tmp/discovery-1.ts

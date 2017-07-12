@@ -27,4 +27,4 @@ typedef enum container_kind_enum {
 ContainerKind container_kind_from_url(URL *u);
 
 
-#endif // __COMMON_CONTAINER_KIND__
+#endif /* __COMMON_CONTAINER_KIND__ */

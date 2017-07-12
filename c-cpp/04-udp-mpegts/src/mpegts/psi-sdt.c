@@ -20,7 +20,7 @@ void mpegts_psi_sdt_parse(MPEGTSPSISDT *it, uint8_t *data) {
 	mpegts_psi_parse(&it->psi, data);
 
 	if (it->psi.table_id != MPEGTS_TABLE_ID_SERVICE_DESCRIPTION_SECTION_ACTUAL_TRANSPORT_STREAM) {
-		fprintf(stderr, "[psi-sdt @ %p] error parsing SDT table - got bad table-id %02X\n",
+		fprintf(stderr, "[psi-sdt @ %p] error parsing SDT table - got bad table-id 0x%02X\n",
 			it, it->psi.table_id);
 		return;
 	}

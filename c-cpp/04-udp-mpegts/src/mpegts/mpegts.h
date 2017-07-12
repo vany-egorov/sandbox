@@ -68,19 +68,20 @@ typedef enum {
 	MPEGTS_STREAM_TYPE_RESERVED                = 0x00,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG1             = 0x01,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG2             = 0x02,
-	MPEGTS_STREAM_TYPE_AUDIO_MPEG1             = 0x03,
-	MPEGTS_STREAM_TYPE_AUDIO_MPEG2             = 0x04,
+	MPEGTS_STREAM_TYPE_AUDIO_MPEG1             = 0x03, /* mp2 */
+	MPEGTS_STREAM_TYPE_AUDIO_MPEG2             = 0x04, /* mp2 */
 	MPEGTS_STREAM_TYPE_PRIVATE_SECTIONS        = 0x05,
-	MPEGTS_STREAM_TYPE_PRIVATE_PES_PACKETS     = 0x06,
+	MPEGTS_STREAM_TYPE_PRIVATE_PES_PACKETS     = 0x06, /* mp3 */
 	MPEGTS_STREAM_TYPE_MHEG                    = 0x07,
 	MPEGTS_STREAM_TYPE_H222_DSM_CC             = 0x08, /* Digital storage media command and control (DSM-CC) */
 	MPEGTS_STREAM_TYPE_H222_DSM_CC_AUX         = 0x09,
-	MPEGTS_STREAM_TYPE_AUDIO_AAC_ADTS          = 0x0F,
+	MPEGTS_STREAM_TYPE_AUDIO_AAC_ADTS          = 0x0F, /* AAC */
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG4_H263        = 0x10,
 	MPEGTS_STREAM_TYPE_AUDIO_MPEG4_LOAS        = 0x11,
 	MPEGTS_STREAM_TYPE_VIDEO_MPEG4_FLEX_MUX    = 0x12,
-	MPEGTS_STREAM_TYPE_VIDEO_H264              = 0x1B,
+	MPEGTS_STREAM_TYPE_VIDEO_H264              = 0x1B, /* H264 */
 	MPEGTS_STREAM_TYPE_VIDEO_H265              = 0x24,
+	MPEGTS_STREAM_TYPE_AUDIO_AC3               = 0x81, /* ac-3 */
 	MPEGTS_STREAM_TYPE_AUIDO_AAC_AES_128_CBC   = 0xCF,
 } MPEGTSESType;
 
@@ -117,6 +118,8 @@ typedef enum {
                                           " packetized stream"
 #define MPEGTS_STREAM_TYPE_VIDEO_H265_STR "ITU-T Rec. H.265 and ISO/IEC 23008-2 " \
                                           "(Ultra HD video) in a packetized stream"
+#define MPEGTS_STREAM_TYPE_AUDIO_AC3_STR "Dolby Digital up to six channel audio for ATSC and Blu-ray" \
+                                         " in a packetized stream"
 #define MPEGTS_STREAM_TYPE_AUIDO_AAC_AES_128_CBC_STR "ISO/IEC 13818-7 ADTS AAC" \
                                                      " with AES-128-CBC frame encryption" \
                                                      " in a packetized stream"

@@ -2,6 +2,9 @@
 #define __APPS_3_TRACK__
 
 
+#include <common/codec-kind.h>
+
+
 typedef struct track_s Track;
 
 struct track_s {
@@ -28,8 +31,15 @@ struct track_s {
 		mp3
 		aac
 		ac3
+		vorbis
+		opus
 	*/
 	CodecKind codec_kind;
+
+	/* current global offset
+	 * aka bytes-processed / bytes-readen
+	 */
+	int64_t offset;
 };
 
 

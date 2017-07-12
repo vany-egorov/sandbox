@@ -2,16 +2,26 @@
 #define __APPS_3_STREAM__
 
 
-#include "track.h"
+#include <stdlib.h>  /* calloc */
+
+#include <collections/slice.h>  /* Slice */
+
+#include "track.h"  /* Track */
 
 
 typedef struct stream_s Stream;
 
 
 struct stream_s {
-	uint8_t trks_cnt;
-	Track  *trks[20];
+	Slice *trks;  /* tracks */
 };
+
+
+int stream_new(Stream **out);
+int stream_init(Stream *it);
+int stream_from_mpegts_psi_pmt(Stream *it, MPEGTSPSIPMT *psi_pmt);
+int stream_fin(Stream *it);
+int stream_del(Stream **out);
 
 
 #endif  /* __APPS_3_STREAM__ */

@@ -3,6 +3,7 @@
 
 #include <io/udp.h>
 #include <common/opt.h>
+#include <common/codec-kind.h>
 
 #include "cfg.h"
 #include "signal.h"

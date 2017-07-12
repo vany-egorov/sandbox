@@ -11,6 +11,7 @@
 #include <mpegts/mpegts.h>  /* MPEGTS_SYNC_BYTE, mpegts_* */
 
 #include "demuxer.h"  /* DemuxerVT */
+#include "filter.h"   /* Filter */
 #include "stream.h"   /* Stream */
 
 
@@ -21,13 +22,18 @@ extern DemuxerVT demuxer_ts_vt;  /* MPEGTS virtual table */
 
 
 struct demuxer_ts_s {
-	Stream strm;  /* TODO: move to base? */
+	Filter f;     /* TODO: move to base? demuxer-base */
+	Stream strm;  /* TODO: move to base? demuxer-base */
 
 	URL u;         /* debug */
 	char us[255];  /* debug */
 
 	MPEGTS ts;
-	int is_psi_printed;
+
+	uint8_t
+		is_psi_logged:1,
+		is_stream_builded:1,
+		reserved_bit_fields:6;
 };
 
 

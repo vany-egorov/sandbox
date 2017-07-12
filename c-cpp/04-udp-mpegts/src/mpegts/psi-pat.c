@@ -12,7 +12,7 @@ void mpegts_psi_pat_parse(MPEGTSPSIPAT *it, uint8_t *data) {
 	data += 8;
 
 	if (it->psi.table_id != MPEGTS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
-		fprintf(stderr, "[psi-pat @ %p] error parsing PAT table - got bad table-id %02X\n",
+		fprintf(stderr, "[psi-pat @ %p] error parsing PAT table - got bad table-id 0x%02X\n",
 			it, it->psi.table_id);
 		return;
 	}

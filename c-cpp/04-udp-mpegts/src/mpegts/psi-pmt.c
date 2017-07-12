@@ -46,7 +46,7 @@ void mpegts_psi_pmt_parse(MPEGTSPSIPMT *it, uint8_t *data) {
 	mpegts_psi_parse(&it->psi, data);
 
 	if (it->psi.table_id != MPEGTS_TABLE_ID_PROGRAM_MAP_SECTION) {
-		fprintf(stderr, "[psi-pmt @ %p] error parsing PMT table - got bad table-id %02X\n",
+		fprintf(stderr, "[psi-pmt @ %p] error parsing PMT table - got bad table-id 0x%02X\n",
 			it, it->psi.table_id);
 		return;
 	}
