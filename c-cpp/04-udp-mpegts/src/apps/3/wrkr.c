@@ -30,7 +30,7 @@ int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
 static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {
 	Wrkr *it = (Wrkr*)ctx;
 
-	demuxer_consume_pkt_raw(&it->demuxer, buf, bufsz);
+	demuxer_consume_pkt_raw(&it->demuxer, buf, bufsz);  /* move to filter_consume_packet_raw */
 	return 0;
 }
 

@@ -27,9 +27,9 @@ static int opn(void *ctx, URL *u) {
 	if (file_open(&it->i, url_path(u), "rb", ebuf, sizeof(ebuf))) {
 		log_error(lgr, "[input-file @ %p] ERROR open %s, reason: %s\n",
 			it, us, ebuf);  /* TODO: move to logger */
- 	} else {
- 		log_info(lgr, "[input-file @ %p] OK open %s\n", it, us);  /* TODO: move to logger */
- 	}
+	} else {
+		log_info(lgr, "[input-file @ %p] OK open %s\n", it, us);  /* TODO: move to logger */
+	}
 }
 
 static int rd_step(InputFile *it, void *opaque, input_read_cb_fn cb) {
