@@ -4,6 +4,8 @@
 
 #include <common/codec-kind.h>
 
+#include "packet.h"  /* Packet */
+
 
 typedef struct track_s Track;
 
@@ -18,28 +20,31 @@ struct track_s {
 	uint32_t id;
 
 	/*
-	video:
-		MPEG-2
-		MPEG-4
-		H264
-		H265
-		VP8
-		VP9
-
-	audio:
-		mp2
-		mp3
-		aac
-		ac3
-		vorbis
-		opus
-	*/
+	 * video:
+	 *   MPEG-2
+	 *   MPEG-4
+	 *   H264
+	 *   H265
+	 *   VP8
+	 *   VP9
+	 *
+	 * audio:
+	 *   mp2
+	 *   mp3
+	 *   aac
+	 *   ac3
+	 *   vorbis
+	 *   opus
+	 */
 	CodecKind codec_kind;
 
 	/* current global offset
 	 * aka bytes-processed / bytes-readen
 	 */
 	int64_t offset;
+
+	/* current packet */
+	Packet pkt;
 };
 
 

@@ -2,6 +2,9 @@
 #define __APPS_3_PACKET__
 
 
+#include <io/buf.h>  /* buf */
+
+
 typedef struct packet_s Packet;
 
 struct packet_s {
@@ -15,8 +18,12 @@ struct packet_s {
 	int64_t DTS;
 
 	/* buffer */
-	/* Buf buf; */
+	Buf buf;
 };
+
+
+int packet_init(Packet *it);
+int packet_fin(Packet *it);
 
 
 #endif  /* __APPS_3_PACKET__ */

@@ -117,6 +117,9 @@ $(OBJS-DIR)/io-udp.o: ./io/udp.c
 $(OBJS-DIR)/io-file.o: ./io/file.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
+$(OBJS-DIR)/io-buf.o: ./io/buf.c
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 $(OBJS-DIR)/log-level.o: ./log/level.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -280,6 +283,8 @@ app-3: \
 	$(OBJS-DIR)/io-io.o \
 	$(OBJS-DIR)/io-udp.o \
 	$(OBJS-DIR)/io-file.o \
+	$(OBJS-DIR)/io-buf.o \
+	\
 	$(OBJS-DIR)/collections-fifo.o \
 	$(OBJS-DIR)/collections-slice.o \
 	\

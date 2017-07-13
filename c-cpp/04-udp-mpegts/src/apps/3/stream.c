@@ -33,11 +33,36 @@ int stream_from_mpegts_psi_pmt(Stream *it, MPEGTSPSIPMT *psi_pmt) {
 
 		trk.id = (uint32_t)pe->elementary_PID;
 		trk.codec_kind = codec_kind_from_mpegts_es_type(pe->stream_type);
+		packet_init(&trk.pkt);
 
-		if (trk.codec_kind == CODEC_KIND_UNKNOWN) continue;
+		/* if (trk.codec_kind == CODEC_KIND_UNKNOWN) continue; */
 
 		append_track(it, &trk);
 	}}
+}
+
+int stream_get_track(Stream *it, uint32_t id, Track **out) {
+	int ret = 0;
+	Track *trk = NULL;
+
+	if (!it->trks) {
+		ret = 2;  /* !ok; error -> tracks are not initialized */
+		goto cleanup;
+	}
+
+	{int i = 0; for (i = 0; i < (int)it->trks->len; i++) {
+		trk = slice_get(it->trks, (size_t)i);
+		if (trk->id == id) {
+			*out = trk;
+			goto cleanup;
+		}
+	}}
+
+	ret = 1;  /* !ok; error -> not found */
+	*out = NULL;
+
+cleanup:
+	return ret;
 }
 
 int stream_fin(Stream *it) {

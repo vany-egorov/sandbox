@@ -19,6 +19,7 @@ int demuxer_ts_init(DemuxerTS *it, URL *u) {
 	it->u = *u;
 	it->is_psi_logged = 0;
 	it->is_stream_builded = 0;
+	it->strm.container_kind = CONTAINER_KIND_MPEGTS;
 	url_sprint(&it->u, it->us, sizeof(it->us));
 }
 
@@ -55,16 +56,20 @@ static void build_stream(DemuxerTS *it) {
 static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 	int ret = 0;
 	uint8_t *cursor = NULL;
+
+	MPEGTS *ts = NULL;
 	MPEGTSHeader ts_hdr = { 0 };
 	MPEGTSAdaption ts_adaption = { 0 };
-	MPEGTS *ts = NULL;
+	MPEGTSPES ts_pes = { 0 };
+
 	DemuxerTS *it = NULL;
+	Track *trk = NULL;
 
 	it = (DemuxerTS*)ctx;
 	ts = &it->ts;
 	cursor = buf;
 
-	if (cursor[0] != MPEGTS_SYNC_BYTE) return 1;
+	if (cursor[0] != MPEGTS_SYNC_BYTE) return 1;  /* ERROR: no MPEGTS sync byte found */
 
 	cursor++;
 
@@ -72,9 +77,10 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 
 	if (ts_hdr.adaption_field_control) {
 		mpegts_adaption_parse(&ts_adaption, cursor);
-		cursor += 2;
-
-		if (ts_adaption.PCR_flag) cursor += 6;
+		/* 1   => ts_adaption.adaptation_field_length;
+		 * ... => adaption payload;
+		 */
+		cursor += 1 + ts_adaption.adaptation_field_length;
 	} else {
 		/* PSI-PAT */
 		if ((!ts->psi_pat) &&
@@ -93,6 +99,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 			ts->psi_pmt = mpegts_psi_pmt_new();
 			mpegts_psi_pmt_parse(ts->psi_pmt, cursor);
 		}
+		/* PSI-SDT */
 		else if ((!ts->psi_sdt) &&
 		         (ts_hdr.PID == MPEGTS_PID_SDT)) {
 			cursor++;
@@ -110,18 +117,49 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 			build_stream(it);
 
 			if (it->strm.trks) {
-				log_info(lgr, "input: %s\n", it->us);
+				log_info(lgr, "input: %s / %s\n", it->us, container_kind_str(it->strm.container_kind));
 				{int i = 0; for (i = 0; i < (int)it->strm.trks->len; i++) {
 					Track *trk = slice_get(it->strm.trks, (size_t)i);
 					log_info(lgr, "  #%d %3d/0x%04X [%s]\n", trk->i+1, trk->id, trk->id, codec_kind_str(trk->codec_kind));
 				}}
 			}
 		}
-	}
 
-	if (ts_hdr.contains_payload) {
-		if (ts_hdr.payload_unit_start_indicator) {
-		} else {
+		/* handle payload */
+		if ((ts_hdr.contains_payload) &&
+		    (ts_hdr.PID != MPEGTS_PID_PAT) &&
+		    (ts_hdr.PID != ts->psi_pat->program_map_PID)) {
+			stream_get_track(&it->strm, (uint32_t)ts_hdr.PID, &trk);
+
+			if (trk == NULL) {
+				/* log_warn(lgr, "[ts-demuxer @ %s] failed to find track for %d/0x%04X PID inside stream\n",
+					it->us, ts_hdr.PID, ts_hdr.PID); */
+			} else if (trk->codec_kind == CODEC_KIND_UNKNOWN) {
+				/* TODO: detect unknown codec by payload (mp3, subtitles etc) */
+			} else {
+				if (ts_hdr.payload_unit_start_indicator) {
+
+					/* produce-packet */
+
+					/*log_info(lgr, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
+						it->us, ts_hdr.PID, trk->pkt.buf.len, trk->pkt.buf.cap);*/
+					buf_reset(&trk->pkt.buf);
+
+					if (!mpegts_pes_parse(&ts_pes, cursor)) {
+						/* 9   => PES header length;
+						 * ... => PTS, DTS, etc
+						 */
+						cursor += 9 + ts_pes.header_length;
+
+						trk->pkt.PTS = ts_pes.PTS;
+						trk->pkt.DTS = ts_pes.DTS;
+
+						buf_write(&trk->pkt.buf, cursor, bufsz - (cursor - buf), NULL);
+					}
+				} else {
+					buf_write(&trk->pkt.buf, cursor, bufsz - (cursor - buf), NULL);
+				}
+			}
 		}
 	}
 
