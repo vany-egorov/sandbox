@@ -6,8 +6,11 @@
 
 
 typedef struct packet_s Packet;
+typedef struct track_s  Track;
 
 struct packet_s {
+	Track *trk;
+
 	/* offset inside stream */
 	int64_t offset;
 

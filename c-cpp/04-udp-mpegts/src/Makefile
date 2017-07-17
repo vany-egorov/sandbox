@@ -195,6 +195,15 @@ $(OBJS-DIR)/apps-3-packet.o: ./apps/3/packet.c
 $(OBJS-DIR)/apps-3-filter.o: ./apps/3/filter.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-filter-splitter.o: ./apps/3/filter-splitter.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-h264-parser.o: ./apps/3/filter-h264-parser.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-h264-decoder.o: ./apps/3/filter-h264-decoder.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -312,6 +321,9 @@ app-3: \
 	$(OBJS-DIR)/apps-3-track.o \
 	$(OBJS-DIR)/apps-3-packet.o \
 	$(OBJS-DIR)/apps-3-filter.o \
+	$(OBJS-DIR)/apps-3-filter-splitter.o \
+	$(OBJS-DIR)/apps-3-filter-h264-parser.o \
+	$(OBJS-DIR)/apps-3-filter-h264-decoder.o \
 	\
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \

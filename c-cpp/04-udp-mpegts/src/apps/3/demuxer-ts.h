@@ -10,19 +10,18 @@
 #include <log/logger.h>     /* Logger */
 #include <mpegts/mpegts.h>  /* MPEGTS_SYNC_BYTE, mpegts_* */
 
-#include "demuxer.h"  /* DemuxerVT */
-#include "filter.h"   /* Filter */
-#include "stream.h"   /* Stream */
+#include "filter.h"  /* Filter, FilterVT */
+#include "stream.h"  /* Stream */
 
 
 typedef struct demuxer_ts_s DemuxerTS;
 
 
-extern DemuxerVT demuxer_ts_vt;  /* MPEGTS virtual table */
+extern FilterVT demuxer_ts_filter_vt;  /* MPEGTS virtual table */
 
 
 struct demuxer_ts_s {
-	Filter f;     /* TODO: move to base? demuxer-base */
+	Filter fltr;  /* TODO: move to base? demuxer-base */
 	Stream strm;  /* TODO: move to base? demuxer-base */
 
 	URL u;         /* debug */

@@ -5,11 +5,11 @@
 #include <url/url.h>
 #include <common/container-kind.h>  /* ContainerKind */
 
-#include "demuxer.h"  /* Demuxer */
+#include "filter.h"      /* Filter */
 #include "demuxer-ts.h"  /* demuxer_ts_vt */
 
 
-int demuxer_build(Demuxer *it, URL *u);
+int demuxer_build(Filter **out, URL *u);
 
 
 #endif /* __APPS_3_DEMUXER_BUILD__ */

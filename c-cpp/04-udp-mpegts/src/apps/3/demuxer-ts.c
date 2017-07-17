@@ -21,6 +21,9 @@ int demuxer_ts_init(DemuxerTS *it, URL *u) {
 	it->is_stream_builded = 0;
 	it->strm.container_kind = CONTAINER_KIND_MPEGTS;
 	url_sprint(&it->u, it->us, sizeof(it->us));
+
+	filter_init(&it->fltr);
+	it->fltr.name = "demuxer-ts";
 }
 
 /* log down PSI tables */
@@ -139,7 +142,10 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 			} else {
 				if (ts_hdr.payload_unit_start_indicator) {
 
+
 					/* produce-packet */
+					if (trk->pkt.trk)  /* ensure track is set for packet; */
+						filter_produce_pkt(&it->fltr, &trk->pkt);
 
 					/*log_info(lgr, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
 						it->us, ts_hdr.PID, trk->pkt.buf.len, trk->pkt.buf.cap);*/
@@ -151,22 +157,32 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 						 */
 						cursor += 9 + ts_pes.header_length;
 
+						trk->pkt.trk = trk;
 						trk->pkt.PTS = ts_pes.PTS;
 						trk->pkt.DTS = ts_pes.DTS;
 
 						buf_write(&trk->pkt.buf, cursor, bufsz - (cursor - buf), NULL);
+					} else {
+						log_error(lgr, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
+							it->us, ts_hdr.PID, trk->pkt.buf.len, trk->pkt.buf.cap);
 					}
 				} else {
-					buf_write(&trk->pkt.buf, cursor, bufsz - (cursor - buf), NULL);
+					if (trk->pkt.trk)  /* ensure track is set for packet; */
+						buf_write(&trk->pkt.buf, cursor, bufsz - (cursor - buf), NULL);
 				}
 			}
 		}
 	}
 
+cleanup:
+	filter_produce_pkt_raw(&it->fltr, buf, bufsz);
 	return ret;
 }
 
-
-DemuxerVT demuxer_ts_vt = {
+FilterVT demuxer_ts_filter_vt = {
+	.consume_strm = NULL,
+	.consume_trk = NULL,
+	.consume_pkt = NULL,
 	.consume_pkt_raw = consume_pkt_raw,
+	.consume_frm = NULL,
 };

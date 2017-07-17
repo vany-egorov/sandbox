@@ -1,23 +1,24 @@
 #include "demuxer-build.h"
 
 
-int demuxer_build(Demuxer *it, URL *u) {
+int demuxer_build(Filter **out, URL *u) {
 	ContainerKind ck = CONTAINER_KIND_UNKNOWN;
 
 	ck = container_kind_from_url(u);
 
 	switch (ck) {
 		case CONTAINER_KIND_MPEGTS: {
-			DemuxerTS *i = NULL;
-			demuxer_ts_new(&i);
-			demuxer_ts_init(i, u);
-			it->w = (void*)i;
-			it->vt = &demuxer_ts_vt;
+			DemuxerTS *dmxr = NULL;
+			demuxer_ts_new(&dmxr);
+			demuxer_ts_init(dmxr, u);
+			dmxr->fltr.w = (void*)dmxr;
+			dmxr->fltr.vt = &demuxer_ts_filter_vt;
+
+			*out = &dmxr->fltr;
 
 			break;
 		}
 		default:
-			it->w = NULL;
-			it->vt = NULL;
+			*out = NULL;
 	}
 }

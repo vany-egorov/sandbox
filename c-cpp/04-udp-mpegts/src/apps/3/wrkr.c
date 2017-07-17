@@ -25,12 +25,30 @@ int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
 	demuxer_build(&it->demuxer, cfg->url);
 
 	/* build-pipeline */
+	filter_init((Filter*)&it->splitter);
+	it->splitter.fltr.w = &it->splitter;
+	it->splitter.fltr.name = "splitter";
+	it->splitter.fltr.vt = &filter_splitter_vt;
+	filter_init((Filter*)&it->h264_parser);
+	it->h264_parser.fltr.w = &it->h264_parser;
+	it->h264_parser.fltr.name = "h264-parser";
+	it->h264_parser.fltr.vt = &filter_h264_parser_vt;
+	filter_init((Filter*)&it->h264_decoder);
+	it->h264_decoder.fltr.w = &it->h264_decoder;
+	it->h264_decoder.fltr.vt = &filter_h264_decoder_vt;
+	it->h264_decoder.fltr.name = "h264-decoder";
+
+	printf("fitler: [%s @ %p]\n", it->demuxer->name, it->demuxer);
+
+	filter_append_consumer(it->demuxer, &it->splitter.fltr);
+	filter_append_consumer(&it->splitter.fltr, &it->h264_parser.fltr);
+	filter_append_consumer(&it->h264_parser.fltr, &it->h264_decoder.fltr);
 }
 
 static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {
 	Wrkr *it = (Wrkr*)ctx;
 
-	demuxer_consume_pkt_raw(&it->demuxer, buf, bufsz);  /* move to filter_consume_packet_raw */
+	filter_consume_pkt_raw(it->demuxer, buf, bufsz);
 	return 0;
 }
 
