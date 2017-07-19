@@ -2,10 +2,20 @@
 
 
 static int consume_strm(void *ctx, Stream *strm) {
+	FilterH264Decoder *it = NULL;
+	it = (FilterH264Decoder*)ctx;
+
+	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
+
 	return filter_produce_strm(ctx, strm);
 }
 
 static int consume_trk(void *ctx, Track *trk) {
+	FilterH264Decoder *it = NULL;
+	it = (FilterH264Decoder*)ctx;
+
+	printf("[%s @ %p] [<] track\n", it->fltr.name, (void*)it);
+
 	return filter_produce_trk(ctx, trk);
 }
 

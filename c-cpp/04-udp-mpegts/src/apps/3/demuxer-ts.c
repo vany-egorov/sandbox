@@ -125,6 +125,12 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 					Track *trk = slice_get(it->strm.trks, (size_t)i);
 					log_info(lgr, "  #%d %3d/0x%04X [%s]\n", trk->i+1, trk->id, trk->id, codec_kind_str(trk->codec_kind));
 				}}
+
+				filter_produce_strm(&it->fltr, &it->strm);
+				{int i = 0; for (i = 0; i < (int)it->strm.trks->len; i++) {
+					Track *trk = slice_get(it->strm.trks, (size_t)i);
+					filter_produce_trk(&it->fltr, trk);
+				}}
 			}
 		}
 
