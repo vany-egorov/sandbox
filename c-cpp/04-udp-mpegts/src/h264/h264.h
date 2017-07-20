@@ -2,28 +2,29 @@
 #define __H264_H264__
 
 
-#include <stdio.h>  // printf
-#include <stdint.h> // uint8_t, uint32_t
+#include <stdio.h>  /* printf */
+#include <stdint.h> /* uint8_t, uint32_t */
 
 
-// h264 containers
-// - Annex B
-// - AVCC
-//
-// NALU Start Codes
-//
-// A NALU does not contain is its size.
-// Therefore simply concatenating the NALUs to create a stream will not
-// work because you will not know where one stops and the next begins.
-//
-// The Annex B specification solves this by requiring ‘Start Codes’
-// to precede each NALU. A start code is 2 or 3 0x00 bytes followed with a 0x01 byte. e.g. 0x000001 or 0x00000001.
-//
-// The 4 byte variation is useful for transmission over a serial connection as it is trivial to byte align the stream
-// by looking for 31 zero bits followed by a one. If the next bit is 0 (because every NALU starts with a 0 bit),
-// it is the start of a NALU. The 4 byte variation is usually only used for signaling
-// random access points in the stream such as a SPS PPS AUD and IDR
-// Where as the 3 byte variation is used everywhere else to save space.
+/* h264 containers
+ * - Annex B
+ * - AVCC
+ *
+ * NALU Start Codes
+ *
+ * A NALU does not contain is its size.
+ * Therefore simply concatenating the NALUs to create a stream will not
+ * work because you will not know where one stops and the next begins.
+ *
+ * The Annex B specification solves this by requiring ‘Start Codes’
+ * to precede each NALU. A start code is 2 or 3 0x00 bytes followed with a 0x01 byte. e.g. 0x000001 or 0x00000001.
+ *
+ * The 4 byte variation is useful for transmission over a serial connection as it is trivial to byte align the stream
+ * by looking for 31 zero bits followed by a one. If the next bit is 0 (because every NALU starts with a 0 bit),
+ * it is the start of a NALU. The 4 byte variation is usually only used for signaling
+ * random access points in the stream such as a SPS PPS AUD and IDR
+ * Where as the 3 byte variation is used everywhere else to save space.
+ */
 #define H264_ANNEXB_START_CODE_SHORT 0x000001
 #define H264_ANNEXB_START_CODE_LONG  0x00000001
 
@@ -39,38 +40,43 @@ typedef struct h264_nal_sei_s             H264NALSEI;
 typedef struct h264_nal_slice_idr_s       H264NALSliceIDR;
 typedef struct h264_annexb_parse_result_s H264AnnexBParseResult;
 
-// ITU-T H.264 (V9) (02/2014) - p63
-//
-// There are 19 different NALU types defined separated into two categories, VCL and non-VCL:
-//
-// - VCL, or Video Coding Layer packets contain the actual visual information.
-// - Non-VCLs contain metadata that may or may not be required to decode the video.
+/* ITU-T H.264 (V9) (02/2014) - p63
+ *
+ * There are 19 different NALU types defined separated into two categories, VCL and non-VCL:
+ *
+ * - VCL, or Video Coding Layer packets contain the actual visual information.
+ * - Non-VCLs contain metadata that may or may not be required to decode the video.
+ */
 enum h264_nal_type_enum {
 	H264_NAL_TYPE_UNSPECIFIED = 0,
 	H264_NAL_TYPE_SLICE       = 1,
 	H264_NAL_TYPE_DPA         = 2,
 	H264_NAL_TYPE_DPB         = 3,
 	H264_NAL_TYPE_DPC         = 4,
-	// Instantaneous Decoder Refresh (IDR).
-	// This VCL NALU is a self contained image slice.
-	// That is, an IDR can be decoded and displayed without
-	// referencing any other NALU save SPS and PPS.
+	/* Instantaneous Decoder Refresh (IDR).
+	 * This VCL NALU is a self contained image slice.
+	 * That is, an IDR can be decoded and displayed without
+	 * referencing any other NALU save SPS and PPS.
+	 */
 	H264_NAL_TYPE_IDR         = 5,
 	H264_NAL_TYPE_SEI         = 6,
-	// Sequence Parameter Set (SPS).
-	// This non-VCL NALU contains information required to configure
-	// the decoder such as profile, level, resolution, frame rate.
+	/* Sequence Parameter Set (SPS).
+	 * This non-VCL NALU contains information required to configure
+	 * the decoder such as profile, level, resolution, frame rate.
+	 */
 	H264_NAL_TYPE_SPS         = 7,
-	// Picture Parameter Set (PPS). Similar to the SPS, this non-VCL
-	// contains information on entropy coding mode, slice groups,
-	// motion prediction and deblocking filters.
+	/* Picture Parameter Set (PPS). Similar to the SPS, this non-VCL
+	 * contains information on entropy coding mode, slice groups,
+	 * motion prediction and deblocking filters.
+	 */
 	H264_NAL_TYPE_PPS         = 8,
-	// Access Unit Delimiter (AUD).
-	// An AUD is an optional NALU that can be use to delimit frames
-	// in an elementary stream. It is not required (unless otherwise
-	// stated by the container/protocol, like TS), and is often not
-	// included in order to save space, but it can be useful to
-	// finds the start of a frame without having to fully parse each NALU.
+	/* Access Unit Delimiter (AUD).
+	 * An AUD is an optional NALU that can be use to delimit frames
+	 * in an elementary stream. It is not required (unless otherwise
+	 * stated by the container/protocol, like TS), and is often not
+	 * included in order to save space, but it can be useful to
+	 * finds the start of a frame without having to fully parse each NALU.
+	 */
 	H264_NAL_TYPE_AUD         = 9,
 	H264_NAL_TYPE_EOSEQ       = 10,
 	H264_NAL_TYPE_EOSTREAM    = 11,
@@ -188,24 +194,29 @@ void h264_nal_sei_print_humanized(H264NALSEI *it);
 
 /* nal-slice-idr.c */
 enum h264_nal_slice_type_enum {
-	/// Consists of P-macroblocks
-	//  (each macro block is predicted using
-	//  one reference frame) and / or I-macroblocks.
+	/* Consists of P-macroblocks
+	 * (each macro block is predicted using
+	 * one reference frame) and / or I-macroblocks.
+	 */
 	H264_NAL_SLICE_TYPE_P   = 0,
-	// Consists of B-macroblocks (each
-	// macroblock is predicted using one or two
-	// reference frames) and / or I-macroblocks.
+	/* Consists of B-macroblocks (each
+	 * macroblock is predicted using one or two
+	 * reference frames) and / or I-macroblocks.
+	 */
 	H264_NAL_SLICE_TYPE_B   = 1,
-	// Contains only I-macroblocks.
-	// Each macroblock is predicted from previously
-	// coded blocks of the same slice.
+	/* Contains only I-macroblocks.
+	 * Each macroblock is predicted from previously
+	 * coded blocks of the same slice.
+	 */
 	H264_NAL_SLICE_TYPE_I   = 2,
-	// SP-slice. Consists of P and / or I-macroblocks
-	// and lets you switch between encoded streams.
+	/* SP-slice. Consists of P and / or I-macroblocks
+	 * and lets you switch between encoded streams.
+	 */
 	H264_NAL_SLICE_TYPE_SP  = 3,
-	// SI-slice. It consists of a special type
-	// of SI-macroblocks and lets you switch between
-	// encoded streams.
+	/* SI-slice. It consists of a special type
+	 * of SI-macroblocks and lets you switch between
+	 * encoded streams.
+	 */
 	H264_NAL_SLICE_TYPE_SI  = 4,
 
 	H264_NAL_SLICE_TYPE_P2  = 5,

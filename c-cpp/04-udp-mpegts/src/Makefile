@@ -192,6 +192,9 @@ $(OBJS-DIR)/apps-3-track.o: ./apps/3/track.c
 $(OBJS-DIR)/apps-3-packet.o: ./apps/3/packet.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-pipeline.o: ./apps/3/pipeline.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-filter.o: ./apps/3/filter.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -244,7 +247,7 @@ app-1: \
 	$(OBJS-DIR)/apps-1-config.o \
 	$(OBJS-DIR)/apps-1-main.o
 
-	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ -static $+ $(LDFLAGS)
 
 app-1-strip: app-1
 	strip $(BIN-DIR)/app-1
@@ -282,7 +285,7 @@ app-2: \
 	\
 	$(OBJS-DIR)/apps-2-main.o
 
-	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ -static $+ $(LDFLAGS)
 
 app-2-strip: app-2
 	strip $(BIN-DIR)/app-2
@@ -320,6 +323,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-stream.o \
 	$(OBJS-DIR)/apps-3-track.o \
 	$(OBJS-DIR)/apps-3-packet.o \
+	$(OBJS-DIR)/apps-3-pipeline.o \
 	$(OBJS-DIR)/apps-3-filter.o \
 	$(OBJS-DIR)/apps-3-filter-splitter.o \
 	$(OBJS-DIR)/apps-3-filter-h264-parser.o \
@@ -339,7 +343,7 @@ app-3: \
 	\
 	$(OBJS-DIR)/apps-3-main.o
 
-	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ -static $+ $(LDFLAGS)
 
 app-3-strip: app-3
 	strip $(BIN-DIR)/app-3

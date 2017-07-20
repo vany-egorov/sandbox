@@ -11,6 +11,7 @@
 
 #include "input.h"                /* Input */
 #include "input-build.h"          /* input_build */
+#include "pipeline.h"             /* Pipeline */
 #include "filter.h"               /* Filter */
 #include "filter-splitter.h"      /* Filter */
 #include "filter-h264-parser.h"   /* FilterH264Parser */
