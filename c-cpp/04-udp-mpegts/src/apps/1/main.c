@@ -207,8 +207,8 @@ void* parse_worker_do(void *args) {
 				MPEGTSAdaption *mpegts_adaption = NULL;
 				MPEGTSPES *mpegts_pes = NULL;
 
-				for (i = 0; i < it->db->atoms->len; i++) {
-					DBAtom *atom = slice_get(it->db->atoms, i);
+				for (i = 0; i < it->db->atoms.len; i++) {
+					DBAtom *atom = slice_get(&it->db->atoms, i);
 					switch (atom->kind) {
 					case DB_MPEGTS_HEADER:
 						mpegts_header = (MPEGTSHeader*)atom->data;

@@ -7,40 +7,26 @@ int db_new(DB **out) {
 	it = calloc(1, sizeof(DB));
 	*out = it;
 
-	slice_new(&it->timestamps, sizeof(DBTimestamp));
-	slice_new(&it->atoms, sizeof(DBAtom));
-
-	it->mpegts_headers = NULL;
-	it->mpegts_adaptions = NULL;
-	it->mpegts_pess = NULL;
-	it->mpegts_psi_pats = NULL;
-	it->mpegts_psi_pmts = NULL;
-	it->mpegts_psi_sdts = NULL;
-
-	it->h264_auds = NULL;
-	it->h264_seis = NULL;
-	it->h264_spss = NULL;
-	it->h264_ppss = NULL;
-	it->h264_slice_idrs = NULL;
+	slice_init(&it->timestamps, sizeof(DBTimestamp));
+	slice_init(&it->atoms, sizeof(DBAtom));
 
 	return 0;
 }
 
-static inline int db_store(DB *it, Slice **slice, void *item, size_t itemsz, DBAtomKind kind, uint64_t offset) {
+static inline int db_store(DB *it, Slice *slice, void *item, size_t itemsz, DBAtomKind kind, uint64_t offset) {
 	int ret = 0;
 
 	if (!it->start_at) time(&it->start_at);
-	if (!*slice) slice_new(slice, itemsz);
 
-	slice_append(*slice, item);
+	slice_append(slice, item);
 
 	DBAtom atom = {
 		.kind = kind,
 		.offset = offset,
-		.data = slice_tail(*slice),
+		.data = slice_tail(slice),
 	};
 
-	slice_append(it->atoms, &atom);
+	slice_append(&it->atoms, &atom);
 
 	return ret;
 }

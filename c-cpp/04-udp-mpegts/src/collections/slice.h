@@ -18,20 +18,26 @@ typedef struct slice_s Slice;
 struct slice_s {
 	size_t cap;
 	size_t len;
-	size_t el_size;
+	size_t elsz;
 
 	void *els;
 };
 
 
-int slice_new(Slice **out, size_t el_size);
+/* alloc slice struct + init */
+int slice_new(Slice **out, size_t elsz);
+/* init already allocated struct */
+int slice_init(Slice *it, size_t elsz);
+/* alloc internal buffer */
+int slice_prealloc(Slice *it);
 int slice_append(Slice *it, const void *el);
 int slice_get_copy_data(Slice *it, size_t index, void *el);
 void *slice_get(Slice *it, size_t index);
 void *slice_tail(Slice *it);
 int slice_tail_copy_data(Slice *it, void *el);
 void slice_print(Slice *it);
-void slice_del(Slice *it);
+int slice_fin(Slice *it);
+int slice_del(Slice **out);
 
 
 #endif  /* __COLLECTIONS_SLICE__ */

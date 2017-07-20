@@ -15,13 +15,12 @@ int stream_new(Stream **out) {
 }
 
 int stream_init(Stream *it) {
-	it->trks = NULL;
+	slice_init(&it->trks, sizeof(Track));
 }
 
 static inline int append_track(Stream *it, Track *trk) {
-	if (!it->trks) slice_new(&it->trks, sizeof(Track));
-	trk->i = (uint32_t)it->trks->len;
-	slice_append(it->trks, trk);
+	trk->i = (uint32_t)it->trks.len;
+	slice_append(&it->trks, trk);
 }
 
 int stream_from_mpegts_psi_pmt(Stream *it, MPEGTSPSIPMT *psi_pmt) {
@@ -45,13 +44,13 @@ int stream_get_track(Stream *it, uint32_t id, Track **out) {
 	int ret = 0;
 	Track *trk = NULL;
 
-	if (!it->trks) {
+	if (!it->trks.len) {
 		ret = 2;  /* !ok; error -> tracks are not initialized */
 		goto cleanup;
 	}
 
-	{int i = 0; for (i = 0; i < (int)it->trks->len; i++) {
-		trk = slice_get(it->trks, (size_t)i);
+	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
+		trk = slice_get(&it->trks, (size_t)i);
 		if (trk->id == id) {
 			*out = trk;
 			goto cleanup;
@@ -70,10 +69,8 @@ int stream_fin(Stream *it) {
 
 	if (!it) return ret;
 
-	if (it->trks) {
-		slice_del(it->trks);
-		it->trks = NULL;
-	}
+	if (it->trks.len)
+		slice_fin(&it->trks);
 
 	return ret;
 }

@@ -16,7 +16,7 @@ typedef struct stream_s Stream;
 struct stream_s {
 	ContainerKind container_kind;
 
-	Slice *trks;  /* tracks */
+	Slice trks;  /* tracks */
 };
 
 

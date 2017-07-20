@@ -17,22 +17,22 @@ typedef enum   db_atom_kind_enum DBAtomKind;
 struct db_s {
 	time_t start_at;
 
-	Slice *timestamps;
+	Slice timestamps;
 
-	Slice *atoms;
+	Slice atoms;
 
-	Slice *mpegts_headers;
-	Slice *mpegts_adaptions;
-	Slice *mpegts_pess;
-	Slice *mpegts_psi_pats;
-	Slice *mpegts_psi_pmts;
-	Slice *mpegts_psi_sdts;
+	Slice mpegts_headers;
+	Slice mpegts_adaptions;
+	Slice mpegts_pess;
+	Slice mpegts_psi_pats;
+	Slice mpegts_psi_pmts;
+	Slice mpegts_psi_sdts;
 
-	Slice *h264_spss;
-	Slice *h264_ppss;
-	Slice *h264_auds;
-	Slice *h264_seis;
-	Slice *h264_slice_idrs;
+	Slice h264_spss;
+	Slice h264_ppss;
+	Slice h264_auds;
+	Slice h264_seis;
+	Slice h264_slice_idrs;
 };
 
 struct db_timestamp_s {

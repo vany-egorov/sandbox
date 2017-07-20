@@ -28,9 +28,7 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 	) {
 		CfgI cfg_i = { 0 };
 		url_parse(&cfg_i.url, v);
-
-		if (it->i == NULL) slice_new(&it->i, sizeof(CfgI));
-		slice_append(it->i, &cfg_i);
+		slice_append(&it->i, &cfg_i);
 
 	} else if (state & OPT_STATE_KEY) {
 		if OPT_MTCH3(k, "c", "cfg", "config") it->c = v;
@@ -45,10 +43,10 @@ int main(int argc, char *argv[]) {
 	UDP udp = { 0 };
 	FILE file = { 0 };
 	char ebuf[255] = { 0 };
-	Slice *wrkrs = NULL;
+	Slice wrkrs = { 0 };
 	Wrkr *wrkr = NULL;
 
-	slice_new(&wrkrs, sizeof(Wrkr));
+	slice_init(&wrkrs, sizeof(Wrkr));
 
 	signal_init();
 
@@ -82,9 +80,9 @@ int main(int argc, char *argv[]) {
 		ret = EX_CONFIG; goto cleanup;
 	}
 
-	{int i = 0; for (i = 0; i < (int)cfg.i->len; i++) {  /* TODO: iterrator */
+	{int i = 0; for (i = 0; i < (int)cfg.i.len; i++) {  /* TODO: iterrator */
 		wrkr = NULL;
-		CfgI *cfg_i = slice_get(cfg.i, (size_t)i);
+		CfgI *cfg_i = slice_get(&cfg.i, (size_t)i);
 		URL *u = &cfg_i->url;
 
 		wrkr_new(&wrkr);  /* TODO: error handling */
@@ -94,11 +92,11 @@ int main(int argc, char *argv[]) {
 		};
 		wrkr_init(wrkr, &wcfg);  /* TODO: error handling */
 
-		slice_append(wrkrs, wrkr);
+		slice_append(&wrkrs, wrkr);
 	}}
 
-	{int i = 0; for (i = 0; i < (int)wrkrs->len; i++) {  /* TODO: iterrator */
-		wrkr = slice_get(wrkrs, (size_t)i);
+	{int i = 0; for (i = 0; i < (int)wrkrs.len; i++) {  /* TODO: iterrator */
+		wrkr = slice_get(&wrkrs, (size_t)i);
 		wrkr_run(wrkr);
 	}}
 

@@ -21,7 +21,7 @@ struct cfg_s {
 	char *c;  /* path to config file */
 	int print_cfg;  /* print/log configuration */
 
-	Slice *i;  /* inputs */
+	Slice i;  /* inputs */
 };
 
 struct cfg_i_s {
@@ -30,7 +30,7 @@ struct cfg_i_s {
 
 	URL url;
 
-	Slice *o;  /* outputs */
+	Slice o;  /* outputs */
 };
 
 struct cfg_o_s {

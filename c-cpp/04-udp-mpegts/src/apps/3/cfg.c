@@ -19,7 +19,7 @@ int cfg_new(Cfg **out) {
 int cfg_init(Cfg *it) {
 	int ret = 0;
 
-	it->i = NULL;
+	slice_init(&it->i, sizeof(CfgI));
 
 	return ret;
 }
@@ -27,7 +27,7 @@ int cfg_init(Cfg *it) {
 int cfg_validate(Cfg *it) {
 	int ok = 1;
 
-	if (!it->i) {
+	if (!it->i.len) {
 		fprintf(stderr, "no inputs provided; -i --input: must be specified;\n");
 		ok = 0;
 	}
@@ -41,10 +41,8 @@ int cfg_fin(Cfg *it) {
 
 	if (!it) return ret;
 
-	if (it->i) {
-		slice_del(it->i);
-		it->i = NULL;
-	}
+	if (!it->i.len)
+		slice_fin(&it->i);
 
 	return ret;
 }

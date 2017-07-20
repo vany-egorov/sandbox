@@ -17,7 +17,7 @@ typedef struct filter_vt_s FilterVT;
 
 
 struct filter_s {
-	Slice *consumers;
+	Slice consumers;
 
 	char *name;
 
