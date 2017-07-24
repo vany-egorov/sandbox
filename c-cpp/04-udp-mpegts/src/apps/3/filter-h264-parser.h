@@ -16,4 +16,10 @@ struct filter_h264_parser_s {
 };
 
 
+int filter_h264_parser_new(FilterH264Parser **out);
+int filter_h264_parser_init(FilterH264Parser *it);
+int filter_h264_parser_fin(FilterH264Parser *it);
+int filter_h264_parser_del(FilterH264Parser **out);
+
+
 #endif /* __APPS_3_H264_PARSER__ */

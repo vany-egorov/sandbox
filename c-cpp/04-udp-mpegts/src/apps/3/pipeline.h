@@ -4,12 +4,16 @@
 
 #include <collections/slice.h>  /* Slice */
 
-#include "filter.h"  /* Filter, FilterVT */
-#include "track.h"   /* Track */
+#include "track.h"                /* Track */
+#include "filter.h"               /* Filter, FilterVT */
+#include "filter-h264-parser.h"   /* FilterH264Parser */
+#include "filter-h264-decoder.h"  /* FilterH264Decoder */
+#include "filter-mp2-parser.h"    /* FilterMP2Parser */
+#include "filter-mp2-decoder.h"   /* FilterMP2Decoder */
 
 
 typedef struct pipeline_s     Pipeline;
-typedef struct filter_track_s FIlterTrack;
+typedef struct filter_track_s FilterTrack;
 
 
 extern FilterVT pipeline_filter_vt;  /* virtual table */
@@ -26,6 +30,7 @@ struct filter_track_s {
 struct pipeline_s {
 	Filter fltr;  /* pipeline is filter; inherited from Filter; */
 
+	Slice fltrs; /* Filter storage */
 	Slice trks;  /* FilterTracks */
 };
 

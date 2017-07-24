@@ -67,8 +67,8 @@ int filter_produce_strm(Filter *it, Stream *strm) {
 	}
 
 	{int i = 0; for (i = 0; i < (int)it->consumers.len; i++) {
-		Filter **pfltr = slice_get(&it->consumers, (size_t)i);
-		filter_consume_strm(*pfltr, strm);
+		Filter **fltr = slice_get(&it->consumers, (size_t)i);
+		filter_consume_strm(*fltr, strm);
 	}}
 
 cleanup:
@@ -84,8 +84,8 @@ int filter_produce_trk(Filter *it, Track *trk) {
 	}
 
 	{int i = 0; for (i = 0; i < (int)it->consumers.len; i++) {
-		Filter **pfltr = slice_get(&it->consumers, (size_t)i);
-		filter_consume_trk(*pfltr, trk);
+		Filter **fltr = slice_get(&it->consumers, (size_t)i);
+		filter_consume_trk(*fltr, trk);
 	}}
 
 cleanup:
@@ -101,8 +101,8 @@ int filter_produce_pkt(Filter *it, Packet *pkt) {
 	}
 
 	{int i = 0; for (i = 0; i < (int)it->consumers.len; i++) {
-		Filter **pfltr = slice_get(&it->consumers, (size_t)i);
-		filter_consume_pkt(*pfltr, pkt);
+		Filter **fltr = slice_get(&it->consumers, (size_t)i);
+		filter_consume_pkt(*fltr, pkt);
 	}}
 
 cleanup:
@@ -118,8 +118,8 @@ int filter_produce_pkt_raw(Filter *it, uint8_t *buf, size_t bufsz) {
 	}
 
 	{int i = 0; for (i = 0; i < (int)it->consumers.len; i++) {
-		Filter **pfltr = slice_get(&it->consumers, (size_t)i);
-		filter_consume_pkt_raw(*pfltr, buf, bufsz);
+		Filter **fltr = slice_get(&it->consumers, (size_t)i);
+		filter_consume_pkt_raw(*fltr, buf, bufsz);
 	}}
 
 cleanup:
@@ -135,8 +135,8 @@ int filter_produce_frm(Filter *it, Frame *frm) {
 	}
 
 	{int i = 0; for (i = 0; i < (int)it->consumers.len; i++) {
-		Filter **pfltr = slice_get(&it->consumers, (size_t)i);
-		filter_consume_frm(*pfltr, frm);
+		Filter **fltr = slice_get(&it->consumers, (size_t)i);
+		filter_consume_frm(*fltr, frm);
 	}}
 
 cleanup:

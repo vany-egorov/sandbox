@@ -9,14 +9,11 @@
 #include <log/logger.h> /* Logger */
 #include <log/std.h>    /* logger_std */
 
-#include "input.h"                /* Input */
-#include "input-build.h"          /* input_build */
-#include "pipeline.h"             /* Pipeline */
-#include "filter.h"               /* Filter */
-#include "filter-splitter.h"      /* Filter */
-#include "filter-h264-parser.h"   /* FilterH264Parser */
-#include "filter-h264-decoder.h"  /* FilterH264Decoder */
-#include "demuxer-build.h"        /* demuxer_build */
+#include "input.h"          /* Input */
+#include "input-build.h"    /* input_build */
+#include "pipeline.h"       /* Pipeline */
+#include "filter.h"         /* Filter */
+#include "demuxer-build.h"  /* demuxer_build */
 
 
 typedef struct wrkr_s Wrkr;
@@ -34,13 +31,8 @@ struct wrkr_s {
 
 	Input input;
 
-	/* TODO: <move to pipeline> */
-	Filter *demuxer;
-
-	FilterSplitter    splitter;
-	FilterH264Parser  h264_parser;
-	FilterH264Decoder h264_decoder;
-	/* TODO: </move to pipeline> */
+	Filter *demuxer;  /* TODO: <move to pipeline> */
+	Pipeline ppln;
 };
 
 

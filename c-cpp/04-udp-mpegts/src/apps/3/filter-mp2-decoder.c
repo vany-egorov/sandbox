@@ -1,11 +1,11 @@
-#include "filter-h264-decoder.h"
+#include "filter-mp2-decoder.h"
 
 
-int filter_h264_decoder_new(FilterH264Decoder **out) {
+int filter_mp2_decoder_new(FilterMP2Decoder **out) {
 	int ret = 0;
-	FilterH264Decoder *it = NULL;
+	FilterMP2Decoder *it = NULL;
 
-	it = calloc(1, sizeof(FilterH264Decoder));
+	it = calloc(1, sizeof(FilterMP2Decoder));
 	if (!it) return 1;
 
 	*out = it;
@@ -13,16 +13,16 @@ int filter_h264_decoder_new(FilterH264Decoder **out) {
 	return ret;
 }
 
-int filter_h264_decoder_init(FilterH264Decoder *it) {
+int filter_mp2_decoder_init(FilterMP2Decoder *it) {
 	filter_init(&it->fltr);
 	it->fltr.w = (void*)it;
-	it->fltr.name = "h264-decoder";
-	it->fltr.vt = &filter_h264_decoder_vt;
+	it->fltr.name = "mp2-decoder";
+	it->fltr.vt = &filter_mp2_decoder_vt;
 }
 
 static int consume_strm(void *ctx, Stream *strm) {
-	FilterH264Decoder *it = NULL;
-	it = (FilterH264Decoder*)ctx;
+	FilterMP2Decoder *it = NULL;
+	it = (FilterMP2Decoder*)ctx;
 
 	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
 
@@ -30,8 +30,8 @@ static int consume_strm(void *ctx, Stream *strm) {
 }
 
 static int consume_trk(void *ctx, Track *trk) {
-	FilterH264Decoder *it = NULL;
-	it = (FilterH264Decoder*)ctx;
+	FilterMP2Decoder *it = NULL;
+	it = (FilterMP2Decoder*)ctx;
 
 	printf("[%s @ %p] [<] track\n", it->fltr.name, (void*)it);
 
@@ -46,7 +46,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 	return filter_produce_pkt_raw(ctx, buf, bufsz);
 }
 
-int filter_h264_decoder_fin(FilterH264Decoder *it) {
+int filter_mp2_decoder_fin(FilterMP2Decoder *it) {
 	int ret = 0;
 
 	if (!it) return ret;
@@ -56,9 +56,9 @@ int filter_h264_decoder_fin(FilterH264Decoder *it) {
 	return ret;
 }
 
-int filter_h264_decoder_del(FilterH264Decoder **out) {
+int filter_mp2_decoder_del(FilterMP2Decoder **out) {
 	int ret = 0;
-	FilterH264Decoder *it = NULL;
+	FilterMP2Decoder *it = NULL;
 
 	if (!out) return ret;
 
@@ -66,7 +66,7 @@ int filter_h264_decoder_del(FilterH264Decoder **out) {
 
 	if (!it) return ret;
 
-	filter_h264_decoder_fin(it);
+	filter_mp2_decoder_fin(it);
 
 	free(it);
 	*out = NULL;
@@ -75,7 +75,7 @@ int filter_h264_decoder_del(FilterH264Decoder **out) {
 }
 
 
-FilterVT filter_h264_decoder_vt = {
+FilterVT filter_mp2_decoder_vt = {
 	.consume_strm = consume_strm,
 	.consume_trk = consume_trk,
 	.consume_pkt = consume_pkt,

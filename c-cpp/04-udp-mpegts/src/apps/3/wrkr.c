@@ -22,27 +22,10 @@ int wrkr_new(Wrkr **out) {
 int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
 	input_build(&it->input, url_protocol(cfg->url), cfg->i);
 	input_open(&it->input, cfg->url);
-	demuxer_build(&it->demuxer, cfg->url);
+	demuxer_build(&it->demuxer, cfg->url);  /* TODO: move demuxer to pipeline? */
 
-	/* build-pipeline */
-	filter_init((Filter*)&it->splitter);
-	it->splitter.fltr.w = &it->splitter;
-	it->splitter.fltr.name = "splitter";
-	it->splitter.fltr.vt = &filter_splitter_vt;
-	filter_init((Filter*)&it->h264_parser);
-	it->h264_parser.fltr.w = &it->h264_parser;
-	it->h264_parser.fltr.name = "h264-parser";
-	it->h264_parser.fltr.vt = &filter_h264_parser_vt;
-	filter_init((Filter*)&it->h264_decoder);
-	it->h264_decoder.fltr.w = &it->h264_decoder;
-	it->h264_decoder.fltr.vt = &filter_h264_decoder_vt;
-	it->h264_decoder.fltr.name = "h264-decoder";
-
-	printf("fitler: [%s @ %p]\n", it->demuxer->name, it->demuxer);
-
-	filter_append_consumer(it->demuxer, &it->splitter.fltr);
-	filter_append_consumer(&it->splitter.fltr, &it->h264_parser.fltr);
-	filter_append_consumer(&it->h264_parser.fltr, &it->h264_decoder.fltr);
+	pipeline_init(&it->ppln);
+	filter_append_consumer(it->demuxer, (Filter*)&it->ppln);
 }
 
 static int on_read(void *ctx, uint8_t *buf, size_t bufsz) {

@@ -16,4 +16,10 @@ struct filter_mp2_parser_s {
 };
 
 
+int filter_mp2_parser_new(FilterMP2Parser **out);
+int filter_mp2_parser_init(FilterMP2Parser *it);
+int filter_mp2_parser_fin(FilterMP2Parser *it);
+int filter_mp2_parser_del(FilterMP2Parser **out);
+
+
 #endif /* __APPS_3_MP2_PARSER__ */
