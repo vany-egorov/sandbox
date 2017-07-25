@@ -198,10 +198,19 @@ $(OBJS-DIR)/apps-3-pipeline.o: ./apps/3/pipeline.c
 $(OBJS-DIR)/apps-3-filter.o: ./apps/3/filter.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-filter-unknown.o: ./apps/3/filter-unknown.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-filter-h264-parser.o: ./apps/3/filter-h264-parser.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-filter-h264-decoder.o: ./apps/3/filter-h264-decoder.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-ac3-parser.o: ./apps/3/filter-ac3-parser.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-ac3-decoder.o: ./apps/3/filter-ac3-decoder.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-filter-mp2-parser.o: ./apps/3/filter-mp2-parser.c
@@ -328,8 +337,11 @@ app-3: \
 	$(OBJS-DIR)/apps-3-packet.o \
 	$(OBJS-DIR)/apps-3-pipeline.o \
 	$(OBJS-DIR)/apps-3-filter.o \
+	$(OBJS-DIR)/apps-3-filter-unknown.o \
 	$(OBJS-DIR)/apps-3-filter-h264-parser.o \
 	$(OBJS-DIR)/apps-3-filter-h264-decoder.o \
+	$(OBJS-DIR)/apps-3-filter-ac3-parser.o \
+	$(OBJS-DIR)/apps-3-filter-ac3-decoder.o \
 	$(OBJS-DIR)/apps-3-filter-mp2-parser.o \
 	$(OBJS-DIR)/apps-3-filter-mp2-decoder.o \
 	\

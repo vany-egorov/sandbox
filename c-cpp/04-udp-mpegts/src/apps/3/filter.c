@@ -148,8 +148,7 @@ int filter_fin(Filter *it) {
 
 	if (!it) return ret;
 
-	if (it->consumers.len)
-		slice_fin(&it->consumers);
+	slice_fin(&it->consumers);
 
 	return ret;
 }

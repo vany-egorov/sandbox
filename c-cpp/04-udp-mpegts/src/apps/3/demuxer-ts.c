@@ -144,8 +144,6 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 			if (trk == NULL) {
 				/* log_warn(lgr, "[ts-demuxer @ %s] failed to find track for %d/0x%04X PID inside stream\n",
 					it->us, ts_hdr.PID, ts_hdr.PID); */
-			} else if (trk->codec_kind == CODEC_KIND_UNKNOWN) {
-				/* TODO: detect unknown codec by payload (mp3, subtitles etc) */
 			} else {
 				if (ts_hdr.payload_unit_start_indicator) {
 

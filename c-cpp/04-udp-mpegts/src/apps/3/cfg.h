@@ -7,10 +7,6 @@
 #include <collections/slice.h>
 
 
-#define CFG_END_OPTIONS         "--"
-#define CFG_KEY_VALUE_SEPARATOR '='
-
-
 typedef struct cfg_s   Cfg;
 typedef struct cfg_i_s CfgI;
 typedef struct cfg_o_s CfgO;

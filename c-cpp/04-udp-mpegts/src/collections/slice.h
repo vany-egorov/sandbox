@@ -35,6 +35,8 @@ int slice_get_copy_data(Slice *it, size_t index, void *el);
 void *slice_get(Slice *it, size_t index);
 void *slice_tail(Slice *it);
 int slice_tail_copy_data(Slice *it, void *el);
+int slice_del_el(Slice *it, size_t idx);
+int slice_del_els(Slice *it, size_t f, size_t t);  /* f == from, t == to */
 void slice_print(Slice *it);
 int slice_fin(Slice *it);
 int slice_del(Slice **out);

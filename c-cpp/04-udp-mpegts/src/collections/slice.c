@@ -109,6 +109,49 @@ void slice_print(Slice *it) {
 	printf("\n");
 }
 
+int slice_del_el(Slice *it, size_t idx) {
+	int ret = 0;
+	char *el = NULL,      /* el to del */
+	     *el_nxt = NULL,  /* next el to shift back */
+	     *el_lst = NULL;  /* last el */
+
+	if (idx >= it->len) {
+		ret = 1;  /* no such element to delete found */
+		goto cleanup;
+	}
+
+	el = &(((char*)it->els)[it->elsz*idx]);
+
+	el_lst = &(((char*)it->els)[it->elsz*(it->len-1)]);
+
+	/* if not last element
+	 * if last element to delete - nothing to shift, only memset
+	 */
+	if (it->len != idx+1) {
+		el_nxt = &(((char*)it->els)[it->elsz*(idx+1)]);
+
+		/* TODO: error handling; */
+		/* shift data back */
+		void *dst = memmove(
+			  (void*)el      /* destination */
+			, (void*)el_nxt  /* source */
+			, (it->len - (idx+1)) * it->elsz
+		);
+	}
+
+	/* TODO: error handling; */
+	/* clear freed/shifted memory */
+	memset(el_lst, 0, it->elsz);
+	it->len--;
+
+cleanup:
+	return ret;
+}
+
+int slice_del_els(Slice *it, size_t f, size_t t) {
+
+}
+
 int slice_fin(Slice *it) {
 	if (it->els) {
 		free(it->els);

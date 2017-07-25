@@ -22,6 +22,76 @@ int pipeline_init(Pipeline *it) {
 	slice_init(&it->fltrs, sizeof(char*));
 }
 
+int pipeline_on_trk_detect(void *ctx, Track *trk) {
+	int ret = 0;
+	FilterTrack *src = NULL;
+	FilterUnknown *funk = NULL;  /* old filter */
+	Pipeline *it = NULL;
+
+	it = (Pipeline*)ctx;
+
+	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
+		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
+		printf("#%d %d -> [%s @ %p]\n", i, fltrtrk->trk->id, fltrtrk->fltr->name, fltrtrk->fltr);
+	}}
+
+	/* <remove and deregister unknown filter> */
+	/* TODO: remove from fltrs */
+	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
+		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
+
+		if (trk->id == fltrtrk->trk->id) {
+			printf("~~~~~> delete index: %d, PID/ID: %d\n", i, trk->id);
+			FilterUnknown *funk = (FilterUnknown*)fltrtrk->fltr->w;
+
+			slice_del_el(&it->trks, (size_t)i);
+
+			filter_unknown_fin(funk);
+			filter_unknown_del(&funk);
+
+			{int j = 0; for (j = 0; j < (int)it->trks.len; j++) {
+				FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)j);
+				printf("#%d %d -> [%s @ %p]\n", j, fltrtrk->trk->id, fltrtrk->fltr->name, fltrtrk->fltr);
+			}}
+
+			break;
+		}
+	}}
+	/* </remove and deregister unknown filter> */
+
+	if (trk->codec_kind == CODEC_KIND_AC3) {
+		FilterAC3Parser *parser = NULL;
+		FilterAC3Decoder *decoder = NULL;
+
+		filter_ac3_parser_new(&parser);
+		filter_ac3_parser_init(parser);
+		filter_ac3_decoder_new(&decoder);
+		filter_ac3_decoder_init(decoder);
+
+		slice_append(&it->fltrs, &parser);
+		slice_append(&it->fltrs, &decoder);
+
+		filter_append_consumer(&parser->fltr, &decoder->fltr);
+
+		FilterTrack src_s = {
+			.fltr = &parser->fltr,
+			.trk = trk,
+		};
+		src = &src_s;
+
+		slice_append(&it->trks, src);
+		src->fltr->vt->consume_trk(src->fltr->w, trk);
+	}
+
+
+	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
+		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
+		printf("#%d %d -> [%s @ %p]\n", i, fltrtrk->trk->id, fltrtrk->fltr->name, fltrtrk->fltr);
+	}}
+
+	return 0;
+}
+
 static int consume_strm(void *ctx, Stream *strm) {
 	Pipeline *it = NULL;
 	it = (Pipeline*)ctx;
@@ -37,7 +107,9 @@ static int consume_trk(void *ctx, Track *trk) {
 	FilterTrack *src = NULL;
 	it = (Pipeline*)ctx;
 
-	printf("[%s @ %p] [<] track\n", it->fltr.name, (void*)it);
+	printf("[%s @ %p] [<] track %p index: %d, PID/ID: %d\n",
+		it->fltr.name, (void*)it,
+		trk, trk->i, trk->id);
 
 	if (trk->codec_kind == CODEC_KIND_H264) {
 		FilterH264Parser *parser = NULL;
@@ -59,9 +131,6 @@ static int consume_trk(void *ctx, Track *trk) {
 		};
 		src = &src_s;
 
-		slice_append(&it->trks, src);
-		src->fltr->vt->consume_trk(src->fltr->w, trk);
-
 	} else if (trk->codec_kind == CODEC_KIND_MP2) {
 		FilterMP2Parser *parser = NULL;
 		FilterMP2Decoder *decoder = NULL;
@@ -82,11 +151,24 @@ static int consume_trk(void *ctx, Track *trk) {
 		};
 		src = &src_s;
 
+	} else if (trk->codec_kind == CODEC_KIND_UNKNOWN) {
+		FilterUnknown *fltr = NULL;
+
+		filter_unknown_new(&fltr);
+		filter_unknown_init(fltr, pipeline_on_trk_detect, (void*)it);
+
+		FilterTrack src_s = {
+			.fltr = &fltr->fltr,
+			.trk = trk,
+		};
+		src = &src_s;
+	} else {
+		/* TODO: handle */
+	}
+
+	if (src) {
 		slice_append(&it->trks, src);
 		src->fltr->vt->consume_trk(src->fltr->w, trk);
-
-	} else if (trk->codec_kind == CODEC_KIND_UNKNOWN) {
-	} else {
 	}
 
 	return ret;

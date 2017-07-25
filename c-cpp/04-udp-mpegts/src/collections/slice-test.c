@@ -40,5 +40,21 @@ int main(int argc, char *argv[]) {
 		printf("[~] #%2d {a: %2d, b: %2d, c: %2d, d: %2" PRIu64 ", e: %2" PRId64 "}\n",
 			i, d.a, d.b, d.c, d.d, d.e);
 	}
+
+	printf("slice_del_el test\n");
+
+	slice_del_el(s, 5);   /* - 5 */
+	slice_del_el(s, 20);  /* - 21 */
+	slice_del_el(s, 21);  /* - 23 */
+	slice_del_el(s, s->len-1);
+
+	printf("len: %ld\n", s->len);
+	printf("cap: %ld\n", s->cap);
+
+	for (i = 0; i < (int)s->len; i++) {
+		slice_get_copy_data(s, i, &d);
+		printf("[~] #%2d {a: %2d, b: %2d, c: %2d, d: %2" PRIu64 ", e: %2" PRId64 "}\n",
+			i, d.a, d.b, d.c, d.d, d.e);
+	}
 }
 
