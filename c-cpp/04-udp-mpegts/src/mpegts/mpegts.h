@@ -208,25 +208,47 @@ typedef enum   mpegts_PSI_SDT_service_running_status_enum MPEGTSPSISDTServiceRun
 // PD = Program Descriptor
 // PED = Program Element Descriptor
 enum mpegts_PSI_PED_tag_enum {
-	MPEGTS_PSI_PED_TAG_RESERVED_00                   = 0x00,
-	MPEGTS_PSI_PED_TAG_RESERVED_01                   = 0x01,
-	MPEGTS_PSI_PED_TAG_V_H262_13818_11172            = 0x02,
-	MPEGTS_PSI_PED_TAG_A_13818_11172                 = 0x03,
-	MPEGTS_PSI_PED_TAG_HIERARCHY                     = 0x04,
-	MPEGTS_PSI_PED_TAG_REG_PRIVATE                   = 0x05,
-	MPEGTS_PSI_PED_TAG_DATA_STREAM_ALIGN             = 0x06,
-	MPEGTS_PSI_PED_TAG_GRID                          = 0x07,
-	MPEGTS_PSI_PED_TAG_VIDEO_WINDOW                  = 0x08,
-	MPEGTS_PSI_PED_TAG_CAS_EMM_ECM_PID               = 0x09,
-	MPEGTS_PSI_PED_TAG_ISO_639                       = 0x0A,
-	MPEGTS_PSI_PED_TAG_SYSTEM_CLOCK_EXT_REF          = 0x0B,
-	MPEGTS_PSI_PED_TAG_MULT_BUF_UTIL_BOUNDS          = 0x0C,
-	MPEGTS_PSI_PED_TAG_COPYRIGHT                     = 0x0D,
-	MPEGTS_PSI_PED_TAG_MAX_BIT_RATE                  = 0x0E,
-	MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR        = 0x0F,
-	MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER              = 0x10,
-	MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL = 0x11,
-	MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR            = 0x48,
+	MPEGTS_PSI_PED_TAG_RESERVED_00                                    = 0x00,
+	MPEGTS_PSI_PED_TAG_RESERVED_01                                    = 0x01,
+	MPEGTS_PSI_PED_TAG_V_H262_13818_11172                             = 0x02,
+	MPEGTS_PSI_PED_TAG_A_13818_11172                                  = 0x03,
+	MPEGTS_PSI_PED_TAG_HIERARCHY                                      = 0x04,
+	MPEGTS_PSI_PED_TAG_REG_PRIVATE                                    = 0x05,
+	MPEGTS_PSI_PED_TAG_DATA_STREAM_ALIGN                              = 0x06,
+	MPEGTS_PSI_PED_TAG_GRID                                           = 0x07,
+	MPEGTS_PSI_PED_TAG_VIDEO_WINDOW                                   = 0x08,
+	MPEGTS_PSI_PED_TAG_CAS_EMM_ECM_PID                                = 0x09,
+	MPEGTS_PSI_PED_TAG_ISO_639                                        = 0x0A,
+	MPEGTS_PSI_PED_TAG_SYSTEM_CLOCK_EXT_REF                           = 0x0B,
+	MPEGTS_PSI_PED_TAG_MULT_BUF_UTIL_BOUNDS                           = 0x0C,
+	MPEGTS_PSI_PED_TAG_COPYRIGHT                                      = 0x0D,
+	MPEGTS_PSI_PED_TAG_MAX_BIT_RATE                                   = 0x0E,
+	MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR                         = 0x0F,
+	MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER                               = 0x10,
+	MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL                  = 0x11,
+	MPEGTS_PSI_PED_TAG_IBP                                            = 0x12,
+	MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_CAROUSEL_IDENTIFIER      = 0x13,
+	MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_ASSOCIATION_TAG          = 0x14,
+	MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_DEFERRED_ASSOCIATION_TAG = 0x15,
+	MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_RESERVED                 = 0x16,
+	MPEGTS_PSI_PED_TAG_DSM_CC_NPT_REFERENCE                           = 0x17,
+	MPEGTS_PSI_PED_TAG_DSM_CC_NPT_ENDPOINT                            = 0x18,
+	MPEGTS_PSI_PED_TAG_DSM_CC_STREAM_MODE                             = 0x19,
+	MPEGTS_PSI_PED_TAG_DSM_CC_STREAM_EVENT                            = 0x1A,
+	MPEGTS_PSI_PED_TAG_MPEG4_V                                        = 0x1B,
+	MPEGTS_PSI_PED_TAG_MPEG4_A                                        = 0x1C,
+	MPEGTS_PSI_PED_TAG_IOD                                            = 0x1D,
+	MPEGTS_PSI_PED_TAG_SL                                             = 0x1E,
+	MPEGTS_PSI_PED_TAG_FMC                                            = 0x1F,
+	MPEGTS_PSI_PED_TAG_EXTERNAL_ES_ID                                 = 0x20,
+	MPEGTS_PSI_PED_TAG_MUX_CODE                                       = 0x21,
+	MPEGTS_PSI_PED_TAG_FMX_BUFFER_SIZE                                = 0x22,
+	MPEGTS_PSI_PED_TAG_MULTIPLEX_BUFFER                               = 0x23,
+	MPEGTS_PSI_PED_TAG_CONTENT_LABELING                               = 0x24,
+	MPEGTS_PSI_PED_TAG_METADATA_POINTER                               = 0x25,
+	MPEGTS_PSI_PED_TAG_METADATA                                       = 0x26,
+	MPEGTS_PSI_PED_TAG_METADATA_STD                                   = 0x27,
+	MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR                             = 0x48,
 };
 
 #define MPEGTS_PSI_PED_TAG_RESERVED_00_STR "Reserved-00"
@@ -252,6 +274,32 @@ enum mpegts_PSI_PED_tag_enum {
 #define MPEGTS_PSI_PED_TAG_PRIVATE_DATA_INDICATOR_STR "Private data indicator"
 #define MPEGTS_PSI_PED_TAG_SMOOTHING_BUFFER_STR "Smoothing buffer"
 #define MPEGTS_PSI_PED_TAG_STD_VIDEO_BUFFER_LEAK_CONTROL_STR "STD video buffer leak control"
+#define MPEGTS_PSI_PED_TAG_IBP_STR "IBP video I-frame indicator / IBP descriptor"
+#define MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_CAROUSEL_IDENTIFIER_STR "ISO/IEC13818-6 DSM CC carousel identifier"
+#define MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_ASSOCIATION_TAG_STR "ISO/IEC13818-6 DSM CC association tag"
+#define MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_DEFERRED_ASSOCIATION_TAG_STR "ISO/IEC13818-6 DSM CC deferred association tag"
+#define MPEGTS_PSI_PED_TAG_ISO_IEC13818_6_DSM_CC_RESERVED_STR "ISO/IEC13818-6 DSM CC Reserved"
+#define MPEGTS_PSI_PED_TAG_DSM_CC_NPT_REFERENCE_STR "DSM CC NPT reference"
+#define MPEGTS_PSI_PED_TAG_DSM_CC_NPT_ENDPOINT_STR "DSM CC NPT endpoint"
+#define MPEGTS_PSI_PED_TAG_DSM_CC_STREAM_MODE_STR "DSM CC stream mode"
+#define MPEGTS_PSI_PED_TAG_DSM_CC_STREAM_EVENT_STR "DSM CC stream event"
+#define MPEGTS_PSI_PED_TAG_MPEG4_V_STR "Video stream header parameters for ISO/IEC 14496-2 (MPEG-4 H.263 based)" \
+                                       " /" \
+                                       " MPEG-4 video descriptor"
+#define MPEGTS_PSI_PED_TAG_MPEG4_A_STR "Audio stream header parameters for ISO/IEC 14496-3 (MPEG-4 LOAS multi-format framed)" \
+                                       " /" \
+                                       " MPEG-4 audio descriptor"
+#define MPEGTS_PSI_PED_TAG_IOD_STR "IOD parameters for ISO/IEC 14496-1 / IOD descriptor"
+#define MPEGTS_PSI_PED_TAG_SL_STR "SL parameters for ISO/IEC 14496-1 / SL descriptor"
+#define MPEGTS_PSI_PED_TAG_FMC_STR "FMC parameters for ISO/IEC 14496-1 / FMC descriptor"
+#define MPEGTS_PSI_PED_TAG_EXTERNAL_ES_ID_STR "External ES identifier for ISO/IEC 14496-1 / External ES ID descriptor"
+#define MPEGTS_PSI_PED_TAG_MUX_CODE_STR "MuxCode for ISO/IEC 14496-1 / Mux Code descriptor"
+#define MPEGTS_PSI_PED_TAG_FMX_BUFFER_SIZE_STR "FMX Buffer Size for ISO/IEC 14496-1 / Fmx Buffer Size descriptor"
+#define MPEGTS_PSI_PED_TAG_MULTIPLEX_BUFFER_STR "Multiplex Buffer for ISO/IEC 14496-1 / Multiplex buffer descriptor"
+#define MPEGTS_PSI_PED_TAG_CONTENT_LABELING_STR "Content labeling for ISO/IEC 14496-1 / Content labeling descriptor"
+#define MPEGTS_PSI_PED_TAG_METADATA_POINTER_STR "Metadata pointer descriptor"
+#define MPEGTS_PSI_PED_TAG_METADATA_STR "Metadata descriptor"
+#define MPEGTS_PSI_PED_TAG_METADATA_STD_STR "Metadata STD descriptor"
 #define MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR_STR "Service descriptor"
 
 enum mpegts_PSI_SDT_service_running_status_enum {

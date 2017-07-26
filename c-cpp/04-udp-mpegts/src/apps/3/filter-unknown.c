@@ -68,7 +68,7 @@ static int consume_pkt(void *ctx, Packet *pkt) {
 	if (sync_word_ac3 == AC3_SYNC_WORD) {
 		trk->codec_kind = CODEC_KIND_AC3;
 
-		printf("[%s @ %p] [<] track %p index: %d, PID/ID: %d, packet-len: %ld, codec: \"%s\"; 0x%02X 0x%02X 0x%02X 0x%02X\n",
+		printf("[%s @ %p] [+] OK detection => track %p, index: %d, PID/ID: %d, packet-len: %ld, codec: \"%s\"; 0x%02X 0x%02X 0x%02X 0x%02X\n",
 			it->fltr.name, (void*)it,
 			trk, trk->i, trk->id,
 			pkt->buf.len,

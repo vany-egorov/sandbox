@@ -116,7 +116,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 	if ((ts->psi_pat) &&
 	    (ts->psi_pmt) &&
 	    (ts->psi_sdt)) {
-		// if (!it->is_psi_logged) log_psi(it);
+		if (!it->is_psi_logged) log_psi(it);
 		if (!it->is_stream_builded) {
 			build_stream(it);
 

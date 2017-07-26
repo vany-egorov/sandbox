@@ -30,29 +30,18 @@ int pipeline_on_trk_detect(void *ctx, Track *trk) {
 
 	it = (Pipeline*)ctx;
 
-	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
-		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
-		printf("#%d %d -> [%s @ %p]\n", i, fltrtrk->trk->id, fltrtrk->fltr->name, fltrtrk->fltr);
-	}}
-
 	/* <remove and deregister unknown filter> */
 	/* TODO: remove from fltrs */
 	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
 		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
 
 		if (trk->id == fltrtrk->trk->id) {
-			printf("~~~~~> delete index: %d, PID/ID: %d\n", i, trk->id);
 			FilterUnknown *funk = (FilterUnknown*)fltrtrk->fltr->w;
 
 			slice_del_el(&it->trks, (size_t)i);
 
 			filter_unknown_fin(funk);
 			filter_unknown_del(&funk);
-
-			{int j = 0; for (j = 0; j < (int)it->trks.len; j++) {
-				FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)j);
-				printf("#%d %d -> [%s @ %p]\n", j, fltrtrk->trk->id, fltrtrk->fltr->name, fltrtrk->fltr);
-			}}
 
 			break;
 		}
@@ -82,12 +71,6 @@ int pipeline_on_trk_detect(void *ctx, Track *trk) {
 		slice_append(&it->trks, src);
 		src->fltr->vt->consume_trk(src->fltr->w, trk);
 	}
-
-
-	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
-		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
-		printf("#%d %d -> [%s @ %p]\n", i, fltrtrk->trk->id, fltrtrk->fltr->name, fltrtrk->fltr);
-	}}
 
 	return 0;
 }
