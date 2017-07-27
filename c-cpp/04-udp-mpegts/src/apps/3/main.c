@@ -44,9 +44,10 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 			slice_append(&cfg_i->maps, &cfg_map);
 		}
 		else if OPT_MTCH3(k, "o", "out", "output") {
+			/* TODO: store last(tail) config values in Cfg struct; */
 			CfgI cfg_o = { 0 };
 			CfgI *cfg_i = slice_tail(&it->i);
-			CfgMap *cfg_map = slice_tail(&cfg_i->maps);
+			CfgMap *cfg_map = slice_tail(&cfg_i->maps);  /* TODO: set default to -map all if no mapped; */
 
 			url_parse(&cfg_o.url, v);
 
