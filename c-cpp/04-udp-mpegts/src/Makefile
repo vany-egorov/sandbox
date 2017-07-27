@@ -228,6 +228,9 @@ $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
 $(OBJS-DIR)/apps-3-cfg.o: ./apps/3/cfg.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-map.o: ./apps/3/map.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-main.o: ./apps/3/main.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -327,6 +330,7 @@ app-3: \
 	$(OBJS-DIR)/log-std.o \
 	\
 	$(OBJS-DIR)/apps-3-cfg.o \
+	$(OBJS-DIR)/apps-3-map.o \
 	$(OBJS-DIR)/apps-3-signal.o \
 	$(OBJS-DIR)/apps-3-wrkr.o \
 	$(OBJS-DIR)/apps-3-input.o \

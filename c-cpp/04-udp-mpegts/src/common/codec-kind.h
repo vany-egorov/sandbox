@@ -52,4 +52,4 @@ typedef enum codec_kind_enum {
 char *codec_kind_str(CodecKind it);
 
 
-#endif // __COMMON_CODEC_KIND__
+#endif /* __COMMON_CODEC_KIND__ */

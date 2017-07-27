@@ -65,3 +65,25 @@ int cfg_del(Cfg **out) {
 
 	return ret;
 }
+
+
+int cfg_i_init(CfgI *it) {
+	slice_init(&it->maps, sizeof(CfgMap));
+	return 0;
+}
+
+int cfg_i_fin(CfgI *it) {
+	slice_fin(&it->maps);
+	return 0;
+}
+
+
+int cfg_map_init(CfgMap *it) {
+	slice_init(&it->o, sizeof(CfgO));
+	return 0;
+}
+
+int cfg_map_fin(CfgMap *it) {
+	slice_fin(&it->o);
+	return 0;
+}

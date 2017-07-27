@@ -36,15 +36,21 @@ int slice_prealloc(Slice *it) {
 	return 0;
 }
 
-extern inline void *slice_tail(Slice *it) {
+extern inline void *slice_head_free(Slice *it) {
 	if (!it) return NULL;
 	return &(((char*)it->els)[it->elsz*it->len]);
+}
+
+extern inline void *slice_tail(Slice *it) {
+	if (!it) return NULL;
+	if (!it->len) return it->els;
+	return &(((char*)it->els)[it->elsz*(it->len-1)]);
 }
 
 int slice_tail_copy_data(Slice *it, void *el_out) {
 	void *el = NULL;
 
-	el = slice_tail(it);
+	el = slice_head_free(it);
 	memcpy(el_out, el, it->elsz);
 
 	return 0;
@@ -69,7 +75,7 @@ int slice_append(Slice *it, const void *el) {
 		it->cap = cap_new;
 	}
 
-	memcpy(slice_tail(it), el, it->elsz);
+	memcpy(slice_head_free(it), el, it->elsz);
 	it->len++;
 
 	return 0;
