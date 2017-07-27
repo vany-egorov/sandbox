@@ -12,7 +12,9 @@ ContainerKind container_kind_from_url(URL *u) {
 
 	if (p == URL_SCHEME_UDP) return CONTAINER_KIND_MPEGTS;
 
+
 	if (!strcasecmp(e, "ts") || !strcasecmp(e, "mpegts")) return CONTAINER_KIND_MPEGTS;
+	if (!strcasecmp(e, "m3u8")) return CONTAINER_KIND_MPEGTS;
 	if (!strcasecmp(e, "mp4")) return CONTAINER_KIND_MP4;
 	if (!strcasecmp(e, "m4a")) return CONTAINER_KIND_MP4;
 	if (!strcasecmp(e, "m4v")) return CONTAINER_KIND_MP4;

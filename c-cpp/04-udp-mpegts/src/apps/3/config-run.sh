@@ -27,6 +27,9 @@ av \
   239.255.1.3:5500 \
     -id 2 \
     -name "big-buck-bunny-HD" \
+  \
+  http://online.video.rbc.ru/online/rbctv_480p/index.m3u8 \
+  \
   -i ../tmp/HD-NatGeoWild.ts \
   \
   -- ../tmp/HD-1.ts

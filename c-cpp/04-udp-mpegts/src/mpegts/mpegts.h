@@ -248,7 +248,15 @@ enum mpegts_PSI_PED_tag_enum {
 	MPEGTS_PSI_PED_TAG_METADATA_POINTER                               = 0x25,
 	MPEGTS_PSI_PED_TAG_METADATA                                       = 0x26,
 	MPEGTS_PSI_PED_TAG_METADATA_STD                                   = 0x27,
+	MPEGTS_PSI_PED_TAG_AVC                                            = 0x28,
+	MPEGTS_PSI_PED_TAG_IPMP                                           = 0x29,
+	MPEGTS_PSI_PED_TAG_AVC_TIMING                                     = 0x2A,
+	MPEGTS_PSI_PED_TAG_AAC                                            = 0x2B,
+	MPEGTS_PSI_PED_TAG_FLEX_MUX_TIMING                                = 0x2C,
 	MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR                             = 0x48,
+	MPEGTS_PSI_PED_TAG_USER_PRIVATE_CA_ID                             = 0x53,
+	MPEGTS_PSI_PED_TAG_EBU_TELETEXT                                   = 0x56,
+	MPEGTS_PSI_PED_TAG_AC3                                            = 0x6A,
 };
 
 #define MPEGTS_PSI_PED_TAG_RESERVED_00_STR "Reserved-00"
@@ -300,7 +308,21 @@ enum mpegts_PSI_PED_tag_enum {
 #define MPEGTS_PSI_PED_TAG_METADATA_POINTER_STR "Metadata pointer descriptor"
 #define MPEGTS_PSI_PED_TAG_METADATA_STR "Metadata descriptor"
 #define MPEGTS_PSI_PED_TAG_METADATA_STD_STR "Metadata STD descriptor"
+#define MPEGTS_PSI_PED_TAG_AVC_STR "Video stream header parameters for ITU-T Rec. H.264 and ISO/IEC 14496-10" \
+                                   " /" \
+                                   " AVC video descriptor"
+#define MPEGTS_PSI_PED_TAG_IPMP_STR "IPMP descriptor (defined in ISO/IEC 13818-11; break; MPEG-2 IPMP)"
+#define MPEGTS_PSI_PED_TAG_AVC_TIMING_STR "Timing and HRD for ITU-T Rec. H.264 and ISO/IEC 14496-10" \
+                                          " /" \
+                                          " AVC timing and HRD descriptor"
+#define MPEGTS_PSI_PED_TAG_AAC_STR "Audio stream header parameters for ISO/IEC 13818-7 ADTS AAC" \
+                                   " /" \
+                                   " MPEG-2 AAC audio descriptor"
+#define MPEGTS_PSI_PED_TAG_FLEX_MUX_TIMING_STR "FlexMux Timing for ISO/IEC 14496-1"
 #define MPEGTS_PSI_PED_TAG_SERVICE_DESCRIPTOR_STR "Service descriptor"
+#define MPEGTS_PSI_PED_TAG_USER_PRIVATE_CA_ID_STR "User Private / CA Identifier"
+#define MPEGTS_PSI_PED_TAG_EBU_TELETEXT_STR "EBU Teletext"
+#define MPEGTS_PSI_PED_TAG_AC3_STR "AC3 audio descriptor"
 
 enum mpegts_PSI_SDT_service_running_status_enum {
 	MPEGTS_PSI_SDT_SERVICE_RUNNING_STATUS_UNDEFINED               = 0x00,

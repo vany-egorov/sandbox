@@ -45,6 +45,9 @@ $(OBJS-DIR)/common-container-kind.o: ./common/container-kind.c
 $(OBJS-DIR)/common-codec-kind.o: ./common/codec-kind.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/common-fn.o: ./common/fn.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/db-db.o: ./db/db.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -315,6 +318,7 @@ app-3: \
 	$(OBJS-DIR)/common-opt.o \
 	$(OBJS-DIR)/common-container-kind.o \
 	$(OBJS-DIR)/common-codec-kind.o \
+	$(OBJS-DIR)/common-fn.o \
 	$(OBJS-DIR)/common-daemonize.o \
 	\
 	$(OBJS-DIR)/log-level.o \

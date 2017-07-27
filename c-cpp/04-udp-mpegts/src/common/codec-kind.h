@@ -2,9 +2,6 @@
 #define __COMMON_CODEC_KIND__
 
 
-#include <mpegts/mpegts.h>  /* MPEGTSESType */
-
-
 #define CODEC_KIND_UNKNOWN_STR "unknown"
 
 #define CODEC_KIND_VIDEO_STR  "video"
@@ -22,6 +19,10 @@
 #define CODEC_KIND_AC3_STR    "AC-3/Dolby Digital"
 #define CODEC_KIND_VORBIS_STR "vorbis"
 #define CODEC_KIND_OPUS_STR   "opus"
+
+#define CODEC_KIND_TELETEXT_STR "teletext"
+
+#define CODEC_KIND_SUBTITLE_STR "subtitle"
 
 
 typedef enum codec_kind_enum {
@@ -42,11 +43,13 @@ typedef enum codec_kind_enum {
 	CODEC_KIND_AC3,
 	CODEC_KIND_VORBIS,
 	CODEC_KIND_OPUS,
+
+	CODEC_KIND_TELETEXT = 0x20,
+	CODEC_KIND_SUBTITLE = 0x10,
 } CodecKind;
 
 
 char *codec_kind_str(CodecKind it);
-CodecKind codec_kind_from_mpegts_es_type(MPEGTSESType v);
 
 
 #endif // __COMMON_CODEC_KIND__

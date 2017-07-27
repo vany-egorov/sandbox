@@ -31,7 +31,7 @@ int stream_from_mpegts_psi_pmt(Stream *it, MPEGTSPSIPMT *psi_pmt) {
 		pe = &psi_pmt->program_elements.c[i];
 
 		trk.id = (uint32_t)pe->elementary_PID;
-		trk.codec_kind = codec_kind_from_mpegts_es_type(pe->stream_type);
+		trk.codec_kind = fn_codec_kind_from_mpegts_pmt_pe(pe);
 		packet_init(&trk.pkt);
 
 		/* if (trk.codec_kind == CODEC_KIND_UNKNOWN) continue; */

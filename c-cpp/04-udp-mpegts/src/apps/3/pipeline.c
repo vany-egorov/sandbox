@@ -22,77 +22,9 @@ int pipeline_init(Pipeline *it) {
 	slice_init(&it->fltrs, sizeof(char*));
 }
 
-int pipeline_on_trk_detect(void *ctx, Track *trk) {
+static int append_trk(Pipeline *it, Track *trk) {
 	int ret = 0;
 	FilterTrack *src = NULL;
-	FilterUnknown *funk = NULL;  /* old filter */
-	Pipeline *it = NULL;
-
-	it = (Pipeline*)ctx;
-
-	/* <remove and deregister unknown filter> */
-	/* TODO: remove from fltrs */
-	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
-		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
-
-		if (trk->id == fltrtrk->trk->id) {
-			FilterUnknown *funk = (FilterUnknown*)fltrtrk->fltr->w;
-
-			slice_del_el(&it->trks, (size_t)i);
-
-			filter_unknown_fin(funk);
-			filter_unknown_del(&funk);
-
-			break;
-		}
-	}}
-	/* </remove and deregister unknown filter> */
-
-	if (trk->codec_kind == CODEC_KIND_AC3) {
-		FilterAC3Parser *parser = NULL;
-		FilterAC3Decoder *decoder = NULL;
-
-		filter_ac3_parser_new(&parser);
-		filter_ac3_parser_init(parser);
-		filter_ac3_decoder_new(&decoder);
-		filter_ac3_decoder_init(decoder);
-
-		slice_append(&it->fltrs, &parser);
-		slice_append(&it->fltrs, &decoder);
-
-		filter_append_consumer(&parser->fltr, &decoder->fltr);
-
-		FilterTrack src_s = {
-			.fltr = &parser->fltr,
-			.trk = trk,
-		};
-		src = &src_s;
-
-		slice_append(&it->trks, src);
-		src->fltr->vt->consume_trk(src->fltr->w, trk);
-	}
-
-	return 0;
-}
-
-static int consume_strm(void *ctx, Stream *strm) {
-	Pipeline *it = NULL;
-	it = (Pipeline*)ctx;
-
-	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
-
-	return filter_produce_strm(&it->fltr, strm);
-}
-
-static int consume_trk(void *ctx, Track *trk) {
-	int ret = 0;
-	Pipeline *it = NULL;
-	FilterTrack *src = NULL;
-	it = (Pipeline*)ctx;
-
-	printf("[%s @ %p] [<] track %p index: %d, PID/ID: %d\n",
-		it->fltr.name, (void*)it,
-		trk, trk->i, trk->id);
 
 	if (trk->codec_kind == CODEC_KIND_H264) {
 		FilterH264Parser *parser = NULL;
@@ -103,7 +35,9 @@ static int consume_trk(void *ctx, Track *trk) {
 		filter_h264_decoder_new(&decoder);
 		filter_h264_decoder_init(decoder);
 
-		slice_append(&it->fltrs, &parser);
+		/* don't append parser to filters;
+		 * already appended to trks
+		 */
 		slice_append(&it->fltrs, &decoder);
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
@@ -123,7 +57,25 @@ static int consume_trk(void *ctx, Track *trk) {
 		filter_mp2_decoder_new(&decoder);
 		filter_mp2_decoder_init(decoder);
 
-		slice_append(&it->fltrs, &parser);
+		slice_append(&it->fltrs, &decoder);
+
+		filter_append_consumer(&parser->fltr, &decoder->fltr);
+
+		FilterTrack src_s = {
+			.fltr = &parser->fltr,
+			.trk = trk,
+		};
+		src = &src_s;
+
+	} else if (trk->codec_kind == CODEC_KIND_AC3) {
+		FilterAC3Parser *parser = NULL;
+		FilterAC3Decoder *decoder = NULL;
+
+		filter_ac3_parser_new(&parser);
+		filter_ac3_parser_init(parser);
+		filter_ac3_decoder_new(&decoder);
+		filter_ac3_decoder_init(decoder);
+
 		slice_append(&it->fltrs, &decoder);
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
@@ -153,6 +105,58 @@ static int consume_trk(void *ctx, Track *trk) {
 		slice_append(&it->trks, src);
 		src->fltr->vt->consume_trk(src->fltr->w, trk);
 	}
+
+	return ret;
+}
+
+int pipeline_on_trk_detect(void *ctx, Track *trk) {
+	int ret = 0;
+	FilterUnknown *funk = NULL;  /* old filter */
+	Pipeline *it = NULL;
+
+	it = (Pipeline*)ctx;
+
+	/* <remove and deregister unknown filter> */
+	{int i = 0; for (i = 0; i < (int)it->trks.len; i++) {
+		FilterTrack *fltrtrk = slice_get(&it->trks, (size_t)i);
+
+		if (trk->id == fltrtrk->trk->id) {
+			FilterUnknown *funk = (FilterUnknown*)fltrtrk->fltr->w;
+
+			slice_del_el(&it->trks, (size_t)i);
+
+			filter_unknown_fin(funk);
+			filter_unknown_del(&funk);
+
+			break;
+		}
+	}}
+	/* </remove and deregister unknown filter> */
+
+	ret = append_trk(it, trk);
+
+	return ret;
+}
+
+static int consume_strm(void *ctx, Stream *strm) {
+	Pipeline *it = NULL;
+	it = (Pipeline*)ctx;
+
+	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
+
+	return filter_produce_strm(&it->fltr, strm);
+}
+
+static int consume_trk(void *ctx, Track *trk) {
+	int ret = 0;
+	Pipeline *it = NULL;
+	it = (Pipeline*)ctx;
+
+	printf("[%s @ %p] [<] track %p index: %d, PID/ID: %d\n",
+		it->fltr.name, (void*)it,
+		trk, trk->i, trk->id);
+
+	ret = append_trk(it, trk);
 
 	return ret;
 }

@@ -4,8 +4,9 @@
 
 #include <stdlib.h>  /* calloc */
 
+#include <common/fn.h>              /* fn_codec_kind_from_mpegts_pmt_pe */
 #include <common/container-kind.h>  /* ContainerKind */
-#include <collections/slice.h>  /* Slice */
+#include <collections/slice.h>      /* Slice */
 
 #include "track.h"  /* Track */
 
