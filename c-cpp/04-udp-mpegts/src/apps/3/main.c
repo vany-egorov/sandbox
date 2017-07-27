@@ -34,18 +34,23 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 
 	} else if (state & OPT_STATE_KEY) {
 		if OPT_MTCH3(k, "c", "cfg", "config") it->c = v;
-		if OPT_MTCH2(k, "m", "map") {
+		else if OPT_MTCH2(k, "m", "map") {
 			CfgMap cfg_map = { 0 };
 			CfgI *cfg_i = slice_tail(&it->i);
-
-			printf("~~~~~> cfg-i @ %p\n", cfg_i);
 
 			cfg_map_init(&cfg_map);
 			map_parse(&cfg_map.map, v);
 
 			slice_append(&cfg_i->maps, &cfg_map);
+		}
+		else if OPT_MTCH3(k, "o", "out", "output") {
+			CfgI cfg_o = { 0 };
+			CfgI *cfg_i = slice_tail(&it->i);
+			CfgMap *cfg_map = slice_tail(&cfg_i->maps);
 
-			printf("~~~~~> kind: %d, id/pid: %d\n", cfg_map.map.kind, cfg_map.map.id);
+			url_parse(&cfg_o.url, v);
+
+			slice_append(&cfg_map->o, &cfg_o);
 		}
 	}
 
@@ -101,12 +106,8 @@ int main(int argc, char *argv[]) {
 		wrkr = NULL;
 		CfgI *cfg_i = slice_get(&cfg.i, (size_t)i);
 
-		printf("~~~~~> cfg-i @ %p\n", cfg_i);
-
 		{int j = 0; for (j = 0; j < (int)cfg_i->maps.len; j++) {
 			CfgMap *cfg_map = slice_get(&cfg_i->maps, (size_t)j);
-
-			printf("~~~~~> cfg-map @ %p\n", cfg_map);
 
 			char buf[255] = { 0 };
 			map_str(&cfg_map->map, buf, sizeof(buf));
