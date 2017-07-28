@@ -10,16 +10,25 @@
 #include "wrkr.h"
 #include "map.h"
 
-// tsplay ../tmp/HD-NatGeoWild.ts 239.255.1.1:5500 -loop
-// tsplay ../tmp/HD-1.ts 239.255.1.2:5500 -loop
-// ../tmp/HD-1.ts
+// tsplay ../tmp/HD-big-buck-bunny.ts 239.255.1.1:5500 -loop
+// tsplay ../tmp/HD-tears-of-steel.ts 239.255.1.2:5500 -loop
+// ../tmp/HD-tears-of-steel.ts
 //
-// make && ../bin/app-3 239.255.1.1:5500 239.255.1.2:5500 -i ../tmp/HD-NatGeoWild.ts -- ../tmp/HD-1.ts
+// make && ../bin/app-3 239.255.1.1:5500 239.255.1.2:5500 -i ../tmp/HD-big-buck-bunny.ts -- ../tmp/HD-tears-of-steel.ts
 
 static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 	Cfg *it = NULL;
+	CfgI *cfg_i = NULL;
+	CfgMap *cfg_map = NULL;
+	CfgO *cfg_o = NULL;
 
 	it = (Cfg*)opaque;
+
+	cfg_i = slice_tail(&it->i);
+	if cfg_i
+		cfg_map = slice_tail(&cfg_i->maps);  /* TODO: set default to -map all if no mapped; */
+	if cfg_map
+		cfg_o = slice_tail(&cfg_map->o)
 
 	if (
 		(state & OPT_STATE_POS) || (
@@ -35,19 +44,14 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 	} else if (state & OPT_STATE_KEY) {
 		if OPT_MTCH3(k, "c", "cfg", "config") it->c = v;
 		else if OPT_MTCH2(k, "m", "map") {
-			CfgMap cfg_map = { 0 };
-			CfgI *cfg_i = slice_tail(&it->i);
+			CfgMap c = { 0 };
 
-			cfg_map_init(&cfg_map);
-			map_parse(&cfg_map.map, v);
+			cfg_map_init(&c);
+			map_parse(&c.map, v);
 
-			slice_append(&cfg_i->maps, &cfg_map);
-		}
-		else if OPT_MTCH3(k, "o", "out", "output") {
-			/* TODO: store last(tail) config values in Cfg struct; */
-			CfgI cfg_o = { 0 };
-			CfgI *cfg_i = slice_tail(&it->i);
-			CfgMap *cfg_map = slice_tail(&cfg_i->maps);  /* TODO: set default to -map all if no mapped; */
+			slice_append(&cfg_i->maps, &c);
+		} else if OPT_MTCH3(k, "o", "out", "output") {
+			CfgO c = { 0 };
 
 			url_parse(&cfg_o.url, v);
 
