@@ -2,3 +2,6 @@
 name = "udp-mpegts"
 version = "0.0.1"
 authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
+
+[dependencies]
+nom = "^3.2"

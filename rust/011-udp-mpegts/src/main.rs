@@ -6,14 +6,12 @@ fn main() {
     let iface = Ipv4Addr::new(0, 0, 0, 0);
     let socket = UdpSocket::bind((addr, port)).unwrap();
     socket.join_multicast_v4(&addr, &iface).unwrap();
-    // socket.set_multicast_loop_v4(true).expect("set_multicast_loop_v4 call failed");
-
-    println!("===>");
 
     loop {
         // read from the socket
         let mut buf = [0; 1316];
         let (sz, _) = socket.recv_from(&mut buf).unwrap();
-        println!("[<] {}", sz);
+        println!("[<] {}: {:02X} {:02X} {:02X} {:02X}",
+            sz, buf[0], buf[1], buf[2], buf[3]);
     }
 }
