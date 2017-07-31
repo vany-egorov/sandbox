@@ -25,10 +25,10 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 	it = (Cfg*)opaque;
 
 	cfg_i = slice_tail(&it->i);
-	if cfg_i
+	if (cfg_i)
 		cfg_map = slice_tail(&cfg_i->maps);  /* TODO: set default to -map all if no mapped; */
-	if cfg_map
-		cfg_o = slice_tail(&cfg_map->o)
+	if (cfg_map)
+		cfg_o = slice_tail(&cfg_map->o);
 
 	if (
 		(state & OPT_STATE_POS) || (
@@ -37,12 +37,16 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 		)
 	) {
 		CfgI cfg_i = { 0 };
+
 		cfg_i_init(&cfg_i);
 		url_parse(&cfg_i.url, v);
+		cfg_i.id = (uint64_t)it->i.len + 1;
+
 		slice_append(&it->i, &cfg_i);
 
 	} else if (state & OPT_STATE_KEY) {
 		if OPT_MTCH3(k, "c", "cfg", "config") it->c = v;
+		else if OPT_MTCH1(k, "name") cfg_i->name = v;
 		else if OPT_MTCH2(k, "m", "map") {
 			CfgMap c = { 0 };
 
@@ -51,12 +55,23 @@ static int opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 
 			slice_append(&cfg_i->maps, &c);
 		} else if OPT_MTCH3(k, "o", "out", "output") {
+			if (!cfg_map) {
+				CfgMap c = { 0 };
+				c.map.kind = MAP_ALL;
+
+				cfg_map_init(&c);
+
+				slice_append(&cfg_i->maps, &c);
+
+				cfg_map = slice_tail(&cfg_i->maps);
+			}
+
 			CfgO c = { 0 };
 
-			url_parse(&cfg_o.url, v);
+			url_parse(&c.url, v);
 
-			slice_append(&cfg_map->o, &cfg_o);
-		}
+			slice_append(&cfg_map->o, &c);
+		} else if OPT_MTCH2(k, "print-config", "print-cfg") it->print_cfg = 1;
 	}
 
 	return 0;
@@ -77,16 +92,20 @@ int main(int argc, char *argv[]) {
 
 	char *opts[] = {
 		"c", "cfg", "config",
-		"i", "input",
+		"i", "input", "name",
 		"o", "output",
 
 		"map",
 		"metrics",
 
+		"fifo-size", "fifo-sz",
+
 		// TODO: handle bool flags
 		"v", "vv", "vvv",
 		"background", "foreground",
 		"h", "help",
+
+		"print-config", "print-cfg",
 
 		NULL
 	};
@@ -104,21 +123,19 @@ int main(int argc, char *argv[]) {
 	opt_parse(argc, argv, opts, (void*)&cfg, opt_parse_cb);
 
 	if (!cfg_validate(&cfg)) {
+		if (cfg.print_cfg) cfg_print(&cfg);
+
 		ret = EX_CONFIG; goto cleanup;
+	}
+
+	if (cfg.print_cfg) {
+		cfg_print(&cfg);
+		goto cleanup;
 	}
 
 	{int i = 0; for (i = 0; i < (int)cfg.i.len; i++) {  /* TODO: iterrator */
 		wrkr = NULL;
 		CfgI *cfg_i = slice_get(&cfg.i, (size_t)i);
-
-		{int j = 0; for (j = 0; j < (int)cfg_i->maps.len; j++) {
-			CfgMap *cfg_map = slice_get(&cfg_i->maps, (size_t)j);
-
-			char buf[255] = { 0 };
-			map_str(&cfg_map->map, buf, sizeof(buf));
-
-			printf("~~~~~> %s, kind: %d, id/pid: %d\n", buf, cfg_map->map.kind, cfg_map->map.id);
-		}}
 
 		URL *u = &cfg_i->url;
 

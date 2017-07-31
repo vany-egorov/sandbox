@@ -1,7 +1,8 @@
 #ifndef __APPS_3_CFG__
 #define __APPS_3_CFG__
 
-#include <stdint.h> /* uint8_t */
+#include <stdint.h>    /* uint8_t */
+#include <inttypes.h>  /* PRIu64 */
 
 #include <url/url.h>
 #include <collections/slice.h>
@@ -29,6 +30,9 @@ struct cfg_i_s {
 
 	URL url;
 
+	size_t fifo_cap;
+	size_t fifo_read_buf_sz;
+
 	Slice maps;  /* mapped pids */
 };
 
@@ -48,6 +52,8 @@ int cfg_new(Cfg **out);
 int cfg_init(Cfg *it);
 /* validate */
 int cfg_validate(Cfg *it);
+/* print to stdout */
+int cfg_print(Cfg *it);
 /* finalize */
 int cfg_fin(Cfg *it);
 /* destructor */
