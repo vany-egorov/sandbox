@@ -5,6 +5,7 @@
 #include <inttypes.h>  /* PRIu64 */
 
 #include <url/url.h>
+#include <common/opt.h>  /* OptState */
 #include <collections/slice.h>
 
 #include "map.h"
@@ -28,7 +29,7 @@ struct cfg_i_s {
 	uint64_t id;
 	char *name;
 
-	URL url;
+	URL u;
 
 	size_t fifo_cap;
 	size_t fifo_read_buf_sz;
@@ -42,7 +43,7 @@ struct cfg_map_s {
 };
 
 struct cfg_o_s {
-	URL url;
+	URL u;
 };
 
 
@@ -54,6 +55,7 @@ int cfg_init(Cfg *it);
 int cfg_validate(Cfg *it);
 /* print to stdout */
 int cfg_print(Cfg *it);
+int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v);
 /* finalize */
 int cfg_fin(Cfg *it);
 /* destructor */

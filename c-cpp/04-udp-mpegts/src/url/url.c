@@ -296,6 +296,18 @@ void url_sprint(URL *it, char *buf, size_t bufsz) {
 		snprintf(buf+strlen(buf), bufsz-strlen(buf), "%c%s", URL_SEPARATOR_FRAGMENT, url_fragment(it));
 }
 
+int url_is_null(URL *it) {
+	if (
+		(!it->scheme) &&
+		(!it->port) &&
+		(!it->buf_len)
+	) {
+		return 1;
+	}
+
+	return 0;
+}
+
 void url_sprint_json(URL *it, char *buf, size_t bufsz) {
 	snprintf(buf, bufsz, "{"
 		"\"scheme\": \"%s\""

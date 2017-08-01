@@ -46,7 +46,7 @@ int cfg_print(Cfg *it) {
 		cfg_i = slice_get(&it->i, (size_t)i);
 
 		memset(buf, 0, sizeof(buf));
-		url_sprint(&cfg_i->url, buf, sizeof(buf));
+		url_sprint(&cfg_i->u, buf, sizeof(buf));
 
 		printf("  - id: %" PRIu64 "\n", cfg_i->id);
 		if (cfg_i->name && cfg_i->name[0] != '\0')
@@ -66,7 +66,7 @@ int cfg_print(Cfg *it) {
 					cfg_o = slice_get(&cfg_map->o, (size_t)k);
 
 					memset(buf, 0, sizeof(buf));
-					url_sprint(&cfg_o->url, buf, sizeof(buf));
+					url_sprint(&cfg_o->u, buf, sizeof(buf));
 
 					printf("        -o: {url: \"%s\"}\n", buf);
 				}}
@@ -74,6 +74,86 @@ int cfg_print(Cfg *it) {
 		}
 
 	}}
+
+	return 0;
+}
+
+static CfgI *init_and_append_i(Cfg *it) {
+	CfgI c = { 0 };
+
+	cfg_i_init(&c);
+	c.id = (uint64_t)it->i.len + 1;
+
+	slice_append(&it->i, &c);
+
+	return slice_tail(&it->i);
+}
+
+/* try get last input-config;
+ * if last input is NULL => init empty and return;
+ * if not => return it;
+ */
+static CfgI *tail_i_or_else_init_and_append_i(Cfg *it) {
+	CfgI *out = NULL;
+
+	if (out=slice_tail(&it->i)) return out;
+
+	return init_and_append_i(it);
+}
+
+static CfgMap *init_and_append_map(CfgI *it) {
+	CfgMap c = { 0 };
+	cfg_map_init(&c);
+	slice_append(&it->maps, &c);
+
+	return slice_tail(&it->maps);
+}
+
+int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
+	Cfg *it = NULL;
+	CfgI *cfg_i = NULL;
+	CfgMap *cfg_map = NULL;
+	CfgO *cfg_o = NULL;
+
+	it = (Cfg*)opaque;
+
+	cfg_i = tail_i_or_else_init_and_append_i(it);
+	cfg_map = slice_tail(&cfg_i->maps);
+	if (cfg_map)
+		cfg_o = slice_tail(&cfg_map->o);
+
+	if (
+		(state & OPT_STATE_POS) || (
+			(state & OPT_STATE_KEY) &&
+			OPT_MTCH2(k, "i", "input")
+		)
+	) {
+		cfg_i = url_is_null(&cfg_i->u)
+			? cfg_i
+			: init_and_append_i(it);
+
+		url_parse(&cfg_i->u, v);
+
+	} else if (state & OPT_STATE_KEY) {
+		if OPT_MTCH3(k, "c", "cfg", "config") it->c = v;
+		else if OPT_MTCH1(k, "name") cfg_i->name = v;
+		else if OPT_MTCH2(k, "m", "map") {
+			cfg_map = init_and_append_map(cfg_i);
+			map_parse(&cfg_map->map, v);
+
+		} else if OPT_MTCH3(k, "o", "out", "output") {
+			if (!cfg_map) {
+				cfg_map = init_and_append_map(cfg_i);
+				cfg_map->map.kind = MAP_ALL;
+			}
+
+			CfgO c = { 0 };
+
+			url_parse(&c.u, v);
+
+			slice_append(&cfg_map->o, &c);
+		} else if OPT_MTCH2(k, "print-config", "print-cfg") it->print_cfg = 1;
+	}
 
 	return 0;
 }

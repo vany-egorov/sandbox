@@ -31,6 +31,8 @@
 // scheme://[userinfo@]host/path[?query][#fragment]
 typedef struct url_s URL;
 typedef enum {
+	URL_SCHEME_UNKNOWN,
+
 	URL_SCHEME_UDP,
 	URL_SCHEME_RTMP,
 	URL_SCHEME_HTTP,
@@ -40,8 +42,6 @@ typedef enum {
 	URL_SCHEME_RTP,
 	URL_SCHEME_FILE,
 	URL_SCHEME_SSH,
-
-	URL_SCHEME_UNKNOWN,
 } URLScheme;
 typedef URLScheme URLProtocol;
 typedef enum {
@@ -99,6 +99,7 @@ struct url_s {
 void url_parse(URL *it, const char *raw);
 void url_sprint_json(URL *it, char *buf, size_t bufsz);
 void url_sprint(URL *it, char *buf, size_t bufsz);
+int  url_is_null(URL *it);
 
 const char* url_user_info(URL *it);
 const char* url_host(URL *it);

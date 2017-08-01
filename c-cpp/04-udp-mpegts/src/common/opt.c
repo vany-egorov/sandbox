@@ -129,16 +129,23 @@ cleanup:
  0 => false => no match / no extract
  1 => true  => OK / match
 */
-static int extract_v(int argc, char **argv, int i, char *l, char *r, char **v) {
+static int extract_v(int argc, char **argv, int i, char *l, char *r, OptOptionKind oknd, char **v) {
 	int ok = 0;
-	OptOptionKind oknd = OPT_OPTION_KIND_UNKNOWN;
 
-	oknd = match_option(l, r);
+	oknd |= match_option(l, r);
 
-	if (oknd == OPT_OPTION_KIND_UNKNOWN) {
-		ok = 0;
+	/* <bool flag> */
+	if (
+		((oknd & OPT_OPTION_KIND_KEY) ||
+		 (oknd & OPT_OPTION_KIND_KEY_VALUE)) &&
+		(oknd & OPT_OPTION_KIND_NO_ARG)
+	) {
+		ok = 1;
 		goto cleanup;
-	} else if (oknd == OPT_OPTION_KIND_KEY) {
+	}
+	/* </bool flag> */
+
+	if (oknd & OPT_OPTION_KIND_KEY) {
 		if (extract_v_from_key_option(argc, argv, i, v)) {
 			ok = 1;
 			goto cleanup;
@@ -146,7 +153,7 @@ static int extract_v(int argc, char **argv, int i, char *l, char *r, char **v) {
 			ok = 0;
 			goto cleanup;
 		}
-	} else if (oknd == OPT_OPTION_KIND_KEY_VALUE) {
+	} else if (oknd & OPT_OPTION_KIND_KEY_VALUE) {
 		if (extract_v_from_key_value_option(l, v)) {
 			ok = 1;
 			goto cleanup;
@@ -154,6 +161,9 @@ static int extract_v(int argc, char **argv, int i, char *l, char *r, char **v) {
 			ok = 0;
 			goto cleanup;
 		}
+	} else {
+		ok = 0;
+		goto cleanup;
 	}
 
 cleanup:
@@ -205,7 +215,7 @@ static void canonicalize(int argc, char **argv) {
 }
 
 /* command-line SAX parser */
-int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb) {
+int opt_parse(int argc, char **argv, Opt *opts, void *opaque, opt_parse_cb_fn cb) {
 	char *k = NULL,
 	     *v = NULL;
 	int match = 0;  /* got match? */
@@ -236,12 +246,14 @@ int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn 
 		} else if (state & OPT_STATE_KEY) {
 			if (!is_option(k)) continue;
 
-			{char **opt = NULL; for (opt = opts; *opt != NULL; opt++) {
-				if (extract_v(argc, argv, i, k, *opt, &v)) {
-					cb(opaque, state, *opt, v);
-					match = 1;
-					break;
-				}
+			{Opt *opt = NULL; for (opt = opts; opt->names; opt++) {
+				{char **name = NULL; for (name = opt->names; *name != NULL; name++) {
+					if (extract_v(argc, argv, i, k, *name, opt->kind, &v)) {
+						cb(opaque, state, *name, v);
+						match = 1;
+						break;
+					}
+				}}
 			}}
 		}
 

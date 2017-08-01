@@ -35,18 +35,25 @@
 		(!strcmp(X, Y5))    \
 	)
 
+typedef struct opt Opt;
+
 /* option kinds */
 typedef enum opt_option_kind_enum {
 	OPT_OPTION_KIND_UNKNOWN   = 0x00,
 	OPT_OPTION_KIND_KEY       = 0x01,  /* --key */
 	OPT_OPTION_KIND_KEY_VALUE = 0x02,  /* --key=value */
+
+	OPT_OPTION_KIND_ARG    = 0x04,  /* required-argument */
+	OPT_OPTION_KIND_NO_ARG = 0x08,  /* no argument required (bool flag) e.g. --help, --v, --vv, --vvv */
 } OptOptionKind;
+
 /* config parser state */
 typedef enum {
 	OPT_STATE_POS = 0x01,  /* positional arguments */
 	OPT_STATE_KEY = 0x02,  /* keyword/option arguments (--i ..., -i ..., i: ..., i=...) */
 	OPT_STATE_END = 0x04,  /* got "--" */
 } OptState;
+
 typedef int (*opt_parse_cb_fn) (void *opaque, OptState state, char *k, char *v);
 
 
@@ -59,7 +66,14 @@ typedef int (*opt_parse_cb_fn) (void *opaque, OptState state, char *k, char *v);
 #define OPT_STATE_SET_END(X) X |= OPT_STATE_END;
 
 
-int opt_parse(int argc, char **argv, char **opts, void *opaque, opt_parse_cb_fn cb);
+struct opt {
+	char **names;
+
+	OptOptionKind kind;
+};
+
+
+int opt_parse(int argc, char **argv, Opt *opts, void *opaque, opt_parse_cb_fn cb);
 
 
 #endif /* __VA_COMMON_OPT__ */
