@@ -11,6 +11,10 @@
 #include "map.h"
 
 
+#define CFG_DEFAULT_FIFO_CAP    100*7*188
+#define CFG_DEFAULT_FIFO_BUF_SZ 7*188
+
+
 typedef struct cfg_s     Cfg;
 typedef struct cfg_i_s   CfgI;
 typedef struct cfg_map_s CfgMap;
@@ -31,8 +35,10 @@ struct cfg_i_s {
 
 	URL u;
 
+	/* <udp multicast only> */
 	size_t fifo_cap;
 	size_t fifo_read_buf_sz;
+	/* </udp multicast only> */
 
 	Slice maps;  /* mapped pids */
 };
@@ -53,8 +59,10 @@ int cfg_new(Cfg **out);
 int cfg_init(Cfg *it);
 /* validate */
 int cfg_validate(Cfg *it);
-/* print to stdout */
+/* output human-readable config to stdout */
 int cfg_print(Cfg *it);
+/* display help */
+void cfg_help(void);
 int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v);
 /* finalize */
 int cfg_fin(Cfg *it);

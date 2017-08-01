@@ -52,6 +52,10 @@ int cfg_print(Cfg *it) {
 		if (cfg_i->name && cfg_i->name[0] != '\0')
 			printf("    name: \"%s\"\n", cfg_i->name);
 		printf("    url: \"%s\"\n", buf);
+		if (url_protocol(&cfg_i->u) == URL_SCHEME_UDP) {
+			printf("    fifo-cap: %zu\n", cfg_i->fifo_cap);
+			printf("    fifo-read-buf-sz: %zu\n", cfg_i->fifo_read_buf_sz);
+		}
 
 		if (cfg_i->maps.len) {
 			printf("    maps:\n");
@@ -109,6 +113,16 @@ static CfgMap *init_and_append_map(CfgI *it) {
 	return slice_tail(&it->maps);
 }
 
+void cfg_help(void) {
+	printf("Usage: va [...] [-arg ...] [--arg[=\"...\"]] [--] [...]\n");
+	printf("\n");
+	printf("  -i, --intput                   | <str/url> | Where to read from\n");
+	printf("  -o, --output, --out            | <str/url> | Where to read from\n");
+	printf("  -vv, --verbose                 | <bool>    | ... \n");
+	printf("  -vvv, --very-verbose           | <bool>    | ... \n");
+	printf("\n");
+}
+
 int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 	Cfg *it = NULL;
 	CfgI *cfg_i = NULL;
@@ -136,6 +150,8 @@ int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 
 	} else if (state & OPT_STATE_KEY) {
 		if OPT_MTCH3(k, "c", "cfg", "config") it->c = v;
+		else if OPT_MTCH1(k, "fifo-cap") sscanf(v, "%zu", &cfg_i->fifo_cap);
+		else if OPT_MTCH1(k, "fifo-read-buf-sz") sscanf(v, "%zu", &cfg_i->fifo_read_buf_sz);
 		else if OPT_MTCH1(k, "name") cfg_i->name = v;
 		else if OPT_MTCH2(k, "m", "map") {
 			cfg_map = init_and_append_map(cfg_i);
@@ -152,7 +168,9 @@ int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 			url_parse(&c.u, v);
 
 			slice_append(&cfg_map->o, &c);
-		} else if OPT_MTCH2(k, "print-config", "print-cfg") it->print_cfg = 1;
+		}
+		else if OPT_MTCH2(k, "print-config", "print-cfg") it->print_cfg = 1;
+		else if OPT_MTCH2(k, "help", "h") it->h = 1;
 	}
 
 	return 0;
@@ -191,6 +209,9 @@ int cfg_del(Cfg **out) {
 
 
 int cfg_i_init(CfgI *it) {
+	it->fifo_cap = CFG_DEFAULT_FIFO_CAP;
+	it->fifo_read_buf_sz = CFG_DEFAULT_FIFO_BUF_SZ;
+
 	slice_init(&it->maps, sizeof(CfgMap));
 	return 0;
 }
