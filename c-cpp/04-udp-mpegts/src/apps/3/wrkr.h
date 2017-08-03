@@ -9,6 +9,7 @@
 #include <log/logger.h> /* Logger */
 #include <log/std.h>    /* logger_std */
 
+#include "wrkr-cfg.h"       /* WrkrCfg */
 #include "input.h"          /* Input */
 #include "input-build.h"    /* input_build */
 #include "pipeline.h"       /* Pipeline */
@@ -17,27 +18,22 @@
 
 
 typedef struct wrkr_s Wrkr;
-typedef struct wrkr_cfg_s WrkrCfg;
 
-
-struct wrkr_cfg_s {
-	URL *url;
-
-	InputCfg *i;
-};
 
 struct wrkr_s {
-	pthread_t _thrd;
+	WrkrCfg cfg;
 
 	Input input;
 
 	Filter *demuxer;  /* TODO: <move to pipeline> */
 	Pipeline ppln;
+
+	pthread_t _thrd;
 };
 
 
 int wrkr_new(Wrkr **out);
-int wrkr_init(Wrkr *it, WrkrCfg *cfg);
+int wrkr_init(Wrkr *it, WrkrCfg cfg);
 int wrkr_run(Wrkr *it);
 int wrkr_fin(Wrkr *it);
 int wrkr_del(Wrkr **out);

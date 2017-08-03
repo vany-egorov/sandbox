@@ -31,10 +31,13 @@ struct input_udp_cfg_s {
 };
 
 struct input_udp_s {
+	/* TODO: inherit from intput? */
+
 	/* public */
 	UDP i;
+	InputUDPCfg *c;
+
 	FIFO fifo;
-	InputUDPCfg c;
 
 	/* private */
 	pthread_t _thrd;

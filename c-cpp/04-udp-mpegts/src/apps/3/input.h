@@ -13,13 +13,14 @@ typedef struct input_s Input;
 typedef struct input_cfg_s InputCfg;
 
 
+/* TODO: union */
 struct input_cfg_s {
 	InputUDPCfg udp;
 	InputFileCfg file;
 };
 
 struct input_s {
-	URL u;
+	URL *u;
 	void *w; /* wrapped, child, opaque */
 
 	InputVT *vt; /* virtual table */

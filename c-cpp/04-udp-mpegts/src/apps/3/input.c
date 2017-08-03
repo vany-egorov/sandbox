@@ -16,8 +16,8 @@ int input_new(Input **out) {
 int input_open(Input *it, URL *u) {
 	if ((!it->vt) || (!it->w)) return 0;
 
-	it->u = *u;
-	it->vt->open(it->w, &it->u);
+	it->u = u;
+	it->vt->open(it->w, it->u);
 
 	return 0;
 }

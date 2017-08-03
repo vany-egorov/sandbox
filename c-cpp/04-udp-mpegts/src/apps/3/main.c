@@ -45,14 +45,6 @@ int main(int argc, char *argv[]) {
 
 	signal_init();
 
-	InputCfg icfg = {
-		.udp = {
-			.fifo_cap = 100*MPEGTS_PACKET_COUNT*MPEGTS_PACKET_SIZE,
-			.fifo_read_buf_sz = MPEGTS_PACKET_COUNT*MPEGTS_PACKET_SIZE,
-		},
-
-		.file = {},
-	};
 
 	cfg_init(&cfg);
 	opt_parse(argc, argv, opts, (void*)&cfg, cfg_opt_parse_cb);
@@ -75,14 +67,41 @@ int main(int argc, char *argv[]) {
 		wrkr = NULL;
 		CfgI *cfg_i = slice_get(&cfg.i, (size_t)i);
 
-		URL *u = &cfg_i->u;
+		InputCfg icfg = {
+			.udp = {
+				.fifo_cap = cfg_i->fifo_cap,
+				.fifo_read_buf_sz = cfg_i->fifo_read_buf_sz,
+			},
+
+			.file = {},
+		};
+		WrkrCfg wcfg = {
+			.url = cfg_i->u,
+			.i = icfg,
+		};
+		wrkr_cfg_init(&wcfg);
+		{int j = 0; for (j = 0; j < (int)cfg_i->maps.len; j++) {
+			CfgMap *cfg_map = slice_get(&cfg_i->maps, (size_t)j);
+
+			WrkrMapCfg wcfg_map = {
+				.m = cfg_map->map,
+			};
+			wrkr_map_cfg_init(&wcfg_map);
+			slice_append(&wcfg.m, &wcfg_map);
+
+			{int k = 0; for (k = 0; k < (int)cfg_map->o.len; k++) {
+				CfgO *cfg_o = slice_get(&cfg_map->o, (size_t)k);
+
+				WrkrOutputCfg wcfg_o = {
+					.u = cfg_o->u,
+				};
+
+				slice_append(&wcfg_map.o, &wcfg_o);
+			}}
+		}}
 
 		wrkr_new(&wrkr);  /* TODO: error handling */
-		WrkrCfg wcfg = {
-			.url = u,
-			.i = &icfg,
-		};
-		wrkr_init(wrkr, &wcfg);  /* TODO: error handling */
+		wrkr_init(wrkr, wcfg);  /* TODO: error handling */
 
 		slice_append(&wrkrs, wrkr);
 	}}

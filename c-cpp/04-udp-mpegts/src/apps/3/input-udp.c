@@ -19,7 +19,7 @@ int input_udp_new(InputUDP **out) {
 int input_udp_init(InputUDP *it, InputUDPCfg *c) {
 	int ret = 0;
 
-	it->c = *c;
+	it->c = c;
 
 	return ret;
 }
@@ -55,10 +55,10 @@ static int opn(void *ctx, URL *u) {
 	} else {
 		log_info(lgr, "[input-udp @ %p] OK open %s\n", it, us);
 
-		if (fifo_init(&it->fifo, it->c.fifo_cap)) {
+		if (fifo_init(&it->fifo, it->c->fifo_cap)) {
 			log_error(lgr, "[input-udp @ %p] ERROR init fifo\n", (void*)it);
 		} else {
-			log_debug(lgr, "[input-udp @ %p] OK init fifo, cap: %zu\n", (void*)it, it->c.fifo_cap);
+			log_debug(lgr, "[input-udp @ %p] OK init fifo, cap: %zu\n", (void*)it, it->c->fifo_cap);
 
 			if (pthread_create(&it->_thrd, NULL, fifo_reader, (void*)it)) {
 				log_error(lgr, "[input-udp @ %p] ERROR spawn new thread\n", (void*)it);  /* TODO: move to logger */

@@ -165,6 +165,9 @@ $(OBJS-DIR)/apps-2-main.o: ./apps/2/main.c
 $(OBJS-DIR)/apps-3-wrkr.o: ./apps/3/wrkr.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-wrkr-cfg.o: ./apps/3/wrkr-cfg.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-input.o: ./apps/3/input.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -220,6 +223,12 @@ $(OBJS-DIR)/apps-3-filter-mp2-parser.o: ./apps/3/filter-mp2-parser.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-filter-mp2-decoder.o: ./apps/3/filter-mp2-decoder.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-output-pkt.o: ./apps/3/filter-output-pkt.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-output-pkt-raw.o: ./apps/3/filter-output-pkt-raw.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
@@ -333,6 +342,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-map.o \
 	$(OBJS-DIR)/apps-3-signal.o \
 	$(OBJS-DIR)/apps-3-wrkr.o \
+	$(OBJS-DIR)/apps-3-wrkr-cfg.o \
 	$(OBJS-DIR)/apps-3-input.o \
 	$(OBJS-DIR)/apps-3-input-udp.o \
 	$(OBJS-DIR)/apps-3-input-file.o \
@@ -352,6 +362,8 @@ app-3: \
 	$(OBJS-DIR)/apps-3-filter-ac3-decoder.o \
 	$(OBJS-DIR)/apps-3-filter-mp2-parser.o \
 	$(OBJS-DIR)/apps-3-filter-mp2-decoder.o \
+	$(OBJS-DIR)/apps-3-filter-output-pkt.o \
+	$(OBJS-DIR)/apps-3-filter-output-pkt-raw.o \
 	\
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \

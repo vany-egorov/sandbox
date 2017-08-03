@@ -21,8 +21,9 @@ extern InputVT input_file_vt;   /* UDP virtual table */
 struct input_file_cfg_s { };
 
 struct input_file_s {
+	/* TODO: inherit from intput? */
 	File i;
-	InputFileCfg c;
+	InputFileCfg *c;
 };
 
 int input_file_new(InputFile **out);

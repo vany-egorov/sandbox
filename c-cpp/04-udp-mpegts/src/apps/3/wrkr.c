@@ -19,10 +19,12 @@ int wrkr_new(Wrkr **out) {
 
 /* TODO: error code */
 /* TODO: cfg is invalid: i.e. url scheme is not supported */
-int wrkr_init(Wrkr *it, WrkrCfg *cfg) {
-	input_build(&it->input, url_protocol(cfg->url), cfg->i);
-	input_open(&it->input, cfg->url);
-	demuxer_build(&it->demuxer, cfg->url);  /* TODO: move demuxer to pipeline? */
+int wrkr_init(Wrkr *it, WrkrCfg cfg) {
+	it->cfg = cfg;
+
+	input_build(&it->input, url_protocol(&it->cfg.url), &it->cfg.i);
+	input_open(&it->input, &it->cfg.url);
+	demuxer_build(&it->demuxer, &it->cfg.url);  /* TODO: move demuxer to pipeline? */
 
 	pipeline_init(&it->ppln);
 	filter_append_consumer(it->demuxer, (Filter*)&it->ppln);
