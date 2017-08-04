@@ -6,10 +6,11 @@
 
 #include <collections/slice.h>  /* Slice */
 
-#include "stream.h"  /* Stream */
-#include "track.h"   /* Track */
-#include "packet.h"  /* Packet */
-#include "frame.h"   /* Frame */
+#include "stream.h"         /* Stream */
+#include "track.h"          /* Track */
+#include "packet.h"         /* Packet */
+#include "frame.h"          /* Frame */
+#include "filter-logger.h"  /* filter_logger */
 
 
 typedef struct filter_s Filter;

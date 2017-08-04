@@ -26,14 +26,14 @@ static int consume_strm(void *ctx, Stream *strm) {
 	FilterOutPktRaw *it = NULL;
 	it = (FilterOutPktRaw*)ctx;
 
-	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
+	log_trace(filter_logger, "[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
 
 	if ((!it->__f) && (it->u)) {
 		char ubuf[255] = { 0 };
 		url_sprint(it->u, ubuf, sizeof(ubuf));
 
 		it->__f = fopen(url_path(it->u), "wb");
-		printf("[%s @ %p] [>>>] %s\n", it->fltr.name, (void*)it, ubuf);
+		log_info(filter_logger, "[%s @ %p] [>>>] %s\n", it->fltr.name, (void*)it, ubuf);
 	}
 
 	return filter_produce_strm(ctx, strm);
@@ -43,7 +43,7 @@ static int consume_trk(void *ctx, Track *trk) {
 	FilterOutPktRaw *it = NULL;
 	it = (FilterOutPktRaw*)ctx;
 
-	printf("[%s @ %p] [<] track\n", it->fltr.name, (void*)it);
+	log_trace(filter_logger, "[%s @ %p] [<] track\n", it->fltr.name, (void*)it);
 
 	return filter_produce_trk(ctx, trk);
 }

@@ -60,7 +60,7 @@ int log_rotate(log_t *it, char *path,
 				COLORSTDERR("error creating/rotating access log file - path-access: \"%s\"",
 					path_access);
 				ret = 1;
-				goto log_rotate_defer;
+				goto cleanup;
 			}
 
 			it->fd_access = fileno(it->file_access);
@@ -79,7 +79,7 @@ int log_rotate(log_t *it, char *path,
 					strerror(errno)
 				);
 				ret = 1;
-				goto log_rotate_defer;
+				goto cleanup;
 			}
 		}
 
@@ -90,7 +90,7 @@ int log_rotate(log_t *it, char *path,
 				COLORSTDERR("error creating/rotating error log file - path-error: \"%s\"",
 					path_error);
 				ret = 1;
-				goto log_rotate_defer;
+				goto cleanup;
 			}
 
 			it->fd_error = fileno(it->file_error);
@@ -109,14 +109,14 @@ int log_rotate(log_t *it, char *path,
 					strerror(errno)
 				);
 				ret = 1;
-				goto log_rotate_defer;
+				goto cleanup;
 			}
 		}
 	}
 
-	goto log_rotate_defer;
+	goto cleanup;
 
-log_rotate_defer:
+cleanup:
 	pthread_mutex_unlock(&it->lock);
 	return ret;
 }

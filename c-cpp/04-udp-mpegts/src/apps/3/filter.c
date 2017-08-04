@@ -1,4 +1,5 @@
 #include "filter.h"
+#include "filter-logger.h"  /* filter_logger */
 
 
 int filter_new(Filter **out) {
@@ -21,7 +22,7 @@ int filter_init(Filter *it) {
 }
 
 int filter_append_consumer(Filter *it, Filter *cnsmr) {
-	printf("[%s @ %p] -> [%s @ %p]\n", it->name, (void*)it, cnsmr->name, (void*)cnsmr);
+	log_trace(filter_logger, "[%s @ %p] -> [%s @ %p]\n", it->name, (void*)it, cnsmr->name, (void*)cnsmr);
 	slice_append(&it->consumers, &cnsmr);
 	return 0;
 }

@@ -1,7 +1,7 @@
 #include "./input-udp.h"
 
 
-static Logger *lgr = &logger_std;
+#define LGR input_logger
 
 
 int input_udp_new(InputUDP **out) {
@@ -51,19 +51,19 @@ static int opn(void *ctx, URL *u) {
 
 	if (udp_open_i(&it->i, url_host(u), u->port,
 	               NULL, ebuf, sizeof(ebuf))) {
-		log_error(lgr, "[input-udp @ %p] ERROR open %s, reason: %s\n", (void*)it, us, ebuf);  /* TODO: move to logger, error code */
+		log_error(LGR, "[input-udp @ %p] ERROR open %s, reason: %s\n", (void*)it, us, ebuf);  /* TODO: move to logger, error code */
 	} else {
-		log_info(lgr, "[input-udp @ %p] OK open %s\n", it, us);
+		log_info(LGR, "[input-udp @ %p] OK open %s\n", it, us);
 
 		if (fifo_init(&it->fifo, it->c->fifo_cap)) {
-			log_error(lgr, "[input-udp @ %p] ERROR init fifo\n", (void*)it);
+			log_error(LGR, "[input-udp @ %p] ERROR init fifo\n", (void*)it);
 		} else {
-			log_debug(lgr, "[input-udp @ %p] OK init fifo, cap: %zu\n", (void*)it, it->c->fifo_cap);
+			log_debug(LGR, "[input-udp @ %p] OK init fifo, cap: %zu\n", (void*)it, it->c->fifo_cap);
 
 			if (pthread_create(&it->_thrd, NULL, fifo_reader, (void*)it)) {
-				log_error(lgr, "[input-udp @ %p] ERROR spawn new thread\n", (void*)it);  /* TODO: move to logger */
+				log_error(LGR, "[input-udp @ %p] ERROR spawn new thread\n", (void*)it);  /* TODO: move to logger */
 			} else {
-				log_debug(lgr, "[input-udp @ %p] OK spawn new reader thread\n", (void*)it);  /* TODO: move to logger */
+				log_debug(LGR, "[input-udp @ %p] OK spawn new reader thread\n", (void*)it);  /* TODO: move to logger */
 			}
 		}
 	}
@@ -95,3 +95,6 @@ InputVT input_udp_vt = {
 	.read = rd,
 	.close = cls,
 };
+
+
+#undef LGR

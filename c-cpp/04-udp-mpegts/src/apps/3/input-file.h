@@ -5,10 +5,9 @@
 #include <io/file.h>        /* File */
 #include <url/url.h>        /* URL */
 #include <mpegts/mpegts.h>  /* MPEGTS_PACKET_SIZE */
-#include <log/logger.h>     /* Logger */
-#include <log/std.h>        /* logger_std */
 
-#include "input-vt.h"  /* InputVT, input_read_cb_fn */
+#include "input-logger.h"  /* input_logger */
+#include "input-vt.h"      /* InputVT, input_read_cb_fn */
 
 
 typedef struct input_file_s InputFile;

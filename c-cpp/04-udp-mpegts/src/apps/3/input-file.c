@@ -1,7 +1,7 @@
 #include "input-file.h"
 
 
-static Logger *lgr = &logger_std;
+#define LGR input_logger
 
 
 int input_file_new(InputFile **out) {
@@ -25,10 +25,10 @@ static int opn(void *ctx, URL *u) {
 	url_sprint(u, us, sizeof(us));
 
 	if (file_open(&it->i, url_path(u), "rb", ebuf, sizeof(ebuf))) {
-		log_error(lgr, "[input-file @ %p] ERROR open %s, reason: %s\n",
+		log_error(LGR, "[input-file @ %p] ERROR open %s, reason: %s\n",
 			it, us, ebuf);  /* TODO: move to logger */
 	} else {
-		log_info(lgr, "[input-file @ %p] OK open %s\n", it, us);  /* TODO: move to logger */
+		log_info(LGR, "[input-file @ %p] OK open %s\n", it, us);  /* TODO: move to logger */
 	}
 }
 
@@ -56,7 +56,7 @@ static int rd(void *ctx, void *opaque, input_read_cb_fn cb) {
 	ret = rd_step(it, opaque, cb);
 	if (ret == FILE_RESULT_OK_EOF) {
 		file_seek_start(&it->i);
-		log_trace(lgr, "[input-file @ %p] seek file to start\n", ctx);
+		log_trace(LGR, "[input-file @ %p] seek file to start\n", ctx);
 
 		ret = rd_step(it, opaque, cb);
 	}
@@ -73,3 +73,6 @@ InputVT input_file_vt = {
 	.read = rd,
 	.close = cls,
 };
+
+
+#undef LGR

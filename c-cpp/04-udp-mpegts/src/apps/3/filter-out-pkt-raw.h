@@ -2,7 +2,8 @@
 #define __APPS_3_FILTER_OUT_PKT_RAW__
 
 
-#include "filter.h"  /* Filter, FilterVT */
+#include "filter.h"         /* Filter, FilterVT */
+#include "filter-logger.h"  /* filter_logger */
 
 
 typedef struct filter_out_pkt_raw_s FilterOutPktRaw;

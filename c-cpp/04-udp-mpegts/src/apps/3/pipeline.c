@@ -177,7 +177,7 @@ static int consume_strm(void *ctx, Stream *strm) {
 	Pipeline *it = NULL;
 	it = (Pipeline*)ctx;
 
-	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
+	log_trace(filter_logger, "[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
 
 	if (it->m->len) {
 		{int i = 0; for (i = 0; i < (int)it->m->len; i++) {
@@ -211,7 +211,7 @@ static int consume_trk(void *ctx, Track *trk) {
 	Pipeline *it = NULL;
 	it = (Pipeline*)ctx;
 
-	printf("[%s @ %p] [<] track %p index: %d, PID/ID: %d\n",
+	log_trace(filter_logger, "[%s @ %p] [<] track %p index: %d, PID/ID: %d\n",
 		it->fltr.name, (void*)it,
 		trk, trk->i, trk->id);
 

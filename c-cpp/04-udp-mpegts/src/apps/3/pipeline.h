@@ -22,6 +22,7 @@ typedef struct pipeline_s     Pipeline;
 typedef struct filter_track_s FilterTrack;
 
 
+extern Logger *filter_logger;
 extern FilterVT pipeline_filter_vt;  /* virtual table */
 
 

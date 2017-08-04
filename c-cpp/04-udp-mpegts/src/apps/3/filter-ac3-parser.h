@@ -3,6 +3,7 @@
 
 
 #include "filter.h"  /* Filter, FilterVT */
+#include "filter-logger.h"  /* filter_logger */
 
 
 typedef struct filter_ac3_parser_s FilterAC3Parser;

@@ -2,7 +2,8 @@
 #define __APPS_3_H264_PARSER__
 
 
-#include "filter.h"  /* Filter, FilterVT */
+#include "filter.h"         /* Filter, FilterVT */
+#include "filter-logger.h"  /* filter_logger */
 
 
 typedef struct filter_h264_parser_s FilterH264Parser;

@@ -3,6 +3,7 @@
 
 
 #include "filter.h"  /* Filter, FilterVT */
+#include "filter-logger.h"  /* filter_logger */
 
 
 typedef struct filter_h264_decoder_s FilterH264Decoder;

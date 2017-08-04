@@ -2,7 +2,8 @@
 #define __APPS_3_MP2_PARSER__
 
 
-#include "filter.h"  /* Filter, FilterVT */
+#include "filter.h"         /* Filter, FilterVT */
+#include "filter-logger.h"  /* filter_logger */
 
 
 typedef struct filter_mp2_parser_s FilterMP2Parser;

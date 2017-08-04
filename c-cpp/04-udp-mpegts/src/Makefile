@@ -177,6 +177,9 @@ $(OBJS-DIR)/apps-3-input-udp.o: ./apps/3/input-udp.c
 $(OBJS-DIR)/apps-3-input-file.o: ./apps/3/input-file.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-input-logger.o: ./apps/3/input-logger.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-input-build.o: ./apps/3/input-build.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -202,6 +205,9 @@ $(OBJS-DIR)/apps-3-pipeline.o: ./apps/3/pipeline.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-filter.o: ./apps/3/filter.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/apps-3-filter-logger.o: ./apps/3/filter-logger.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-filter-unknown.o: ./apps/3/filter-unknown.c
@@ -346,6 +352,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-input.o \
 	$(OBJS-DIR)/apps-3-input-udp.o \
 	$(OBJS-DIR)/apps-3-input-file.o \
+	$(OBJS-DIR)/apps-3-input-logger.o \
 	$(OBJS-DIR)/apps-3-input-build.o \
 	$(OBJS-DIR)/apps-3-demuxer.o \
 	$(OBJS-DIR)/apps-3-demuxer-ts.o \
@@ -355,6 +362,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-packet.o \
 	$(OBJS-DIR)/apps-3-pipeline.o \
 	$(OBJS-DIR)/apps-3-filter.o \
+	$(OBJS-DIR)/apps-3-filter-logger.o \
 	$(OBJS-DIR)/apps-3-filter-unknown.o \
 	$(OBJS-DIR)/apps-3-filter-h264-parser.o \
 	$(OBJS-DIR)/apps-3-filter-h264-decoder.o \
