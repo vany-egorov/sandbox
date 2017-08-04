@@ -1,5 +1,4 @@
 #include "filter.h"
-#include "filter-logger.h"  /* filter_logger */
 
 
 int filter_new(Filter **out) {
