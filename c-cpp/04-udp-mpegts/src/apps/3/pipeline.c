@@ -18,13 +18,16 @@ int pipeline_init(Pipeline *it) {
 	it->fltr.name = "pipeline";
 	it->fltr.vt = &pipeline_filter_vt;
 
+	it->m = NULL;
+
 	slice_init(&it->trks, sizeof(Track));
 	slice_init(&it->fltrs, sizeof(char*));
 }
 
 static int append_trk(Pipeline *it, Track *trk) {
 	int ret = 0;
-	FilterTrack *src = NULL;
+	FilterTrack *head = NULL;
+	Filter *tail = NULL;
 
 	if (trk->codec_kind == CODEC_KIND_H264) {
 		FilterH264Parser *parser = NULL;
@@ -42,11 +45,12 @@ static int append_trk(Pipeline *it, Track *trk) {
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
 
-		FilterTrack src_s = {
+		FilterTrack head_s = {
 			.fltr = &parser->fltr,
 			.trk = trk,
 		};
-		src = &src_s;
+		head = &head_s;
+		tail = &decoder->fltr;
 
 	} else if (trk->codec_kind == CODEC_KIND_MP2) {
 		FilterMP2Parser *parser = NULL;
@@ -61,11 +65,12 @@ static int append_trk(Pipeline *it, Track *trk) {
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
 
-		FilterTrack src_s = {
+		FilterTrack head_s = {
 			.fltr = &parser->fltr,
 			.trk = trk,
 		};
-		src = &src_s;
+		head = &head_s;
+		tail = &decoder->fltr;
 
 	} else if (trk->codec_kind == CODEC_KIND_AC3) {
 		FilterAC3Parser *parser = NULL;
@@ -80,11 +85,12 @@ static int append_trk(Pipeline *it, Track *trk) {
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
 
-		FilterTrack src_s = {
+		FilterTrack head_s = {
 			.fltr = &parser->fltr,
 			.trk = trk,
 		};
-		src = &src_s;
+		head = &head_s;
+		tail = &decoder->fltr;
 
 	} else if (trk->codec_kind == CODEC_KIND_UNKNOWN) {
 		FilterUnknown *fltr = NULL;
@@ -92,18 +98,47 @@ static int append_trk(Pipeline *it, Track *trk) {
 		filter_unknown_new(&fltr);
 		filter_unknown_init(fltr, pipeline_on_trk_detect, (void*)it);
 
-		FilterTrack src_s = {
+		FilterTrack head_s = {
 			.fltr = &fltr->fltr,
 			.trk = trk,
 		};
-		src = &src_s;
+		head = &head_s;
+		tail = &fltr->fltr;
 	} else {
 		/* TODO: handle */
 	}
 
-	if (src) {
-		slice_append(&it->trks, src);
-		src->fltr->vt->consume_trk(src->fltr->w, trk);
+	if (head) {
+		slice_append(&it->trks, head);
+		head->fltr->vt->consume_trk(head->fltr->w, trk);
+	}
+
+	if ((tail) && (it->m->len)) {
+		{int i = 0; for (i = 0; i < (int)it->m->len; i++) {
+			PipelineMapCfg *mcfg = slice_get(it->m, (size_t)i);
+
+			if (map_match(&mcfg->m, trk->codec_kind, trk->id)) {
+				char buf[255];
+				map_str(&mcfg->m, buf, sizeof(buf));
+				{int j = 0; for (j = 0; j < (int)mcfg->o.len; j++) {
+					PipelineOutputCfg *ocfg = slice_get(&mcfg->o, (size_t)j);
+
+					if (url_is_null(&ocfg->u)) continue;
+
+					FilterOutPkt *fltr = NULL;
+
+					filter_out_pkt_new(&fltr);
+					filter_out_pkt_init(fltr);
+					fltr->u = &ocfg->u;
+
+					filter_append_consumer(tail, &fltr->fltr);
+
+					slice_append(&it->fltrs, &fltr->fltr);
+
+					fltr->fltr.vt->consume_trk(fltr->fltr.w, trk);
+				}}
+			}
+		}}
 	}
 
 	return ret;
@@ -144,6 +179,30 @@ static int consume_strm(void *ctx, Stream *strm) {
 
 	printf("[%s @ %p] [<] stream\n", it->fltr.name, (void*)it);
 
+	if (it->m->len) {
+		{int i = 0; for (i = 0; i < (int)it->m->len; i++) {
+			PipelineMapCfg *mcfg = slice_get(it->m, (size_t)i);
+
+			if (mcfg->m.kind == MAP_ALL) {
+				{int j = 0; for (j = 0; j < (int)mcfg->o.len; j++) {
+					PipelineOutputCfg *ocfg = slice_get(&mcfg->o, (size_t)j);
+
+					if (url_is_null(&ocfg->u)) continue;
+
+					FilterOutPktRaw *fltr = NULL;
+
+					filter_out_pkt_raw_new(&fltr);
+					filter_out_pkt_raw_init(fltr);
+					fltr->u = &ocfg->u;
+
+					filter_append_consumer(&it->fltr, &fltr->fltr);
+
+					slice_append(&it->fltrs, &fltr->fltr);
+				}}
+			}
+		}}
+	}
+
 	return filter_produce_strm(&it->fltr, strm);
 }
 
@@ -157,6 +216,7 @@ static int consume_trk(void *ctx, Track *trk) {
 		trk, trk->i, trk->id);
 
 	ret = append_trk(it, trk);
+	ret = filter_produce_trk(ctx, trk);
 
 	return ret;
 }

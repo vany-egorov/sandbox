@@ -27,6 +27,9 @@ int filter_append_consumer(Filter *it, Filter *cnsmr) {
 }
 
 int filter_consume_strm(Filter *it, Stream *strm) {
+	if ((!it->vt) || (!it->vt->consume_strm))
+		return filter_produce_strm(it, strm);
+
 	return it->vt->consume_strm(it->w, strm);
 }
 

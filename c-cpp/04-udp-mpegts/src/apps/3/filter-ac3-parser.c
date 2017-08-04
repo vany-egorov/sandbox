@@ -38,14 +38,7 @@ static int consume_trk(void *ctx, Track *trk) {
 	return filter_produce_trk(ctx, trk);
 }
 
-/* static FILE *f_dump = NULL;*/
 static int consume_pkt(void *ctx, Packet *pkt) {
-	/* if (!f_dump)
-		f_dump = fopen("/vagrant/sandbox/c-cpp/04-udp-mpegts/tmp/app-3-out.ac3", "wb");
-
-	fwrite(pkt->buf.v, pkt->buf.len, 1, f_dump);
-	fflush(f_dump); */
-
 	return filter_produce_pkt(ctx, pkt);
 }
 

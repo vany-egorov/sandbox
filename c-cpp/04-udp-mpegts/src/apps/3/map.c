@@ -78,3 +78,14 @@ int map_str(Map *it, char *buf, size_t bufsz) {
 	strncpy(buf, map_kind_str(it->kind), bufsz);
 	return ret;
 }
+
+int map_match(Map *it, CodecKind codec, uint32_t id) {
+	if ((it->kind == MAP_A) && (codec & CODEC_KIND_AUDIO)) return 1;
+	if ((it->kind == MAP_V) && (codec & CODEC_KIND_VIDEO)) return 1;
+	if ((it->kind == MAP_T) && (codec & CODEC_KIND_TELETEXT)) return 1;
+	if ((it->kind == MAP_S) && (codec & CODEC_KIND_SUBTITLE)) return 1;
+
+	if ((it->kind == MAP_ID) && (it->id == id)) return 1;
+
+	return 0;
+}

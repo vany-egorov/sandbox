@@ -2,7 +2,7 @@
 
 
 int wrkr_cfg_init(WrkrCfg *it) {
-	slice_init(&it->m, sizeof(WrkrMapCfg));
+	slice_init(&it->m, sizeof(PipelineMapCfg));
 	return 0;
 }
 
@@ -11,12 +11,12 @@ int wrkr_cfg_fin(WrkrCfg *it) {
 	return 0;
 }
 
-int wrkr_map_cfg_init(WrkrMapCfg *it) {
-	slice_fin(&it->o);
+int pipeline_map_cfg_init(PipelineMapCfg *it) {
+	slice_init(&it->o, sizeof(PipelineOutputCfg));
 	return 0;
 }
 
-int wrkr_map_cfg_fin(WrkrMapCfg *it) {
+int pipeline_map_cfg_fin(PipelineMapCfg *it) {
 	slice_fin(&it->o);
 	return 0;
 }

@@ -27,6 +27,8 @@ int wrkr_init(Wrkr *it, WrkrCfg cfg) {
 	demuxer_build(&it->demuxer, &it->cfg.url);  /* TODO: move demuxer to pipeline? */
 
 	pipeline_init(&it->ppln);
+	it->ppln.m = &it->cfg.m;
+
 	filter_append_consumer(it->demuxer, (Filter*)&it->ppln);
 }
 

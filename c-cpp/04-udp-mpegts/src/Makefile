@@ -225,10 +225,10 @@ $(OBJS-DIR)/apps-3-filter-mp2-parser.o: ./apps/3/filter-mp2-parser.c
 $(OBJS-DIR)/apps-3-filter-mp2-decoder.o: ./apps/3/filter-mp2-decoder.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
-$(OBJS-DIR)/apps-3-filter-output-pkt.o: ./apps/3/filter-output-pkt.c
+$(OBJS-DIR)/apps-3-filter-out-pkt.o: ./apps/3/filter-out-pkt.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
-$(OBJS-DIR)/apps-3-filter-output-pkt-raw.o: ./apps/3/filter-output-pkt-raw.c
+$(OBJS-DIR)/apps-3-filter-out-pkt-raw.o: ./apps/3/filter-out-pkt-raw.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
 $(OBJS-DIR)/apps-3-signal.o: ./apps/3/signal.c
@@ -362,8 +362,8 @@ app-3: \
 	$(OBJS-DIR)/apps-3-filter-ac3-decoder.o \
 	$(OBJS-DIR)/apps-3-filter-mp2-parser.o \
 	$(OBJS-DIR)/apps-3-filter-mp2-decoder.o \
-	$(OBJS-DIR)/apps-3-filter-output-pkt.o \
-	$(OBJS-DIR)/apps-3-filter-output-pkt-raw.o \
+	$(OBJS-DIR)/apps-3-filter-out-pkt.o \
+	$(OBJS-DIR)/apps-3-filter-out-pkt-raw.o \
 	\
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \

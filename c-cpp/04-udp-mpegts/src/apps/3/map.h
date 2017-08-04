@@ -8,6 +8,8 @@
 #include <stdlib.h>  /* strtol */
 #include <string.h>  /* strcasecmp, strcmp, strncpy */
 
+#include <common/codec-kind.h>  /* CodecKind */
+
 
 typedef enum   map_kind_enum MapKind;
 typedef struct map_s         Map;
@@ -39,6 +41,7 @@ struct map_s {
 
 int map_parse(Map *it, char *v);
 int map_str(Map *it, char *buf, size_t bufsz);
+int map_match(Map *it, CodecKind codec, uint32_t id);
 
 
 #endif  /* __APPS_3_MAP__ */

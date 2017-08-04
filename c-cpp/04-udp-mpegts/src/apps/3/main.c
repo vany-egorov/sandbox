@@ -83,21 +83,22 @@ int main(int argc, char *argv[]) {
 		{int j = 0; for (j = 0; j < (int)cfg_i->maps.len; j++) {
 			CfgMap *cfg_map = slice_get(&cfg_i->maps, (size_t)j);
 
-			WrkrMapCfg wcfg_map = {
+			PipelineMapCfg pcfg_map = {
 				.m = cfg_map->map,
 			};
-			wrkr_map_cfg_init(&wcfg_map);
-			slice_append(&wcfg.m, &wcfg_map);
+			pipeline_map_cfg_init(&pcfg_map);
 
 			{int k = 0; for (k = 0; k < (int)cfg_map->o.len; k++) {
 				CfgO *cfg_o = slice_get(&cfg_map->o, (size_t)k);
 
-				WrkrOutputCfg wcfg_o = {
+				PipelineOutputCfg pcfg_o = {
 					.u = cfg_o->u,
 				};
 
-				slice_append(&wcfg_map.o, &wcfg_o);
+				slice_append(&pcfg_map.o, &pcfg_o);
 			}}
+
+			slice_append(&wcfg.m, &pcfg_map);
 		}}
 
 		wrkr_new(&wrkr);  /* TODO: error handling */

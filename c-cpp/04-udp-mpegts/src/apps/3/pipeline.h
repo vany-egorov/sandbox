@@ -4,6 +4,7 @@
 
 #include <collections/slice.h>  /* Slice */
 
+#include "wrkr-cfg.h"             /* PipelineMapCfg, PipelineOutputCfg */
 #include "track.h"                /* Track */
 #include "filter.h"               /* Filter, FilterVT */
 #include "filter-unknown.h"       /* FilterUnknown */
@@ -13,6 +14,8 @@
 #include "filter-mp2-decoder.h"   /* FilterMP2Decoder */
 #include "filter-ac3-parser.h"    /* FilterAC3Parser */
 #include "filter-ac3-decoder.h"   /* FilterAC3Decoder */
+#include "filter-out-pkt-raw.h"   /* FilterOutPktRaw */
+#include "filter-out-pkt.h"       /* FilterOutPkt */
 
 
 typedef struct pipeline_s     Pipeline;
@@ -35,6 +38,8 @@ struct pipeline_s {
 
 	Slice fltrs; /* Filter storage */
 	Slice trks;  /* FilterTracks */
+
+	Slice *m;  /* mappings: track-pattern(map) => output */
 };
 
 
