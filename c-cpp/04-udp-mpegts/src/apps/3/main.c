@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <sysexits.h>  /* EX_OK, EX_SOFTWARE */
 
+#include <log/log.h>  /* Log, log_new */
+
 #include "cfg.h"     /* Cfg*, cfg_opt_parse_cb */
 #include "signal.h"  /* signal_init, signal_wait */
 #include "wrkr.h"
@@ -35,37 +37,58 @@ Opt opts[] = {
 };
 
 
+typedef struct app_s App;
+
+
+struct app_s {
+	Cfg cfg;
+	Slice wrkrs;
+
+	Log log;
+	Logger logger;
+};
+
+
+static int reload_loggers(App *it) {
+	log_init(&it->log, "va", it->cfg.log_level_min, NULL, NULL, NULL, 1);
+
+	log_into_logger(&it->log, &it->logger);
+
+	filter_logger = &it->logger;
+	input_logger = &it->logger;
+}
+
+
 int main(int argc, char *argv[]) {
 	int ret = EX_OK;
-	Cfg cfg = { 0 };
-	Slice wrkrs = { 0 };
+	App app = { 0 };
 	Wrkr *wrkr = NULL;
-
-	slice_init(&wrkrs, sizeof(Wrkr));
 
 	signal_init();
 
+	slice_init(&app.wrkrs, sizeof(Wrkr));
+	cfg_init(&app.cfg);
+	opt_parse(argc, argv, opts, (void*)&app.cfg, cfg_opt_parse_cb);
 
-	cfg_init(&cfg);
-	opt_parse(argc, argv, opts, (void*)&cfg, cfg_opt_parse_cb);
-
-	if (!cfg_validate(&cfg)) {
-		if (cfg.h) cfg_help();
-		if (cfg.print_cfg) cfg_print(&cfg);
+	if (!cfg_validate(&app.cfg)) {
+		if (app.cfg.h) cfg_help();
+		if (app.cfg.print_cfg) cfg_print(&app.cfg);
 
 		ret = EX_CONFIG; goto cleanup;
 	}
 
-	if ((cfg.print_cfg) || (cfg.h)) {
-		if (cfg.h) cfg_help();
-		if (cfg.print_cfg) cfg_print(&cfg);
+	if ((app.cfg.print_cfg) || (app.cfg.h)) {
+		if (app.cfg.h) cfg_help();
+		if (app.cfg.print_cfg) cfg_print(&app.cfg);
 
 		goto cleanup;
 	}
 
-	{int i = 0; for (i = 0; i < (int)cfg.i.len; i++) {  /* TODO: iterrator */
+	reload_loggers(&app);
+
+	{int i = 0; for (i = 0; i < (int)app.cfg.i.len; i++) {  /* TODO: iterrator */
 		wrkr = NULL;
-		CfgI *cfg_i = slice_get(&cfg.i, (size_t)i);
+		CfgI *cfg_i = slice_get(&app.cfg.i, (size_t)i);
 
 		InputCfg icfg = {
 			.udp = {
@@ -104,11 +127,11 @@ int main(int argc, char *argv[]) {
 		wrkr_new(&wrkr);  /* TODO: error handling */
 		wrkr_init(wrkr, wcfg);  /* TODO: error handling */
 
-		slice_append(&wrkrs, wrkr);
+		slice_append(&app.wrkrs, wrkr);
 	}}
 
-	{int i = 0; for (i = 0; i < (int)wrkrs.len; i++) {  /* TODO: iterrator */
-		wrkr = slice_get(&wrkrs, (size_t)i);
+	{int i = 0; for (i = 0; i < (int)app.wrkrs.len; i++) {  /* TODO: iterrator */
+		wrkr = slice_get(&app.wrkrs, (size_t)i);
 		wrkr_run(wrkr);
 	}}
 

@@ -44,6 +44,7 @@ typedef enum log_level_enum {
 
 
 LogLevel log_level_parse(char* s);
+char *log_level_str(LogLevel it);
 char log_level_short(LogLevel it);
 char *log_level_color1(LogLevel it);
 char *log_level_color2(LogLevel it);

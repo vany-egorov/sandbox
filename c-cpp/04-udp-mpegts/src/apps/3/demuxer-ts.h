@@ -10,8 +10,9 @@
 #include <log/logger.h>     /* Logger */
 #include <mpegts/mpegts.h>  /* MPEGTS_SYNC_BYTE, mpegts_* */
 
-#include "filter.h"  /* Filter, FilterVT */
-#include "stream.h"  /* Stream */
+#include "filter.h"         /* Filter, FilterVT */
+#include "filter-logger.h"  /* filter_logger */
+#include "stream.h"         /* Stream */
 
 
 typedef struct demuxer_ts_s DemuxerTS;

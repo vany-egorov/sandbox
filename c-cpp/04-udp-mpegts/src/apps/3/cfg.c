@@ -21,6 +21,9 @@ int cfg_init(Cfg *it) {
 
 	slice_init(&it->i, sizeof(CfgI));
 
+	it->log_level_min = CFG_DEFAULT_LOG_LEVEL_MIN;
+	it->log_level_max = CFG_DEFAULT_LOG_LEVEL_MAX;
+
 	return ret;
 }
 
@@ -78,6 +81,9 @@ int cfg_print(Cfg *it) {
 		}
 
 	}}
+
+	printf("log-level-min: \"%s\"\n", log_level_str(it->log_level_min));
+	printf("log-level-max: \"%s\"\n", log_level_str(it->log_level_max));
 
 	return 0;
 }
@@ -171,6 +177,8 @@ int cfg_opt_parse_cb(void *opaque, OptState state, char *k, char *v) {
 		}
 		else if OPT_MTCH2(k, "print-config", "print-cfg") it->print_cfg = 1;
 		else if OPT_MTCH2(k, "help", "h") it->h = 1;
+		else if OPT_MTCH1(k, "vv") it->log_level_min = LOG_LEVEL_DEBUG;
+		else if OPT_MTCH1(k, "vvv") it->log_level_min = LOG_LEVEL_TRACE;
 	}
 
 	return 0;

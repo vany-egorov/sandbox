@@ -37,13 +37,13 @@ static void log_psi(DemuxerTS *it) {
 	if (it->is_psi_logged) return;
 
 	mpegts_psi_pat_sprint_humanized(ts->psi_pat, buf, sizeof(buf));
-	log_trace(lgr, "%s %s\n", it->us, buf);
+	log_trace(filter_logger, "%s %s\n", it->us, buf);
 
 	mpegts_psi_sdt_sprint_humanized(ts->psi_sdt, buf, sizeof(buf));
-	log_trace(lgr, "%s %s\n", it->us, buf);
+	log_trace(filter_logger, "%s %s\n", it->us, buf);
 
 	mpegts_psi_pmt_sprint_humanized(ts->psi_pmt, buf, sizeof(buf));
-	log_trace(lgr, "%s %s\n", it->us, buf);
+	log_trace(filter_logger, "%s %s\n", it->us, buf);
 
 	it->is_psi_logged = 1;
 }
@@ -121,10 +121,10 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 			build_stream(it);
 
 			if (it->strm.trks.len) {
-				log_info(lgr, "input: %s / %s\n", it->us, container_kind_str(it->strm.container_kind));
+				log_info(filter_logger, "input: %s / %s\n", it->us, container_kind_str(it->strm.container_kind));
 				{int i = 0; for (i = 0; i < (int)it->strm.trks.len; i++) {
 					Track *trk = slice_get(&it->strm.trks, (size_t)i);
-					log_info(lgr, "  #%d %3d/0x%04X [%s]\n", trk->i+1, trk->id, trk->id, codec_kind_str(trk->codec_kind));
+					log_info(filter_logger, "  #%d %3d/0x%04X [%s]\n", trk->i+1, trk->id, trk->id, codec_kind_str(trk->codec_kind));
 				}}
 
 				filter_produce_strm(&it->fltr, &it->strm);
@@ -142,7 +142,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 			stream_get_track(&it->strm, (uint32_t)ts_hdr.PID, &trk);
 
 			if (trk == NULL) {
-				/* log_warn(lgr, "[ts-demuxer @ %s] failed to find track for %d/0x%04X PID inside stream\n",
+				/* log_warn(filter_logger, "[ts-demuxer @ %s] failed to find track for %d/0x%04X PID inside stream\n",
 					it->us, ts_hdr.PID, ts_hdr.PID); */
 			} else {
 				if (ts_hdr.payload_unit_start_indicator) {
@@ -152,7 +152,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 					if (trk->pkt.trk)  /* ensure track is set for packet; */
 						filter_produce_pkt(&it->fltr, &trk->pkt);
 
-					/*log_info(lgr, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
+					/*log_info(filter_logger, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
 						it->us, ts_hdr.PID, trk->pkt.buf.len, trk->pkt.buf.cap);*/
 					buf_reset(&trk->pkt.buf);
 
@@ -168,7 +168,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 
 						buf_write(&trk->pkt.buf, cursor, bufsz - (cursor - buf), NULL);
 					} else {
-						log_error(lgr, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
+						log_error(filter_logger, "[ts-demuxer @ %s] PID: %d, len: %zu, cap: %zu\n",
 							it->us, ts_hdr.PID, trk->pkt.buf.len, trk->pkt.buf.cap);
 					}
 				} else {

@@ -5,6 +5,7 @@
 #include <inttypes.h>  /* PRIu64 */
 
 #include <url/url.h>
+#include <log/level.h>
 #include <common/opt.h>  /* OptState */
 #include <collections/slice.h>
 
@@ -13,6 +14,8 @@
 
 #define CFG_DEFAULT_FIFO_CAP    100*7*188
 #define CFG_DEFAULT_FIFO_BUF_SZ 7*188
+#define CFG_DEFAULT_LOG_LEVEL_MIN LOG_LEVEL_INFO
+#define CFG_DEFAULT_LOG_LEVEL_MAX LOG_LEVEL_CRITICAL
 
 
 typedef struct cfg_s     Cfg;
@@ -24,7 +27,12 @@ struct cfg_s {
 	int v;          /* show version and exit */
 	int h;          /* show help */
 	char *c;        /* path to config file */
+	int vv;         /* very verbose */
+	int vvv;        /* very very verbose */
 	int print_cfg;  /* print/log configuration */
+
+	LogLevel log_level_min;
+	LogLevel log_level_max;
 
 	Slice i;  /* inputs */
 };

@@ -21,6 +21,21 @@ LogLevel log_level_parse(char* s) {
 	return LOG_LEVEL_INFO;
 }
 
+char *log_level_str(LogLevel it) {
+	switch (it) {
+	case LOG_LEVEL_TRACE:     return "trace";
+	case LOG_LEVEL_DEBUG:     return "debug";
+	case LOG_LEVEL_INFO:      return "info";
+	case LOG_LEVEL_WARN:      return "warn";
+	case LOG_LEVEL_ERROR:     return "error";
+	case LOG_LEVEL_CRITICAL:  return "critical";
+	case LOG_LEVEL_OFF:       return "off";
+	default:                  return "~";
+	}
+
+	return "unknown-log-level";
+}
+
 inline char log_level_short(LogLevel it) {
 	switch (it) {
 	case LOG_LEVEL_TRACE:     return 't';

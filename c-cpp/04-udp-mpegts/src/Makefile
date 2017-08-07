@@ -132,6 +132,9 @@ $(OBJS-DIR)/log-common.o: ./log/common.c
 $(OBJS-DIR)/log-logger.o: ./log/logger.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/log-log.o: ./log/log.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/log-std.o: ./log/std.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -341,6 +344,7 @@ app-3: \
 	\
 	$(OBJS-DIR)/log-level.o \
 	$(OBJS-DIR)/log-common.o \
+	$(OBJS-DIR)/log-log.o \
 	$(OBJS-DIR)/log-logger.o \
 	$(OBJS-DIR)/log-std.o \
 	\
