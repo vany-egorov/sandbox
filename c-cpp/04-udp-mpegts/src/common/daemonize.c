@@ -36,7 +36,8 @@ void daemonize() {
 
 	umask(133);
 
-	chdir("/");
+	if (chdir("/"))
+		exit(EXIT_FAILURE);
 
 	for (fd = sysconf(_SC_OPEN_MAX); fd>0; fd--)
 		close(fd);

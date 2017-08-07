@@ -6,6 +6,7 @@ CXXFLAGS := -g
 CC:= gcc-7
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
 CCFLAGS := -g -std=gnu11 -lpthread -lrt -fPIC -pthread
+CCFLAGS += -O2
 
 PATH-PROJECT := $(shell pwd)
 OBJS-DIR := $(shell realpath $(PATH-PROJECT)/../obj)
@@ -216,6 +217,9 @@ $(OBJS-DIR)/apps-3-filter-logger.o: ./apps/3/filter-logger.c
 $(OBJS-DIR)/apps-3-filter-unknown.o: ./apps/3/filter-unknown.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/apps-3-filter-metric-b.o: ./apps/3/filter-metric-b.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/apps-3-filter-h264-parser.o: ./apps/3/filter-h264-parser.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
@@ -368,6 +372,7 @@ app-3: \
 	$(OBJS-DIR)/apps-3-filter.o \
 	$(OBJS-DIR)/apps-3-filter-logger.o \
 	$(OBJS-DIR)/apps-3-filter-unknown.o \
+	$(OBJS-DIR)/apps-3-filter-metric-b.o \
 	$(OBJS-DIR)/apps-3-filter-h264-parser.o \
 	$(OBJS-DIR)/apps-3-filter-h264-decoder.o \
 	$(OBJS-DIR)/apps-3-filter-ac3-parser.o \

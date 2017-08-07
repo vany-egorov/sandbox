@@ -623,4 +623,4 @@ void mpegts_pes_print_humanized(MPEGTSPES *it);
 /* es.c */
 
 
-#endif // __MPEGTS_MPEGTS__
+#endif /* __MPEGTS_MPEGTS__ */

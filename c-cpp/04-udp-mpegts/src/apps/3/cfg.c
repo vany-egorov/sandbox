@@ -123,7 +123,7 @@ void cfg_help(void) {
 	printf("Usage: va [...] [-arg ...] [--arg[=\"...\"]] [--] [...]\n");
 	printf("\n");
 	printf("  -i, --intput                   | <str/url> | Where to read from\n");
-	printf("  -o, --output, --out            | <str/url> | Where to read from\n");
+	printf("  -o, --output, --out            | <str/url> | Where to write to\n");
 	printf("  -vv, --verbose                 | <bool>    | ... \n");
 	printf("  -vvv, --very-verbose           | <bool>    | ... \n");
 	printf("\n");

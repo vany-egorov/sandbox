@@ -29,6 +29,11 @@ static int append_trk(Pipeline *it, Track *trk) {
 	FilterTrack *head = NULL;
 	Filter *tail = NULL;
 
+	FilterTrack head_s = {
+		.fltr = NULL,
+		.trk = NULL,
+	};
+
 	if (trk->codec_kind == CODEC_KIND_H264) {
 		FilterH264Parser *parser = NULL;
 		FilterH264Decoder *decoder = NULL;
@@ -45,10 +50,9 @@ static int append_trk(Pipeline *it, Track *trk) {
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
 
-		FilterTrack head_s = {
-			.fltr = &parser->fltr,
-			.trk = trk,
-		};
+		head_s.fltr = &parser->fltr;
+		head_s.trk = trk;
+
 		head = &head_s;
 		tail = &decoder->fltr;
 
@@ -65,10 +69,9 @@ static int append_trk(Pipeline *it, Track *trk) {
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
 
-		FilterTrack head_s = {
-			.fltr = &parser->fltr,
-			.trk = trk,
-		};
+		head_s.fltr = &parser->fltr;
+		head_s.trk = trk;
+
 		head = &head_s;
 		tail = &decoder->fltr;
 
@@ -85,10 +88,9 @@ static int append_trk(Pipeline *it, Track *trk) {
 
 		filter_append_consumer(&parser->fltr, &decoder->fltr);
 
-		FilterTrack head_s = {
-			.fltr = &parser->fltr,
-			.trk = trk,
-		};
+		head_s.fltr = &parser->fltr;
+		head_s.trk = trk;
+
 		head = &head_s;
 		tail = &decoder->fltr;
 
@@ -98,12 +100,12 @@ static int append_trk(Pipeline *it, Track *trk) {
 		filter_unknown_new(&fltr);
 		filter_unknown_init(fltr, pipeline_on_trk_detect, (void*)it);
 
-		FilterTrack head_s = {
-			.fltr = &fltr->fltr,
-			.trk = trk,
-		};
+		head_s.fltr = &fltr->fltr;
+		head_s.trk = trk;
+
 		head = &head_s;
 		tail = &fltr->fltr;
+
 	} else {
 		/* TODO: handle */
 	}
