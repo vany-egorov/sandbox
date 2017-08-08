@@ -2,19 +2,30 @@
 #define __TIME_TIME__
 
 
-#define TimeSecond       1
-#define TimeMicrosecond (1000 * TimeSecond)
-#define TimeMillisecond (1000 * TimeMicrosecond)
-#define TimeSecond      (1000 * TimeMillisecond)
-#define TimeMinute      (60 * TimeSecond)
-#define TimeHour        (60 * TimeMinute)
+#include <time.h>      /* struct timespec */
+#include <stdio.h>     /* snprintf */
+#include <stdint.h>    /* int64_t */
+#include <inttypes.h>  /* PRId64 */
+
+
+#define TimeNanosecond  1
+#define TimeMicrosecond 1e3
+#define TimeMillisecond 1e6
+#define TimeSecond      1e9
+#define TimeMinute      6e10
+#define TimeHour        36e11
 
 
 typedef int64_t Duration;
 
 
-/* the duration t-u */
-Duration time_sub(struct timespec *t, struct timespec *u);
+/* the duration t-f */
+Duration time_sub(struct timespec *f, struct timespec *t);
+
+/* Since returns the time elapsed since start.
+ * It is shorthand for time_sub(start, clock_gettime(CLOCK_MONOTONIC, &now);
+ */
+Duration time_since(struct timespec *start);
 
 /* String returns a string representing the duration in the form "72h3m0.5s".
  * Leading zero units are omitted. As a special case, durations less than one

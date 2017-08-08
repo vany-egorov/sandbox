@@ -142,6 +142,12 @@ $(OBJS-DIR)/log-std.o: ./log/std.c
 $(OBJS-DIR)/log-std-test.o: ./log/std-test.c
 	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
 
+$(OBJS-DIR)/time-time.o: ./time/time.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
+$(OBJS-DIR)/time-time-test.o: ./time/time-test.c
+	$(CC) $(CCFLAGS) $(PROJECT-INCLUDES) -o $@ -c $<
+
 $(OBJS-DIR)/va-atom-kind.o: ./va/atom-kind.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
@@ -478,6 +484,11 @@ url-test: \
 	$(OBJS-DIR)/url-test.o
 	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
 
+time-test: \
+	$(OBJS-DIR)/time-time.o \
+	$(OBJS-DIR)/time-time-test.o
+	$(CC) $(CCFLAGS) -o $(BIN-DIR)/$@ $+ $(LDFLAGS)
+
 collections-slice-test: \
 	$(OBJS-DIR)/collections-slice.o \
 	$(OBJS-DIR)/collections-slice-test.o
@@ -488,7 +499,7 @@ ensure-dirs:
 	mkdir -p $(BIN-DIR)
 	mkdir -p $(LIB-DIR)
 
-build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test url-test log-std-test app-1-strip app-2-strip app-3-strip
+build: ensure-dirs static dynamic app-1 app-2 app-3 collections-slice-test url-test log-std-test time-test app-1-strip app-2-strip app-3-strip
 
 clean:
 	rm -rvf $(OBJS-DIR)/*.o
@@ -499,6 +510,7 @@ clean:
 	rm -rvf $(OBJS-DIR)/app-3
 	rm -rvf $(OBJS-DIR)/collections-slice-test
 	rm -rvf $(OBJS-DIR)/url-test
+	rm -rvf $(OBJS-DIR)/time-test
 	rm -rvf $(OBJS-DIR)/log-std-test
 
 	rm -rvf $(BIN-DIR)/*.o
@@ -509,6 +521,7 @@ clean:
 	rm -rvf $(BIN-DIR)/app-3
 	rm -rvf $(BIN-DIR)/collections-slice-test
 	rm -rvf $(BIN-DIR)/url-test
+	rm -rvf $(BIN-DIR)/time-test
 	rm -rvf $(BIN-DIR)/log-std-test
 
 	rm -rvf $(LIB-DIR)/*.o
@@ -519,6 +532,7 @@ clean:
 	rm -rvf $(LIB-DIR)/app-3
 	rm -rvf $(LIB-DIR)/collections-slice-test
 	rm -rvf $(LIB-DIR)/url-test
+	rm -rvf $(LIB-DIR)/time-test
 	rm -rvf $(LIB-DIR)/log-std-test
 
 # tsplay ../tmp/HD-1.ts 239.255.1.1:5500 -loop
