@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
 	clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-	struct timespec slp1 = {0,125000000};
+	struct timespec slp1 = { 0, 12500000 };
 	struct timespec slp2 = { 0 };
 	nanosleep(&slp1, &slp2);
 
@@ -36,6 +36,26 @@ int main(int argc, char *argv[]) {
 	char buf[100] = { 0 };
 	time_duration_str(d, buf, sizeof(buf));
 	printf("duration-since: %s\n", buf);
+
+	d = 10*TimeHour + 30*TimeMinute + 15*TimeSecond + 100*TimeMillisecond;
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration-1: %s\n", buf);
+
+	d = 23*TimeMillisecond + 17*TimeMicrosecond + 40*TimeNanosecond;
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration-2: %s\n", buf);
+
+	d = 18*TimeMicrosecond + 41*TimeNanosecond;
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration-3: %s\n", buf);
+
+	d = 87*TimeNanosecond;
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration-4: %s\n", buf);
+
+	d = 52*TimeSecond + 127*TimeMillisecond + 18*TimeMicrosecond + 41*TimeNanosecond;
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration-5: %s\n", buf);
 
 
 cleanup:

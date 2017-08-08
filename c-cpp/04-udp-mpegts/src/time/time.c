@@ -18,29 +18,45 @@ int time_duration_str(Duration it, char *buf, size_t bufsz) {
 
 	if (it <= TimeMicrosecond) {
 		snprintf(buf, bufsz, "%" PRId64 "ns", it);
-		goto cleanup;
 
 	} else if (it <= TimeMillisecond) {
 		Duration micro = (Duration)(it/TimeMicrosecond);
-		Duration nano = it - micro*TimeMicrosecond;
+		Duration nano = (Duration)(it % (Duration)TimeMicrosecond);
 		if (!nano) {
 			snprintf(buf, bufsz, "%" PRId64 "µs", micro);
-			goto cleanup;
-		}
+		} else
+			snprintf(buf, bufsz, "%" PRId64 "µs%" PRId64 "ns", micro, nano);
 
-		snprintf(buf, bufsz, "%" PRId64 "µs%" PRId64 "ns", micro, nano);
-		goto cleanup;
-
-	} else if (it <= TimeSecond) {
+	} else if (it <= TimeSecond/10) {
 		Duration milli = (Duration)(it/TimeMillisecond);
-		Duration micro = (Duration)((it - milli*TimeMillisecond)/TimeMicrosecond);
+		Duration micro = (Duration)((it % (Duration)TimeMillisecond)/TimeMicrosecond);
 		if (!micro) {
 			snprintf(buf, bufsz, "%" PRId64 "ms", milli);
-			goto cleanup;
-		}
+		} else
+			snprintf(buf, bufsz, "%" PRId64 "ms%" PRId64 "µs", milli, micro);
 
-		snprintf(buf, bufsz, "%" PRId64 "ms%" PRId64 "µs / %" PRId64 "", milli, micro, it);
-		goto cleanup;
+	} else if (it < TimeMinute) {
+		double s = ((double)it/(double)TimeSecond);
+
+		snprintf(buf, bufsz, "%.2lfs", s);
+
+	} else {
+		Duration h = (Duration)(it/TimeHour);
+		Duration m = (Duration)((it % (Duration)TimeHour)/TimeMinute);
+		double s = ((double)(it % (Duration)TimeMinute)/(double)TimeSecond);
+
+		if (!h) {
+			snprintf(buf, bufsz, "%" PRId64 "m%.2lfs", m, s);
+		} else if (!m) {
+			snprintf(buf, bufsz, "%" PRId64 "h%.2lfs", h, s);
+		} else if (!s) {
+			snprintf(buf, bufsz, "%" PRId64 "h%" PRId64 "m", h, m);
+		} else if (!h && !s) {
+			snprintf(buf, bufsz, "%" PRId64 "m", m);
+		} else if (!m && !s) {
+			snprintf(buf, bufsz, "%" PRId64 "h", h);
+		} else
+			snprintf(buf, bufsz, "%" PRId64 "h%" PRId64 "m%.2lfs", h, m, s);
 	}
 
 cleanup:
