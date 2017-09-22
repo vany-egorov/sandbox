@@ -2,7 +2,7 @@
 #include <sysexits.h>  /* EX_OK, EX_SOFTWARE */
 #include <inttypes.h>  /* PRId64 */
 
-#include "time.h"  /* filter */
+#include "time.h"  /* Duration */
 
 
 int main(int argc, char *argv[]) {
@@ -57,6 +57,8 @@ int main(int argc, char *argv[]) {
 	time_duration_str(d, buf, sizeof(buf));
 	printf("duration-5: %s\n", buf);
 
+	char *raw = "1h10m15s";
+	time_duration_parse(raw, &d);
 
 cleanup:
 	return ret;

@@ -15,6 +15,14 @@
 #define TimeMinute      6e10
 #define TimeHour        36e11
 
+#define TimeRuneNano   'n'
+#define TimeRuneMicro1 'µ'
+#define TimeRuneMicro2 'u'
+#define TimeRuneMilli  'm'
+#define TimeRuneSecond 's'
+#define TimeRuneMinute 'm'
+#define TimeRuneHour   'h'
+
 
 typedef int64_t Duration;
 
@@ -41,7 +49,7 @@ int time_duration_str(Duration it, char *buf, size_t bufsz);
  * such as "300ms", "-1.5h" or "2h45m". Valid
  * time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
  */
-int time_duration_parse(char *buf, size_t bufsz, Duration *out);
+int time_duration_parse(char *raw, Duration *out);
 
 
 #endif /* __TIME_TIME__ */

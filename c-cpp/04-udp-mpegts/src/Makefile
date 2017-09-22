@@ -9,9 +9,9 @@ CCFLAGS := -g -std=gnu11 -lpthread -lrt -fPIC -pthread
 CCFLAGS += -O2
 
 PATH-PROJECT := $(shell pwd)
-OBJS-DIR := $(shell realpath $(PATH-PROJECT)/../obj)
-BIN-DIR := $(shell realpath $(PATH-PROJECT)/../bin)
-LIB-DIR := $(shell realpath $(PATH-PROJECT)/../lib)
+OBJS-DIR := $(shell readlink -f $(PATH-PROJECT)/../obj)
+BIN-DIR := $(shell readlink -f $(PATH-PROJECT)/../bin)
+LIB-DIR := $(shell readlink -f $(PATH-PROJECT)/../lib)
 
 PROJECT-INCLUDES := -I$(PATH-PROJECT)
 

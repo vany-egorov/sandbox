@@ -62,3 +62,28 @@ int time_duration_str(Duration it, char *buf, size_t bufsz) {
 cleanup:
 	return ret;
 }
+
+int time_duration_parse(char *raw, Duration *out) {
+	int ret = 0;
+	char *cursor = NULL;
+
+	/* provided raw string is null pointer */
+	if (!raw) {
+		*out = 0; ret = 1; goto cleanup;
+	}
+
+	switch (raw[0]) {
+		case '\0':  /* provided raw string is empty */
+			*out = 0; ret = 2; goto cleanup;
+		case '0':  /* zero */
+			*out = 0; goto cleanup;
+		default:
+			break;
+	}
+
+	for (cursor = raw; *cursor; cursor++)
+		printf("~~~~~> %c\n", cursor[0]);
+
+cleanup:
+	return ret;
+}
