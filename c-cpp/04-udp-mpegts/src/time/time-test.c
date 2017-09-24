@@ -5,6 +5,7 @@
 #include "time.h"  /* Duration */
 
 
+/* TODO: fixtures */
 int main(int argc, char *argv[]) {
 	int ret = EX_OK;
 
@@ -89,6 +90,12 @@ int main(int argc, char *argv[]) {
 
 	d = 0;
 	raw = "h";
+	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
+
+	d = 0;
+	raw = "";
 	time_duration_parse(raw, &d);
 	time_duration_str(d, buf, sizeof(buf));
 	printf("duration %s: %s\n", raw, buf);

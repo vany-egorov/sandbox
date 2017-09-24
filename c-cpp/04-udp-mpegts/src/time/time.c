@@ -23,8 +23,7 @@ int time_duration_str(Duration that, char *buf, size_t bufsz) {
 		it *= -1;
 
 		buf[0] = TimeRuneMinus;
-		buf++;
-		bufsz--;
+		buf++; bufsz--;
 	}
 
 	if (it <= TimeMicrosecond) {
@@ -59,7 +58,11 @@ int time_duration_str(Duration that, char *buf, size_t bufsz) {
 		if (!h) {
 			snprintf(buf, bufsz, "%" PRId64 "m%.2lfs", m, s);
 		} else if (!m) {
-			snprintf(buf, bufsz, "%" PRId64 "h%.2lfs", h, s);
+			if (s) {
+				snprintf(buf, bufsz, "%" PRId64 "h%.2lfs", h, s);
+			} else {
+				snprintf(buf, bufsz, "%" PRId64 "h", h);
+			}
 		} else if (!s) {
 			snprintf(buf, bufsz, "%" PRId64 "h%" PRId64 "m", h, m);
 		} else if (!h && !s) {
@@ -113,7 +116,7 @@ int time_duration_parse(char *raw, Duration *out) {
 	}
 
 	head = cursor;
-	head_global = cursor;
+	head_global = cursor;  /* store global head; if need to fallback to full ns parse later; */
 	for (; cursor[0]; cursor++) {
 		rune = cursor[0];
 		rune_nxt = cursor[1];
@@ -126,7 +129,7 @@ int time_duration_parse(char *raw, Duration *out) {
 
 		} else if (rune == TimeRuneSecond) {
 			if (cursor != head) { /* cursor moved so we got rune_prv */
-				rune_prv = (cursor-1)[0];
+				rune_prv = (cursor-1)[0];  /* second modificator; */
 
 				if (rune_prv == TimeRuneMilli) {
 					tu = TIME_UNIT_MILLI;

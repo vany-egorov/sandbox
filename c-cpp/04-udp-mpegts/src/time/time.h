@@ -24,7 +24,6 @@
 #define TimeRuneMinute 'm'
 #define TimeRuneHour   'h'
 #define TimeRuneMinus  '-'
-#define TimeRuneNone   ''
 #define TimeRunePlus   '+'
 
 
