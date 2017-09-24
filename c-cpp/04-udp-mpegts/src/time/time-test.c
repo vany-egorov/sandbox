@@ -57,8 +57,41 @@ int main(int argc, char *argv[]) {
 	time_duration_str(d, buf, sizeof(buf));
 	printf("duration-5: %s\n", buf);
 
-	char *raw = "1h10m15s";
+	d = 0;
+	char *raw = "14h10m15s200ms30000us40ns";
 	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
+
+	d = 0;
+	raw = "-14h10m15s200ms30000us40ns";
+	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
+
+	d = 0;
+	raw = "+14h10m15s200ms30000us40ns";
+	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
+
+	d = 0;
+	raw = "1h";
+	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
+
+	d = 0;
+	raw = "12";
+	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
+
+	d = 0;
+	raw = "h";
+	time_duration_parse(raw, &d);
+	time_duration_str(d, buf, sizeof(buf));
+	printf("duration %s: %s\n", raw, buf);
 
 cleanup:
 	return ret;

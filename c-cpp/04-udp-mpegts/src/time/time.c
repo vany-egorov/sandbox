@@ -13,8 +13,19 @@ Duration time_since(struct timespec *start) {
 	return time_sub(start, &now);
 }
 
-int time_duration_str(Duration it, char *buf, size_t bufsz) {
+int time_duration_str(Duration that, char *buf, size_t bufsz) {
 	int ret = 0;
+	Duration it = 0;
+	char sgn = 0;
+
+	it = that;
+	if (it < 0) {
+		it *= -1;
+
+		buf[0] = TimeRuneMinus;
+		buf++;
+		bufsz--;
+	}
 
 	if (it <= TimeMicrosecond) {
 		snprintf(buf, bufsz, "%" PRId64 "ns", it);
@@ -64,8 +75,18 @@ cleanup:
 }
 
 int time_duration_parse(char *raw, Duration *out) {
-	int ret = 0;
-	char *cursor = NULL;
+	int ret = 0,
+	    match = 0,     /* got match? "ns", "us" (or "µs"), "ms", "s", "m", "h"? */
+      negative = 0;  /* "-" sign */
+	char *head = NULL,
+	     *tail = NULL,
+	     *cursor = NULL,
+	     *head_global = NULL,
+	      rune = 0,
+	      rune_prv = 0,
+	      rune_nxt = 0;
+	double v = 0;
+	TimeUnit tu = TIME_UNIT_UNKNOWN;
 
 	/* provided raw string is null pointer */
 	if (!raw) {
@@ -81,8 +102,77 @@ int time_duration_parse(char *raw, Duration *out) {
 			break;
 	}
 
-	for (cursor = raw; *cursor; cursor++)
-		printf("~~~~~> %c\n", cursor[0]);
+	cursor = raw;
+
+	if (raw[0] == TimeRuneMinus) {
+		negative = 1;
+		cursor++;
+	} else if (raw[0] == TimeRunePlus) {
+		negative = 0;
+		cursor++;
+	}
+
+	head = cursor;
+	head_global = cursor;
+	for (; cursor[0]; cursor++) {
+		rune = cursor[0];
+		rune_nxt = cursor[1];
+
+		if (rune == TimeRuneHour) {
+			tu = TIME_UNIT_HOUR;
+
+		} else if ((rune == TimeRuneMinute) && (rune_nxt != TimeRuneSecond)) {
+			tu = TIME_UNIT_MINUTE;
+
+		} else if (rune == TimeRuneSecond) {
+			if (cursor != head) { /* cursor moved so we got rune_prv */
+				rune_prv = (cursor-1)[0];
+
+				if (rune_prv == TimeRuneMilli) {
+					tu = TIME_UNIT_MILLI;
+				} else if (rune_prv == TimeRuneMicro2) {
+					tu = TIME_UNIT_MICRO;
+				} else if (rune_prv == TimeRuneNano) {
+					tu = TIME_UNIT_NANO;
+				} else {
+					tu = TIME_UNIT_SECOND;
+				}
+			}
+		}
+
+		if (tu != TIME_UNIT_UNKNOWN) {
+			match = 1;
+			tail = cursor - 1;  /* digits end, addr of last digit */
+			v = strtod(head, &tail);
+
+			if (tu == TIME_UNIT_HOUR) {
+				*out += (Duration)(v*TimeHour);
+			} else if (tu == TIME_UNIT_MINUTE) {
+				*out += (Duration)(v*TimeMinute);
+			} else if (tu == TIME_UNIT_SECOND) {
+				*out += (Duration)(v*TimeSecond);
+			} else if (tu == TIME_UNIT_MILLI) {
+				*out += (Duration)(v*TimeMillisecond);
+			} else if (tu == TIME_UNIT_MICRO) {
+				*out += (Duration)(v*TimeMicrosecond);
+			} else if (tu == TIME_UNIT_NANO) {
+				*out += (Duration)(v*TimeNanosecond);
+			}
+
+			/* reset variables */
+			tu = TIME_UNIT_UNKNOWN;
+			head = cursor + 1;
+		}
+	}
+
+	/* no runes found. fallback to ns units */
+	if (!match) {
+		v = strtod(head_global, NULL);
+		*out += (Duration)(v*TimeNanosecond);
+	}
+
+	if (negative)
+		*out *= -1;
 
 cleanup:
 	return ret;

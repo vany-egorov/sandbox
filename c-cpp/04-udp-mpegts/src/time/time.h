@@ -5,6 +5,7 @@
 #include <time.h>      /* struct timespec */
 #include <stdio.h>     /* snprintf */
 #include <stdint.h>    /* int64_t */
+#include <stdlib.h>    /* strtof */
 #include <inttypes.h>  /* PRId64 */
 
 
@@ -22,6 +23,23 @@
 #define TimeRuneSecond 's'
 #define TimeRuneMinute 'm'
 #define TimeRuneHour   'h'
+#define TimeRuneMinus  '-'
+#define TimeRuneNone   ''
+#define TimeRunePlus   '+'
+
+
+typedef enum time_unit TimeUnit;
+
+enum time_unit {
+	TIME_UNIT_UNKNOWN = 0,
+
+	TIME_UNIT_NANO   = 1,
+	TIME_UNIT_MICRO  = 2,
+	TIME_UNIT_MILLI  = 3,
+	TIME_UNIT_SECOND = 4,
+	TIME_UNIT_MINUTE = 5,
+	TIME_UNIT_HOUR   = 6,
+};
 
 
 typedef int64_t Duration;
