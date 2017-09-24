@@ -41,6 +41,8 @@ static int consume_trk(void *ctx, Track *trk) {
 static int on_consume_pkt(FilterMetricB *it, size_t sz) {
 	int ret = 0;
 
+	/* TODO: bitrate measure here; once per Duration; Duration from time.c, time.h; */
+
 	return ret;
 }
 
