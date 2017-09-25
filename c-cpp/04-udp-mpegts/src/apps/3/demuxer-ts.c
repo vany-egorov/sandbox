@@ -39,8 +39,10 @@ static void log_psi(DemuxerTS *it) {
 	mpegts_psi_pat_sprint_humanized(ts->psi_pat, buf, sizeof(buf));
 	log_trace(filter_logger, "%s %s\n", it->us, buf);
 
-	mpegts_psi_sdt_sprint_humanized(ts->psi_sdt, buf, sizeof(buf));
-	log_trace(filter_logger, "%s %s\n", it->us, buf);
+	if (ts->psi_sdt) {
+		mpegts_psi_sdt_sprint_humanized(ts->psi_sdt, buf, sizeof(buf));
+		log_trace(filter_logger, "%s %s\n", it->us, buf);
+	}
 
 	mpegts_psi_pmt_sprint_humanized(ts->psi_pmt, buf, sizeof(buf));
 	log_trace(filter_logger, "%s %s\n", it->us, buf);
@@ -113,9 +115,11 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 		}
 	}
 
-	if ((ts->psi_pat) &&
-	    (ts->psi_pmt) &&
-	    (ts->psi_sdt)) {
+	if (
+		   (ts->psi_pat)
+		&& (ts->psi_pmt)
+		/* && (ts->psi_sdt) */
+	) {
 		if (!it->is_psi_logged) log_psi(it);
 		if (!it->is_stream_builded) {
 			build_stream(it);
