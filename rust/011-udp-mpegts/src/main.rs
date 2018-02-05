@@ -1,12 +1,17 @@
-use std::env;
-use std::process;
-use std::net::{UdpSocket, Ipv4Addr};
-use nom::IResult;
-
 #[macro_use]
 extern crate nom;
+extern crate url;
+extern crate clap;
+
+use std::process;
+use std::collections::VecDeque;
+use std::net::{UdpSocket, Ipv4Addr};
+use nom::IResult;
+use clap::{Arg, App};
+use url::{Url, Host/*, ParseError*/};
 
 
+#[allow(dead_code)]
 pub struct TSHeader {
     // transcport-error-indicator
     // :1
@@ -42,12 +47,11 @@ pub struct TSHeader {
 }
 
 
-pub fn ts_sync_byte(input:&[u8]) -> IResult<&[u8], (u8, &[u8])> {
+pub fn parse_ts_sync_byte(input:&[u8]) -> IResult<&[u8], u8> {
   do_parse!(input,
     sync_byte: tag!(&[0x47]) >>
-    bytes:  take!(187)       >>
 
-    (*sync_byte.first().unwrap(), bytes)
+    (*sync_byte.first().unwrap())
   )
 }
 
@@ -80,6 +84,19 @@ pub fn parse_ts_header(input:&[u8]) -> IResult<&[u8], TSHeader> {
     )
 }
 
+named!(
+    parse_ts_single<&[u8], (u8, TSHeader, &[u8])>,
+    tuple!(
+        parse_ts_sync_byte, // 1
+        parse_ts_header,    // 3
+        take!(184)          // 188 - 1 - 3 = 184
+    )
+);
+
+named!(
+    parse_ts_multi<&[u8], Vec<(u8, TSHeader, &[u8])>>,
+    many1!(parse_ts_single)
+);
 
 
 // Input #0, mpegts, from 'udp://239.255.1.1:5500':
@@ -93,87 +110,96 @@ pub fn parse_ts_header(input:&[u8]) -> IResult<&[u8], TSHeader> {
 //     Stream #0:2[0x195](rus): Audio: ac3 (AC-3 / 0x332D4341), 48000 Hz, 5.1(side), fltp, 384 kb/s
 //     Stream #0:3[0x1f9](rus,rus): Subtitle: dvb_teletext ([6][0][0][0] / 0x0006)
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    println!("{:?}", args);
+    // let args: Vec<String> = env::args().collect();
+    // println!("{:?}", args);
+    let matches = App::new("V/A tool")
+        .version("0.0.1")
+        .author("Ivan Egorov <vany.egorov@gmail.com>")
+        .about("Video/audio manipulation tool")
+        .arg(Arg::with_name("input")
+            // .index(1)
+            .short("i")
+            .long("input")
+            .help("Sets the input file to use")
+            .required(true)
+            .takes_value(true))
+        .get_matches();
 
-    let port = 5500;
-    let addr = Ipv4Addr::new(239, 255, 1, 1);
-    // let addr = Ipv4Addr::new(127, 0, 0, 1);
-    let iface = Ipv4Addr::new(0, 0, 0, 0);
-    let socket = match UdpSocket::bind((addr, port)) {
+    let input_raw = matches.value_of("input").unwrap();
+    let input = match Url::parse(input_raw) {
         Ok(v) => v,
-        Err(err) => {
-            eprintln!("error socket-bind({:?}, {:?}): {:?}\n", addr, port, err);
+        Err(e) => {
+            eprintln!("error parse input url: {:?}\n", e);
             process::exit(1);
         }
     };
-    if let Err(err) = socket.join_multicast_v4(&addr, &iface) {
-        eprintln!("error join-multicast-v4({:?}, {:?}): {:?}\n", addr, port, err);
+    let input_host = match input.host() {
+        Some(v) => v,
+        _ => {
+            eprintln!("expected input host\n");
+            process::exit(1);
+        }
+    };
+    let input_port = match input.port() {
+        Some(v) => v,
+        _ => 5500,
+    };
+
+    let input_host_ip_v4 = match input_host {
+        Host::Ipv4(v) => v,
+        _ => {
+            eprintln!("expected ipv4 host({:?})\n", input_host);
+            process::exit(1);
+        }
+    };
+
+    let iface = Ipv4Addr::new(0, 0, 0, 0);
+    let socket = match UdpSocket::bind((input_host_ip_v4, input_port)) {
+        Ok(v) => v,
+        Err(err) => {
+            eprintln!("error socket-bind({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
+            process::exit(1);
+        }
+    };
+    if let Err(err) = socket.join_multicast_v4(&input_host_ip_v4, &iface) {
+        eprintln!("error join-multicast-v4({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
         process::exit(1);
     };
 
-    // named!(
-    //     ts_parser<&[u8], (&[u8], u8, u8, u8, u16)>,
-    //     tuple!(
-    //         tag!(&[0x47]),
-    //         bits!(take_bits!(u8, 1)),
-    //         bits!(take_bits!(u8, 1)),
-    //         bits!(take_bits!(u8, 1)),
-    //         bits!(take_bits!(u16, 13))
-    //     )
-    // );
+    // 188*7 = 1316
+    let mut ts_pkt_raw: [u8; 188] = [0; 188];
+    let mut fifo: VecDeque<[u8; 188]> = VecDeque::with_capacity(100*7); // TODO: move initial capacity to config
 
     loop {
         // read from the socket
         let mut buf = [0; 1316];
         let (_, _) = socket.recv_from(&mut buf).unwrap();
 
-        named!(
-            ts<&[u8], Vec<(u8, &[u8])>>,
-            many1!(ts_sync_byte)
-        );
+        for pkt_index in 0..1316/188 {
+            let ts_pkt_raw_src = &buf[pkt_index*188 .. (pkt_index+1)*188];
 
-        let res1 = ts(&buf);
-        match res1 {
-          IResult::Done(_, data) => {
-            for &(_, ts_data1) in data.iter() {
-                let res2 = parse_ts_header(ts_data1);
-                match res2 {
-                    IResult::Done(_, ts_header) => {
-                        println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
-                    },
-                    _  => {
-                        println!("error or incomplete");
-                        panic!("cannot parse header");
-                    }
-                }
-            }
-          },
-          _  => {
-            println!("error or incomplete");
-            panic!("cannot parse header");
-          }
+            // println!("#{:?} -> [{:?} .. {:?}]; src-len: {:?}, dst-len: {:?}",
+            //     pkt_index, pkt_index*188, (pkt_index+1)*188,
+            //     ts_pkt_raw_src.len(), ts_pkt_raw.len(),
+            // );
+
+            ts_pkt_raw.copy_from_slice(ts_pkt_raw_src);
+            fifo.push_back(ts_pkt_raw);
         }
 
-        // match ts_parser(&buf) {
-        //     IResult::Done(tail, (_, _, _, _, pid)) => {
-        //         println!("[<] MPEGTS / {:4}; pid: {:5}/0x{:04X}; buf: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}; tail: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}",
-        //             sz,
-        //             pid, pid,
+        while !fifo.is_empty() {
+            ts_pkt_raw = fifo.pop_front().unwrap();
 
-        //             buf[0], buf[1], buf[2], buf[3],
-
-        //             tail[0], tail[1], tail[2], tail[3],
-        //             tail[4], tail[5], tail[6], tail[7],
-        //             tail[8], tail[9], tail[10], tail[11],
-        //         );
-        //     },
-        //     IResult::Error(e) => {
-        //         println!("error parsing: {:?}", e);
-        //     },
-        //     IResult::Incomplete(needed) => {
-        //         println!("incomplete, needed: {:?}", needed);
-        //     },
-        // }
+            let res = parse_ts_single(&ts_pkt_raw);
+            match res {
+                IResult::Done(_, (_, ts_header, _)) => {
+                    println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+                },
+                _  => {
+                    println!("error or incomplete");
+                    panic!("cannot parse header");
+                }
+            }
+        }
     }
 }
