@@ -4,11 +4,17 @@ extern crate url;
 extern crate clap;
 
 use std::process;
+use std::time::Duration;
 use std::collections::VecDeque;
 use std::net::{UdpSocket, Ipv4Addr};
+use std::thread;
 use nom::IResult;
 use clap::{Arg, App};
 use url::{Url, Host/*, ParseError*/};
+
+
+const TS_SYNC_BYTE: u8 = 0x47;
+const TS_PKT_SZ: usize = 188;
 
 
 #[allow(dead_code)]
@@ -49,7 +55,7 @@ pub struct TSHeader {
 
 pub fn parse_ts_sync_byte(input:&[u8]) -> IResult<&[u8], u8> {
   do_parse!(input,
-    sync_byte: tag!(&[0x47]) >>
+    sync_byte: tag!(&[TS_SYNC_BYTE]) >>
 
     (*sync_byte.first().unwrap())
   )
@@ -98,6 +104,44 @@ named!(
     many1!(parse_ts_single)
 );
 
+struct CircularBuffer {
+}
+
+struct InputUDP {
+}
+
+impl InputUDP {
+    pub fn new() -> InputUDP {
+        InputUDP{}
+    }
+
+    pub fn start(&self) {
+        thread::spawn(move || {
+            loop {
+                thread::sleep(Duration::from_millis(1000));
+                println!("< udp");
+            }
+        });
+    }
+}
+
+struct DemuxerTS {
+}
+
+impl DemuxerTS {
+    pub fn new() -> DemuxerTS {
+        DemuxerTS{}
+    }
+
+    pub fn start(&self) {
+        thread::spawn(move || {
+            loop {
+                thread::sleep(Duration::from_millis(1000));
+                println!("< mpegts");
+            }
+        });
+    }
+}
 
 // Input #0, mpegts, from 'udp://239.255.1.1:5500':
 //   Duration: N/A, start: 8174.927322, bitrate: N/A
@@ -124,6 +168,12 @@ fn main() {
             .required(true)
             .takes_value(true))
         .get_matches();
+
+    let input_udp = InputUDP::new();
+    let demuxer_ts = DemuxerTS::new();
+
+    input_udp.start();
+    demuxer_ts.start();
 
     let input_raw = matches.value_of("input").unwrap();
     let input = match Url::parse(input_raw) {
@@ -167,19 +217,19 @@ fn main() {
     };
 
     // 188*7 = 1316
-    let mut ts_pkt_raw: [u8; 188] = [0; 188];
-    let mut fifo: VecDeque<[u8; 188]> = VecDeque::with_capacity(100*7); // TODO: move initial capacity to config
+    let mut ts_pkt_raw: [u8; TS_PKT_SZ] = [0; TS_PKT_SZ];
+    let mut fifo: VecDeque<[u8; TS_PKT_SZ]> = VecDeque::with_capacity(100*7); // TODO: move initial capacity to config
 
     loop {
         // read from the socket
-        let mut buf = [0; 1316];
+        let mut buf = [0; 7*TS_PKT_SZ];
         let (_, _) = socket.recv_from(&mut buf).unwrap();
 
-        for pkt_index in 0..1316/188 {
-            let ts_pkt_raw_src = &buf[pkt_index*188 .. (pkt_index+1)*188];
+        for pkt_index in 0..7*TS_PKT_SZ/TS_PKT_SZ {
+            let ts_pkt_raw_src = &buf[pkt_index*TS_PKT_SZ .. (pkt_index+1)*TS_PKT_SZ];
 
             // println!("#{:?} -> [{:?} .. {:?}]; src-len: {:?}, dst-len: {:?}",
-            //     pkt_index, pkt_index*188, (pkt_index+1)*188,
+            //     pkt_index, pkt_index*TS_PKT_SZ, (pkt_index+1)*TS_PKT_SZ,
             //     ts_pkt_raw_src.len(), ts_pkt_raw.len(),
             // );
 
@@ -193,7 +243,7 @@ fn main() {
             let res = parse_ts_single(&ts_pkt_raw);
             match res {
                 IResult::Done(_, (_, ts_header, _)) => {
-                    println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+                    // println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
                 },
                 _  => {
                     println!("error or incomplete");
