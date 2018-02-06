@@ -104,25 +104,34 @@ named!(
     many1!(parse_ts_single)
 );
 
-struct CircularBuffer {
+struct Wrkr<I: Input> {
+    url: Url,
+    input: I,
 }
 
-struct InputUDP {
-}
+impl<I: Input> Wrkr<I> {
+    pub fn new(u: Url) -> Wrkr<I> {
+        Wrkr{
+            url: u,
+        }
+    }
 
-impl InputUDP {
-    pub fn new() -> InputUDP {
-        InputUDP{}
+    pub fn init(&self) {
     }
 
     pub fn start(&self) {
+        let input = I::open(self.url);
+
         thread::spawn(move || {
             loop {
-                thread::sleep(Duration::from_millis(1000));
-                println!("< udp");
+                input.read();
+                input_read(&it->input, (void*)it, on_read);
             }
         });
     }
+}
+
+struct CircularBuffer {
 }
 
 struct DemuxerTS {
@@ -138,6 +147,46 @@ impl DemuxerTS {
             loop {
                 thread::sleep(Duration::from_millis(1000));
                 println!("< mpegts");
+            }
+        });
+    }
+}
+
+trait Input {
+    type Input;
+
+    fn open(&self);
+    fn read(&self);
+    fn close(&self);
+}
+
+trait Filter {
+    fn consume_strm(&self);
+    fn consume_trk(&self);
+    fn consume_pkt_raw(&self);
+    fn consume_pkt(&self);
+    fn consume_frm(&self);
+
+    fn produce_strm(&self);
+    fn produce_trk(&self);
+    fn produce_pkt_raw(&self);
+    fn produce_pkt(&self);
+    fn produce_frm(&self);
+}
+
+struct InputUDP {
+}
+
+impl InputUDP {
+    pub fn new() -> InputUDP {
+        InputUDP{}
+    }
+
+    pub fn start(&self) {
+        thread::spawn(move || {
+            loop {
+                thread::sleep(Duration::from_millis(1000));
+                println!("< udp");
             }
         });
     }
@@ -168,12 +217,6 @@ fn main() {
             .required(true)
             .takes_value(true))
         .get_matches();
-
-    let input_udp = InputUDP::new();
-    let demuxer_ts = DemuxerTS::new();
-
-    input_udp.start();
-    demuxer_ts.start();
 
     let input_raw = matches.value_of("input").unwrap();
     let input = match Url::parse(input_raw) {
@@ -216,6 +259,14 @@ fn main() {
         process::exit(1);
     };
 
+    let wrkr = Wrkr::new(input);
+    let input_udp = InputUDP::new();
+    let demuxer_ts = DemuxerTS::new();
+
+    wrkr.start();
+    input_udp.start();
+    demuxer_ts.start();
+
     // 188*7 = 1316
     let mut ts_pkt_raw: [u8; TS_PKT_SZ] = [0; TS_PKT_SZ];
     let mut fifo: VecDeque<[u8; TS_PKT_SZ]> = VecDeque::with_capacity(100*7); // TODO: move initial capacity to config
@@ -243,7 +294,7 @@ fn main() {
             let res = parse_ts_single(&ts_pkt_raw);
             match res {
                 IResult::Done(_, (_, ts_header, _)) => {
-                    // println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+                    println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
                 },
                 _  => {
                     println!("error or incomplete");
