@@ -8,6 +8,7 @@ use std::time::Duration;
 use std::collections::VecDeque;
 use std::net::{UdpSocket, Ipv4Addr};
 use std::thread;
+use std::sync::{Arc, Mutex, Condvar};
 use nom::IResult;
 use clap::{Arg, App};
 use url::{Url, Host/*, ParseError*/};
@@ -104,36 +105,6 @@ named!(
     many1!(parse_ts_single)
 );
 
-struct Wrkr<I: Input> {
-    url: Url,
-    input: I,
-}
-
-impl<I: Input> Wrkr<I> {
-    pub fn new(u: Url) -> Wrkr<I> {
-        Wrkr{
-            url: u,
-        }
-    }
-
-    pub fn init(&self) {
-    }
-
-    pub fn start(&self) {
-        let input = I::open(self.url);
-
-        thread::spawn(move || {
-            loop {
-                input.read();
-                input_read(&it->input, (void*)it, on_read);
-            }
-        });
-    }
-}
-
-struct CircularBuffer {
-}
-
 struct DemuxerTS {
 }
 
@@ -141,23 +112,12 @@ impl DemuxerTS {
     pub fn new() -> DemuxerTS {
         DemuxerTS{}
     }
-
-    pub fn start(&self) {
-        thread::spawn(move || {
-            loop {
-                thread::sleep(Duration::from_millis(1000));
-                println!("< mpegts");
-            }
-        });
-    }
 }
 
 trait Input {
-    type Input;
-
-    fn open(&self);
-    fn read(&self);
-    fn close(&self);
+    fn open(&mut self);
+    fn read(&mut self);
+    fn close(&mut self);
 }
 
 trait Filter {
@@ -175,18 +135,164 @@ trait Filter {
 }
 
 struct InputUDP {
+    url: Url,
+
+    // circullar-buffer / fifo
+    buf: Arc<(Mutex<VecDeque<[u8; TS_PKT_SZ]>>, Condvar)>,
+
+    socket: Option<UdpSocket>,
 }
 
 impl InputUDP {
-    pub fn new() -> InputUDP {
-        InputUDP{}
+    pub fn new(url: Url, buf_cap: usize) -> InputUDP {
+        InputUDP{
+            url: url,
+            buf: Arc::new((Mutex::new(VecDeque::with_capacity(buf_cap)), Condvar::new())),
+
+            socket: None,
+        }
+    }
+}
+
+impl Input for InputUDP {
+    fn open(&mut self) {
+        let input_host = match self.url.host() {
+            Some(v) => v,
+            _ => {
+                eprintln!("expected input host\n");
+                process::exit(1);
+            }
+        };
+        let input_port = match self.url.port() {
+            Some(v) => v,
+            _ => 5500,
+        };
+
+        let input_host_ip_v4 = match input_host {
+            Host::Ipv4(v) => v,
+            _ => {
+                eprintln!("expected ipv4 host({:?})\n", input_host);
+                process::exit(1);
+            }
+        };
+
+        let iface = Ipv4Addr::new(0, 0, 0, 0);
+        let socket = match UdpSocket::bind((input_host_ip_v4, input_port)) {
+            Ok(v) => v,
+            Err(err) => {
+                eprintln!("error socket-bind({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
+                process::exit(1);
+            }
+        };
+        if let Err(err) = socket.join_multicast_v4(&input_host_ip_v4, &iface) {
+            eprintln!("error join-multicast-v4({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
+            process::exit(1);
+        };
+
+        let pair = self.buf.clone();
+        thread::spawn(move || {
+            let mut ts_pkt_raw: [u8; TS_PKT_SZ] = [0; TS_PKT_SZ];
+
+            loop {
+                // MTU (maximum transmission unit) == 1500 for Ethertnet
+                // 7*TS_PKT_SZ = 7*188 = 1316 < 1500 => OK
+                let mut pkts_raw = [0; 7*TS_PKT_SZ];
+                let (_, _) = socket.recv_from(&mut pkts_raw).unwrap();
+
+                let &(ref lock, ref cvar) = &*pair;
+                let mut buf = lock.lock().unwrap();
+
+                for pkt_index in 0..7*TS_PKT_SZ/TS_PKT_SZ {
+                    let ts_pkt_raw_src = &pkts_raw[pkt_index*TS_PKT_SZ .. (pkt_index+1)*TS_PKT_SZ];
+
+                    // println!("#{:?} -> [{:?} .. {:?}]; src-len: {:?}, dst-len: {:?}",
+                    //     pkt_index, pkt_index*TS_PKT_SZ, (pkt_index+1)*TS_PKT_SZ,
+                    //     ts_pkt_raw_src.len(), ts_pkt_raw.len(),
+                    // );
+
+                    ts_pkt_raw.copy_from_slice(ts_pkt_raw_src);
+                    buf.push_back(ts_pkt_raw);
+                }
+
+                cvar.notify_all();
+            }
+        });
     }
 
-    pub fn start(&self) {
+    fn read(&mut self) {
+        let pair = self.buf.clone();
+        let &(ref lock, ref cvar) = &*pair;
+        let mut buf = lock.lock().unwrap();
+
+        buf = cvar.wait(buf).unwrap();
+
+        while !buf.is_empty() {
+            let ts_pkt_raw = buf.pop_front().unwrap();
+
+            let res = parse_ts_single(&ts_pkt_raw);
+            match res {
+                IResult::Done(_, (_, ts_header, _)) => {
+                    // println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+                },
+                _  => {
+                    println!("error or incomplete");
+                    panic!("cannot parse header");
+                }
+            }
+        }
+    }
+
+    fn close(&mut self) {
+        println!("<<< UDP close");
+    }
+}
+
+struct InputFile {
+    url: Url,
+}
+
+impl InputFile {
+    pub fn new(url: Url) -> InputFile {
+        InputFile{
+            url: url,
+        }
+    }
+}
+
+impl Input for InputFile {
+    fn open(&mut self) {
+        println!("<<< File open");
+    }
+
+    fn read(&mut self) {
+        thread::sleep(Duration::from_secs(1000));
+    }
+
+    fn close(&mut self) {
+        println!("<<< File close");
+    }
+}
+
+struct Wrkr<I> {
+    input: Arc<Mutex<I>>,
+}
+
+impl <I: Input + std::marker::Send + 'static> Wrkr<I> {
+    pub fn new(input: I) -> Wrkr<I> {
+        Wrkr{
+            input: Arc::new(Mutex::new(input)),
+        }
+    }
+
+    pub fn run(&self) {
+        let input = self.input.clone();
+        {
+            input.lock().unwrap().open();
+        }
+
         thread::spawn(move || {
             loop {
-                thread::sleep(Duration::from_millis(1000));
-                println!("< udp");
+                input.lock().unwrap().read();
             }
         });
     }
@@ -208,7 +314,7 @@ fn main() {
     let matches = App::new("V/A tool")
         .version("0.0.1")
         .author("Ivan Egorov <vany.egorov@gmail.com>")
-        .about("Video/audio manipulation tool")
+        .about("Video/audio swiss knife")
         .arg(Arg::with_name("input")
             // .index(1)
             .short("i")
@@ -219,88 +325,29 @@ fn main() {
         .get_matches();
 
     let input_raw = matches.value_of("input").unwrap();
-    let input = match Url::parse(input_raw) {
+    let input_url = match Url::parse(input_raw) {
         Ok(v) => v,
         Err(e) => {
             eprintln!("error parse input url: {:?}\n", e);
             process::exit(1);
         }
     };
-    let input_host = match input.host() {
-        Some(v) => v,
-        _ => {
-            eprintln!("expected input host\n");
-            process::exit(1);
-        }
-    };
-    let input_port = match input.port() {
-        Some(v) => v,
-        _ => 5500,
-    };
 
-    let input_host_ip_v4 = match input_host {
-        Host::Ipv4(v) => v,
-        _ => {
-            eprintln!("expected ipv4 host({:?})\n", input_host);
-            process::exit(1);
-        }
-    };
+    let input_url_1 = input_url.clone();
+    let input_url_2 = input_url.clone();
 
-    let iface = Ipv4Addr::new(0, 0, 0, 0);
-    let socket = match UdpSocket::bind((input_host_ip_v4, input_port)) {
-        Ok(v) => v,
-        Err(err) => {
-            eprintln!("error socket-bind({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
-            process::exit(1);
-        }
-    };
-    if let Err(err) = socket.join_multicast_v4(&input_host_ip_v4, &iface) {
-        eprintln!("error join-multicast-v4({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
-        process::exit(1);
-    };
+    // <input builder based on URL>
+    let input_udp = InputUDP::new(input_url_1, 1000*7);
+    let input_file = InputFile::new(input_url_2);
+    // </input builder based on URL>
 
-    let wrkr = Wrkr::new(input);
-    let input_udp = InputUDP::new();
-    let demuxer_ts = DemuxerTS::new();
+    let wrkr1 = Wrkr::new(input_udp);
+    let wrkr2 = Wrkr::new(input_file);
 
-    wrkr.start();
-    input_udp.start();
-    demuxer_ts.start();
-
-    // 188*7 = 1316
-    let mut ts_pkt_raw: [u8; TS_PKT_SZ] = [0; TS_PKT_SZ];
-    let mut fifo: VecDeque<[u8; TS_PKT_SZ]> = VecDeque::with_capacity(100*7); // TODO: move initial capacity to config
+    wrkr1.run();
+    wrkr2.run();
 
     loop {
-        // read from the socket
-        let mut buf = [0; 7*TS_PKT_SZ];
-        let (_, _) = socket.recv_from(&mut buf).unwrap();
-
-        for pkt_index in 0..7*TS_PKT_SZ/TS_PKT_SZ {
-            let ts_pkt_raw_src = &buf[pkt_index*TS_PKT_SZ .. (pkt_index+1)*TS_PKT_SZ];
-
-            // println!("#{:?} -> [{:?} .. {:?}]; src-len: {:?}, dst-len: {:?}",
-            //     pkt_index, pkt_index*TS_PKT_SZ, (pkt_index+1)*TS_PKT_SZ,
-            //     ts_pkt_raw_src.len(), ts_pkt_raw.len(),
-            // );
-
-            ts_pkt_raw.copy_from_slice(ts_pkt_raw_src);
-            fifo.push_back(ts_pkt_raw);
-        }
-
-        while !fifo.is_empty() {
-            ts_pkt_raw = fifo.pop_front().unwrap();
-
-            let res = parse_ts_single(&ts_pkt_raw);
-            match res {
-                IResult::Done(_, (_, ts_header, _)) => {
-                    println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
-                },
-                _  => {
-                    println!("error or incomplete");
-                    panic!("cannot parse header");
-                }
-            }
-        }
+        thread::sleep(Duration::from_secs(60));
     }
 }
