@@ -277,7 +277,9 @@ struct Wrkr<I> {
     input: Arc<Mutex<I>>,
 }
 
-impl <I: Input + std::marker::Send + 'static> Wrkr<I> {
+impl <I> Wrkr<I>
+    where I: Input + std::marker::Send + 'static
+{
     pub fn new(input: I) -> Wrkr<I> {
         Wrkr{
             input: Arc::new(Mutex::new(input)),
