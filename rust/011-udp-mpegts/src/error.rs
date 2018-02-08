@@ -1,11 +1,11 @@
-use std::io;
 use std::fmt;
 use std::borrow::Cow;
 use std::convert::Into;
 use std::str::Utf8Error;
+use std::io::Error as IoError;
 use std::error::Error as StdError;
+use std::result::Result as StdResult;
 
-use http::RequestError as HTTPRequestError;
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -23,6 +23,7 @@ macro_rules! from {
 
 #[derive(Debug)]
 pub enum Kind {
+    UdpSocketBind(IoError),
     Encoding(Utf8Error),
 }
 
@@ -62,12 +63,14 @@ impl StdError for Error {
     fn description(&self) -> &str {
         match self.kind {
             Kind::Encoding(ref err) => err.description(),
+            Kind::UdpSocketBind(ref err) => err.description(),
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         match self.kind {
             Kind::Encoding(ref err) => Some(err),
+            Kind::UdpSocketBind(ref err) => Some(err),
         }
     }
 }

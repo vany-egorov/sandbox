@@ -1,3 +1,5 @@
+mod error;
+
 #[macro_use]
 extern crate nom;
 extern crate url;
@@ -12,6 +14,8 @@ use std::sync::{Arc, Mutex, Condvar};
 use nom::IResult;
 use clap::{Arg, App};
 use url::{Url, Host/*, ParseError*/};
+
+use error::Result;
 
 
 const TS_SYNC_BYTE: u8 = 0x47;
@@ -115,7 +119,7 @@ impl DemuxerTS {
 }
 
 trait Input {
-    fn open(&mut self);
+    fn open(&mut self) -> Result<()>;
     fn read(&mut self);
     fn close(&mut self);
 }
@@ -155,7 +159,7 @@ impl InputUDP {
 }
 
 impl Input for InputUDP {
-    fn open(&mut self) {
+    fn open(&mut self) -> Result<()> {
         let input_host = match self.url.host() {
             Some(v) => v,
             _ => {
@@ -217,6 +221,8 @@ impl Input for InputUDP {
                 cvar.notify_all();
             }
         });
+
+        Ok(())
     }
 
     fn read(&mut self) {
@@ -260,8 +266,10 @@ impl InputFile {
 }
 
 impl Input for InputFile {
-    fn open(&mut self) {
+    fn open(&mut self) -> Result<()> {
         println!("<<< File open");
+
+        Ok(())
     }
 
     fn read(&mut self) {
