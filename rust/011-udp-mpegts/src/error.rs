@@ -14,7 +14,7 @@ macro_rules! from {
     ($src:path, $dst:path) => {
         impl From<$src> for Error {
             fn from(err: $src) -> Error {
-                $dst(err)
+                Error::new($dst(err), "")
             }
         }
     }
@@ -23,7 +23,9 @@ macro_rules! from {
 
 #[derive(Debug)]
 pub enum Kind {
-    UdpSocketBind(IoError),
+    InputUrlMissingHost,
+    InputUrlHostMustBeIpv4,
+    Io(IoError),
     Encoding(Utf8Error),
 }
 
@@ -62,23 +64,33 @@ impl fmt::Debug for Error {
 impl StdError for Error {
     fn description(&self) -> &str {
         match self.kind {
+            Kind::InputUrlMissingHost => "missing host inside input URL",
+            Kind::InputUrlHostMustBeIpv4 => "provided host must be valid IPv4",
             Kind::Encoding(ref err) => err.description(),
-            Kind::UdpSocketBind(ref err) => err.description(),
+            Kind::Io(ref err) => err.description(),
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         match self.kind {
+            Kind::InputUrlMissingHost => None,
+            Kind::InputUrlHostMustBeIpv4 => None,
             Kind::Encoding(ref err) => Some(err),
-            Kind::UdpSocketBind(ref err) => Some(err),
+            Kind::Io(ref err) => Some(err),
         }
     }
 }
 
-// TODO: replace with
-// from!(Utf8Error, Error::Utf8);
-impl From<Utf8Error> for Error {
-    fn from(err: Utf8Error) -> Error {
-        Error::new(Kind::Encoding(err), "")
+from!(Utf8Error, Kind::Encoding);
+from!(IoError, Kind::Io);
+
+impl From<mio::channel::SendError<Command>> for Error {
+
+    fn from(err: mio::channel::SendError<Command>) -> Error {
+        match err {
+            mio::channel::SendError::Io(err) => Error::from(err),
+            _ => Error::new(Kind::Queue(err), "")
+        }
     }
+
 }

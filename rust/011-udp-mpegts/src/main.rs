@@ -15,7 +15,7 @@ use nom::IResult;
 use clap::{Arg, App};
 use url::{Url, Host/*, ParseError*/};
 
-use error::Result;
+use error::{Result, Error, Kind as ErrorKind};
 
 
 const TS_SYNC_BYTE: u8 = 0x47;
@@ -120,8 +120,8 @@ impl DemuxerTS {
 
 trait Input {
     fn open(&mut self) -> Result<()>;
-    fn read(&mut self);
-    fn close(&mut self);
+    fn read(&mut self) -> Result<()>;
+    fn close(&mut self) -> Result<()>;
 }
 
 trait Filter {
@@ -160,38 +160,20 @@ impl InputUDP {
 
 impl Input for InputUDP {
     fn open(&mut self) -> Result<()> {
-        let input_host = match self.url.host() {
-            Some(v) => v,
-            _ => {
-                eprintln!("expected input host\n");
-                process::exit(1);
-            }
-        };
-        let input_port = match self.url.port() {
-            Some(v) => v,
-            _ => 5500,
-        };
+        let input_host = try!(self.url.host()
+            .ok_or(Error::new(ErrorKind::InputUrlMissingHost, "")));
 
-        let input_host_ip_v4 = match input_host {
-            Host::Ipv4(v) => v,
-            _ => {
-                eprintln!("expected ipv4 host({:?})\n", input_host);
-                process::exit(1);
-            }
-        };
+        let input_port = self.url.port().unwrap_or(5500);
+
+        let input_host_ip_v4 = try!(match input_host {
+            Host::Ipv4(v) => Ok(v),
+            _ => Err(Error::new(ErrorKind::InputUrlHostMustBeIpv4, "")),
+        });
 
         let iface = Ipv4Addr::new(0, 0, 0, 0);
-        let socket = match UdpSocket::bind((input_host_ip_v4, input_port)) {
-            Ok(v) => v,
-            Err(err) => {
-                eprintln!("error socket-bind({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
-                process::exit(1);
-            }
-        };
-        if let Err(err) = socket.join_multicast_v4(&input_host_ip_v4, &iface) {
-            eprintln!("error join-multicast-v4({:?}, {:?}): {:?}\n", input_host_ip_v4, input_port, err);
-            process::exit(1);
-        };
+        let socket = try!(UdpSocket::bind((input_host_ip_v4, input_port)));
+
+        try!(socket.join_multicast_v4(&input_host_ip_v4, &iface));
 
         let pair = self.buf.clone();
         thread::spawn(move || {
@@ -225,12 +207,12 @@ impl Input for InputUDP {
         Ok(())
     }
 
-    fn read(&mut self) {
+    fn read(&mut self) -> Result<()> {
         let pair = self.buf.clone();
         let &(ref lock, ref cvar) = &*pair;
         let mut buf = lock.lock().unwrap();
 
-        buf = cvar.wait(buf).unwrap();
+        buf = try!(cvar.wait(buf));
 
         while !buf.is_empty() {
             let ts_pkt_raw = buf.pop_front().unwrap();
@@ -246,10 +228,14 @@ impl Input for InputUDP {
                 }
             }
         }
+
+        Ok(())
     }
 
-    fn close(&mut self) {
+    fn close(&mut self) -> Result<()> {
         println!("<<< UDP close");
+
+        Ok(())
     }
 }
 
@@ -272,12 +258,16 @@ impl Input for InputFile {
         Ok(())
     }
 
-    fn read(&mut self) {
+    fn read(&mut self) -> Result<()> {
         thread::sleep(Duration::from_secs(1000));
+
+        Ok(())
     }
 
-    fn close(&mut self) {
+    fn close(&mut self) -> Result<()> {
         println!("<<< File close");
+
+        Ok(())
     }
 }
 
@@ -294,10 +284,10 @@ impl <I> Wrkr<I>
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&self) -> Result<()> {
         let input = self.input.clone();
         {
-            input.lock().unwrap().open();
+            try!(input.lock().unwrap().open());
         }
 
         thread::spawn(move || {
@@ -305,6 +295,8 @@ impl <I> Wrkr<I>
                 input.lock().unwrap().read();
             }
         });
+
+        Ok(())
     }
 }
 
@@ -337,8 +329,8 @@ fn main() {
     let input_raw = matches.value_of("input").unwrap();
     let input_url = match Url::parse(input_raw) {
         Ok(v) => v,
-        Err(e) => {
-            eprintln!("error parse input url: {:?}\n", e);
+        Err(err) => {
+            eprintln!("error parse input url: {:?}\n", err);
             process::exit(1);
         }
     };
@@ -354,8 +346,15 @@ fn main() {
     let wrkr1 = Wrkr::new(input_udp);
     let wrkr2 = Wrkr::new(input_file);
 
-    wrkr1.run();
-    wrkr2.run();
+    if let Err(err) = wrkr1.run() {
+        eprintln!("error start worker №1: {:?}\n", err);
+        process::exit(1);
+    }
+
+    if let Err(err) = wrkr2.run() {
+        eprintln!("error start worker №2: {:?}\n", err);
+        process::exit(1);
+    }
 
     loop {
         thread::sleep(Duration::from_secs(60));
