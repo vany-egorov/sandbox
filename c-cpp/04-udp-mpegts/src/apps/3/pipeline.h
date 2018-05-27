@@ -16,6 +16,7 @@
 #include "filter-ac3-decoder.h"   /* FilterAC3Decoder */
 #include "filter-out-pkt-raw.h"   /* FilterOutPktRaw */
 #include "filter-out-pkt.h"       /* FilterOutPkt */
+#include "filter-metric-b.h"      /* FilterMetricB */
 
 
 typedef struct pipeline_s     Pipeline;

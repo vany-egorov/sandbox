@@ -1,0 +1,9 @@
+[package]
+name = "tokio-sandbox"
+version = "0.0.1"
+authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
+
+[dependencies]
+tokio = "0.1"
+tokio-signal = "0.2.1"
+futures = "0.2.1"

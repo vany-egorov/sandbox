@@ -42,6 +42,7 @@ static int on_consume_pkt(FilterMetricB *it, size_t sz) {
 	int ret = 0;
 
 	/* TODO: bitrate measure here; once per Duration; Duration from time.c, time.h; */
+	printf("~~~~~> <\n");
 
 	return ret;
 }
