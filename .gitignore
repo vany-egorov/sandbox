@@ -26,4 +26,8 @@ libwebsockets
 *.swo
 .vscode
 
+wasm/c/*.html
+wasm/c/*.js
+wasm/c/*.wasm
+
 tags
