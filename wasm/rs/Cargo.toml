@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
 
 [dependencies]
-stdweb = { git = "https://github.com/koute/stdweb" }
+stdweb = "0.4.6"
