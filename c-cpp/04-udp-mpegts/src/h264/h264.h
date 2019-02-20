@@ -44,7 +44,7 @@ typedef struct h264_annexb_parse_result_s H264AnnexBParseResult;
  *
  * There are 19 different NALU types defined separated into two categories, VCL and non-VCL:
  *
- * - VCL, or Video Coding Layer packets contain the actual visual information.
+ * - VCL, or Video Coding Layer packets containsin the actual visual information.
  * - Non-VCLs contain metadata that may or may not be required to decode the video.
  */
 enum h264_nal_type_enum {
