@@ -39,6 +39,17 @@ static int consume_trk(void *ctx, Track *trk) {
 }
 
 static int consume_pkt(void *ctx, Packet *pkt) {
+	FilterH264Parser *it = NULL;
+	it = (FilterH264Parser*)ctx;
+
+	/* H264 h264 = { 0 };
+	H264AnnexBParseResult h264_parse_result = { 0 };
+	h264_annexb_parse(&h264, pkt->buf.v, pkt->buf.len, 0, &h264_parse_result);
+	h264_annexb_parse_result_print_humanized_one_line(&h264_parse_result); */
+
+	/* log_trace(filter_logger, "[%s @ %p] [<] pkt :len %d :cap %d\n",
+		it->fltr.name, (void*)it, pkt->buf.len, pkt->buf.cap); */
+
 	return filter_produce_pkt(ctx, pkt);
 }
 

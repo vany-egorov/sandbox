@@ -5,6 +5,8 @@
 #include "filter.h"         /* Filter, FilterVT */
 #include "filter-logger.h"  /* filter_logger */
 
+#include <h264/h264.h>  /* H264, H264AnnexBParseResult */
+
 
 typedef struct filter_h264_parser_s FilterH264Parser;
 

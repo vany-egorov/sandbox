@@ -1,9 +1,9 @@
 SHELL := /bin/bash
 
-CXX := g++-7
+CXX := g++-6
 CXXFLAGS := -g
 
-CC:= gcc-7
+CC:= gcc-6
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
 CCFLAGS := -g -std=gnu11 -lpthread -lrt -fPIC -pthread
 CCFLAGS += -O2
@@ -399,6 +399,14 @@ app-3: \
 	$(OBJS-DIR)/mpegts-psi-sdt.o \
 	$(OBJS-DIR)/mpegts-pes.o \
 	$(OBJS-DIR)/mpegts-es.o \
+	\
+	$(OBJS-DIR)/h264-h264.o \
+	$(OBJS-DIR)/h264-nal-sps.o \
+	$(OBJS-DIR)/h264-nal-pps.o \
+	$(OBJS-DIR)/h264-nal-aud.o \
+	$(OBJS-DIR)/h264-nal-sei.o \
+	$(OBJS-DIR)/h264-nal-slice-idr.o \
+	$(OBJS-DIR)/h264-bitstream.o \
 	\
 	$(OBJS-DIR)/apps-3-main.o
 
