@@ -170,10 +170,19 @@ impl Input for InputUDP {
             _ => Err(Error::new(ErrorKind::InputUrlHostMustBeIpv4, "")),
         });
 
-        let iface = Ipv4Addr::new(0, 0, 0, 0);
-        let socket = try!(UdpSocket::bind((input_host_ip_v4, input_port)));
+        // let iface = Ipv4Addr::new(0, 0, 0, 0);
+        // let socket = try!(UdpSocket::bind((input_host_ip_v4, input_port)));
 
-        try!(socket.join_multicast_v4(&input_host_ip_v4, &iface));
+        // try!(socket.join_multicast_v4(&input_host_ip_v4, &iface));
+
+        let iface = Ipv4Addr::new(127, 0, 0, 1);
+        println!("[<] {:?} : {:?} @ {:?}", input_host_ip_v4, input_port, iface);
+
+        let socket = UdpSocket::bind((input_host_ip_v4, input_port))?;
+        // println!("OK bind");
+
+        // socket.join_multicast_v4(&input_host_ip_v4, &iface)?;
+        // println!("OK join");
 
         let pair = self.buf.clone();
         thread::spawn(move || {
@@ -212,19 +221,19 @@ impl Input for InputUDP {
         let &(ref lock, ref cvar) = &*pair;
         let mut buf = lock.lock().unwrap();
 
-        buf = try!(cvar.wait(buf));
+        buf = cvar.wait(buf).unwrap();
 
         while !buf.is_empty() {
             let ts_pkt_raw = buf.pop_front().unwrap();
 
             let res = parse_ts_single(&ts_pkt_raw);
             match res {
-                IResult::Done(_, (_, ts_header, _)) => {
-                    // println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+                Ok((_, (_, ts_header, _))) => {
+                    println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
                 },
                 _  => {
-                    println!("error or incomplete");
-                    panic!("cannot parse header");
+                    println!("error or incomplete cap: {:?}, len: {:?}, data: 0x{:02X?}{:02X?}{:02X?}",
+                        buf.capacity(), buf.len(), ts_pkt_raw[0], ts_pkt_raw[1], ts_pkt_raw[2]);
                 }
             }
         }
@@ -339,7 +348,7 @@ fn main() {
     let input_url_2 = input_url.clone();
 
     // <input builder based on URL>
-    let input_udp = InputUDP::new(input_url_1, 1000*7);
+    let input_udp = InputUDP::new(input_url_1, 5000*7);
     let input_file = InputFile::new(input_url_2);
     // </input builder based on URL>
 

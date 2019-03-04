@@ -4,6 +4,6 @@ version = "0.0.1"
 authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
 
 [dependencies]
-nom = "^3.2"
-clap = "~2.29"
-url = "~1.6"
+nom = "^4.2"
+clap = "~2.3"
+url = "~1.7"

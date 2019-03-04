@@ -84,13 +84,13 @@ impl StdError for Error {
 from!(Utf8Error, Kind::Encoding);
 from!(IoError, Kind::Io);
 
-impl From<mio::channel::SendError<Command>> for Error {
+// impl From<mio::channel::SendError<Command>> for Error {
 
-    fn from(err: mio::channel::SendError<Command>) -> Error {
-        match err {
-            mio::channel::SendError::Io(err) => Error::from(err),
-            _ => Error::new(Kind::Queue(err), "")
-        }
-    }
+//     fn from(err: mio::channel::SendError<Command>) -> Error {
+//         match err {
+//             mio::channel::SendError::Io(err) => Error::from(err),
+//             _ => Error::new(Kind::Queue(err), "")
+//         }
+//     }
 
-}
+// }
