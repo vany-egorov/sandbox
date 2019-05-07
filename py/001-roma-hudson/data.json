@@ -1,0 +1,1089 @@
+{
+    "project": {
+        "properties": {
+            "hudson.model.ParametersDefinitionProperty": {
+                "parameterDefinitions": {
+                    "hudson.model.BooleanParameterDefinition": [
+                        {
+                            "name": "create_url_with_parameters", 
+                            "description": "\u041d\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u044f\u0442\u044c \u043d\u0438\u0447\u0435\u0433\u043e \u0430 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443, \u043a\u043e\u0442\u043e\u0440\u0443\u044e \u043d\u0443\u0436\u043d\u043e \u043f\u0435\u0440\u0435\u0434\u0430\u0442\u044c \u0432 jenkins-\u0434\u0436\u043e\u0431\u0443 cron_update", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "stable_api", 
+                            "description": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c API \u0438\u0437 STABLE \u043a\u043b\u0430\u0441\u0442\u0435\u0440\u0430", 
+                            "defaultValue": "false"                                                                                                                         
+                        }, 
+                        {
+                            "name": "restart_mailcatcher", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c mailcatcher \u043d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u043b\u0435\u0440\u0435", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "notkibana_clear_logs", 
+                            "description": "\u0417\u0430\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043b\u043e\u0433\u0438 \u043a\u0438\u0431\u0430\u043d\u044b/\u043d\u0435\u043a\u0438\u0431\u0430\u043d\u044b \u0438 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c elasticsearch \u043d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u043b\u0435\u0440\u0435", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "restart_trivialdns", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c trivialdns \u043d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u043b\u0435\u0440\u0435.", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "update_sentry_db", 
+                            "description": "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0431\u0430\u0437\u0443 sentry (\u0441\u043a\u0430\u0447\u0438\u0432\u0430\u0435\u0442 \u0444\u0430\u0439\u043b \u0441 notkube.dev.ivi.ru)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "start_sentry", 
+                            "description": "\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c sentry \u043d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u043b\u0435\u0440\u0435 (\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u0442\u0441\u044f \u0432 \u0434\u043e\u043a\u0435\u0440\u0435 \u0432 \u0442\u0435\u0447\u0435\u043d\u0438\u0435 2-3 \u043c\u0438\u043d\u0443\u0442)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "stop_sentry", 
+                            "description": "\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c sentry", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "da_repo_deploy_code", 
+                            "description": "\u0412\u044b\u043b\u043e\u0436\u0438\u0442\u044c \u0432\u0435\u0442\u043a\u0443 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f da \u0433\u0434\u0435 \u0442\u043e\u043b\u044c\u043a\u043e \u043c\u043e\u0436\u043d\u043e (bd1, webadmin, mobile, cslight, munitorum, file ...)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_db_init", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_restore_binary_dump", 
+                            "description": "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0438\u043d\u0430\u0440\u043d\u043e\u0433\u043e \u0434\u0430\u043c\u043f\u0430. \u041c\u0435\u043d\u0435\u0435 10 \u043c\u0438\u043d\u0443\u0442. \u0422\u0435\u0440\u044f\u0435\u0442\u0441\u044f \u0431\u0430\u0437\u0430 dealer ( \u043f\u0443\u043d\u043a\u0442 dealer_create_db \u0434\u043b\u044f \u043f\u0435\u0440\u0435\u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f) \u0438 reports ( bd1_recreate_reports_db )", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_restore_dump", 
+                            "description": "\u0417\u0430\u043d\u0438\u043c\u0430\u0435\u0442 20-30 \u043c\u0438\u043d\u0443\u0442", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_apply_migrations", 
+                            "description": "\u041d\u0430\u043a\u0430\u0442\u0438\u0442\u044c \u043c\u0438\u0433\u0440\u0430\u0446\u0438\u0438 \u043d\u0430 bd1 \u0438\u0437 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0445 \u0442\u0440\u0435\u0445 \u0440\u0435\u043b\u0438\u0437\u043e\u0432", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_db_update", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_disable_most_app_versions", 
+                            "description": "\u041e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0432\u0441\u0435 \u0430\u043f\u043f.\u0432\u0435\u0440\u0441\u0438\u0438, \u043a\u0440\u043e\u043c\u0435 \u043f\u0435\u0440\u0435\u0447\u0438\u0441\u043b\u0435\u043d\u043d\u044b\u0445 \u0432 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u043c \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0435 \u0438 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0445 \u0432\u0435\u0440\u0441\u0438\u0439 \u043f\u043e\u0434\u043f\u043b\u043e\u0449\u0430\u0434\u043e\u043a 10, 11, 139-142, 175. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 \u0437\u0430\u043f\u0443\u0441\u043a\u043e\u043c apply_filters \u0434\u043b\u044f \u0434\u043e\u0441\u0442\u0438\u0436\u0435\u043d\u0438\u044f \u044d\u0444\u0444\u0435\u043a\u0442\u0430.", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_recreate_reports_db", 
+                            "description": "\u041f\u0435\u0440\u0435\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u0443\u0441\u0442\u0443\u044e \u0431\u0430\u0437\u0443 reports", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_register_stable_fileservers", 
+                            "description": "\u041f\u0440\u043e\u043f\u0438\u0441\u0430\u0442\u044c \u0432 \u0411\u0414 \u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 file1-stable, file2-stable.\n\n(\u0427\u0442\u043e\u0431\u044b \u0441\u043e\u0431\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u043a\u043b\u0430\u0441\u0442\u0435\u0440\u0430 file601, file602 \u043f\u0440\u043e\u043f\u0438\u0441\u0430\u043b\u0438\u0441\u044c \u0432 \u0411\u0414, \u0438\u0445 \u043d\u0430\u0434\u043e \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0433\u0430\u043b\u043a\u043e\u0439 file_restart.)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "bd1_ab_test_completed", 
+                            "description": "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c \u043d\u0435 \u0440\u0430\u0441\u043a\u0430\u0442\u0430\u043d\u043d\u044b\u0435 \u043d\u0430 100% \u0430\u0431-\u0442\u0435\u0441\u0442\u044b.", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_pipenv_sync", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_syncdb", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_make_da_superuser_and_set_password", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_bd_to_log_aggregate", 
+                            "description": "\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u0411\u0414 reports \u0434\u0430\u043d\u043d\u044b\u043c\u0438 \u0438\u0437 bd1 (5-10 \u043c\u0438\u043d\u0443\u0442)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_yarn_install", 
+                            "description": "\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c nodejs \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 yarn", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_build_assets", 
+                            "description": "\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0441\u0442\u0430\u0442\u0438\u043a\u0443 (yarn build)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_disable_mailcatcher", 
+                            "description": "\u041d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_enable_mailcatcher", 
+                            "description": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webadmin_put_test_video", 
+                            "description": "\u041f\u043e\u043b\u043e\u0436\u0438\u0442\u044c \u0442\u0435\u0441\u0442\u043e\u0432\u043e\u0435 \u0432\u0438\u0434\u0435\u043e \u043d\u0430 ftp webadmin", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webstat_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webstatpo_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "webstatpm_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_deploy_code", 
+                            "description": "\u0412\u044b\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043a\u043e\u0434", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_make_admin_and_set_password", 
+                            "description": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u0430 \u0441 \u043f\u0430\u0440\u043e\u043b\u0435\u043c dealer/111111", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_pipenv_sync", 
+                            "description": "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043f\u0430\u043a\u0435\u0442\u044b \u0438\u0437 pip-requirements", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_npm_install", 
+                            "description": "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043f\u0430\u043a\u0435\u0442\u044b npm", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_build_doc", 
+                            "description": "\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u044e", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_create_db", 
+                            "description": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0431\u0430\u0437\u0443 dealer", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_recreate_db", 
+                            "description": "\u041f\u0435\u0440\u0435\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0431\u0430\u0437\u0443  dealer", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_syncdb", 
+                            "description": "\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f \u0431\u0430\u0437\u044b \u0434\u0430\u043d\u043d\u044b\u0445", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_collectstatic", 
+                            "description": "\u0421\u0431\u043e\u0440\u043a\u0430 \u0441\u0442\u0430\u0442\u0438\u043a\u0438 \u0434\u043b\u044f \u0430\u0434\u043c\u0438\u043d\u043a\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_api_restart", 
+                            "description": "\u0420\u0435\u0441\u0442\u0430\u0440\u0442\u0430\u043d\u0443\u0442\u044c API", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_admin_restart", 
+                            "description": "\u0420\u0435\u0441\u0442\u0430\u0440\u0442\u0430\u043d\u0443\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u043a\u0443 \u0434\u0438\u043b\u0435\u0440\u043e\u0432", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "dealer_frontend_rebuild", 
+                            "description": "\u041f\u0435\u0440\u0435\u0441\u043e\u0431\u0440\u0430\u0442\u044c \u0441\u0442\u0430\u0442\u0438\u043a\u0443", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_pipenv_sync", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_docs_ignore_warnings", 
+                            "description": "\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0442\u044c \u0441\u0431\u043e\u0440\u043a\u0443 \u043f\u0440\u0438 \u043d\u0430\u043b\u0438\u0447\u0438\u0438 warning-\u043e\u0432", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_apply_content_filters", 
+                            "description": "\u0417\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u043c /www/mapi/golang/apply_filters/bin/apply_filters", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_restore_index_dump", 
+                            "description": "\u0420\u0430\u0437\u0432\u0435\u0440\u043d\u0443\u0442\u044c \u0438\u043d\u0434\u0435\u043a\u0441 \u0438\u0437 \u0434\u0430\u043c\u043f\u0430 \u0432\u0437\u044f\u0442\u043e\u0433\u043e \u0441 \u043f\u0440\u043e\u0434\u0430 (\u0431\u044b\u0441\u0442\u0440\u043e)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_update", 
+                            "description": "\u041f\u0435\u0440\u0435\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0438\u043d\u0434\u0435\u043a\u0441\u044b \u0432 elasticsearch (\u043e\u0447\u0435\u043d\u044c \u0434\u043e\u043b\u0433\u043e)\n - \u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0435\u0441\u043b\u0438 \u043d\u0443\u0436\u043d\u044b \u043a\u0430\u0441\u0442\u043e\u043c\u043d\u044b\u0435 \u0438\u043d\u0434\u0435\u043a\u0441\u044b, \u0432 \u0438\u043d\u043e\u043c \u0441\u043b\u0443\u0447\u0430\u0435 \u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e mapi_restore_index_dump", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_elasticsearch_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_set_config", 
+                            "description": "\u041f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0430 mapi", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapiupdater_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_disable_mailcatcher", 
+                            "description": "\u041d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapi_enable_mailcatcher", 
+                            "description": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher"
+                        }, 
+                        {
+                            "name": "sabacc_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "sabacc_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapiclient_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapiclient_pipenv_sync", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mapiclient_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_pipenv_sync", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_restart_widevine", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_restart_vcas", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_restart_logger", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_pg2redis_adv", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_pg2redis_plans", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cslight_restart_light", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "geo_deploy_code", 
+                            "description": "\u041d\u0430\u043a\u0430\u0442\u0438\u0442\u044c \u043a\u043e\u0434 geoserver", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "geo_build_doc", 
+                            "description": "\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u044e", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "geo_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u0435\u0440\u0432\u0438\u0441", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mad_migrate", 
+                            "description": "\u0417\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c \u043c\u0438\u0433\u0440\u0430\u0446\u0438\u044e BD", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mad_split_cslight_cslight", 
+                            "description": "\u041f\u0440\u043e\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0441\u0435 \u0437\u0430\u043f\u0440\u043e\u0441\u044b \u043d\u0430 http://cslight.lan/ \u0434\u043e \u043f\u043e\u0440\u0442\u0430 8031 (default).", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mad_split_cslight_mad", 
+                            "description": "\u041f\u0440\u043e\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441\u044b \u043d\u0430 http://cslight.lan/ \u0432 \u0442\u0435\u043b\u0435 \u043a\u043e\u0442\u043e\u0440\u044b\u0445 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044f \u0441\u0442\u0440\u043e\u043a\u0430 \u00abda.adv.get\u00bb \u0438 \u043d\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044f \u0441\u0442\u0440\u043e\u043a\u0430 \u00abcontent branding\u00bb \u0432 Mad.", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mad_deploy_code", 
+                            "description": "\u0412\u044b\u043b\u043e\u0436\u0438\u0442\u044c \u0432\u0435\u0442\u043a\u0443 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f mad", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "mad_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a mad", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "profit_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "profit_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "profit_recreate_db", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "profit_restore_dump", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "profit_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_set_config", 
+                            "description": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043a\u043e\u043d\u0444\u0438\u0433 \u043d\u0430 \u0442\u043e\u0442, \u0447\u0442\u043e \u0443\u043a\u0430\u0437\u0430\u043d \u0432 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0435 \u043d\u0438\u0436\u0435. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441 \u0433\u0430\u043b\u043a\u043e\u0439 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430 Pycrement", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "update_pip_req", 
+                            "description": "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 pip", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_restore_dump", 
+                            "description": "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0442\u0430\u0431\u043b\u0438\u0446 \u0441 \u043f\u0440\u043e\u0434\u0430\u043a\u0448\u0435\u043d\u0430", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_update_admin", 
+                            "description": "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u043a\u0443", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_create_admin_superuser", 
+                            "description": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0443\u043f\u0435\u0440\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0430\u0434\u043c\u0438\u043d\u043a\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a pycrement", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_state_notifier_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a pycrement state-notifier (\u041d\u0435 \u0441\u0442\u0430\u0440\u0442\u043e\u0432\u0430\u0442\u044c \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 increment notifier)", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_fns_notifier_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a pycrement fns-notifier", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "pycrement_restart_appstore_mock", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cpa_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "update_cpa_pip_req", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cpa_build_static", 
+                            "description": "\u0421\u0431\u043e\u0440\u043a\u0430 \u0441\u0442\u0430\u0442\u0438\u043a\u0438 \u0434\u043b\u044f \u0430\u0434\u043c\u0438\u043d\u043a\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cpa_build_docs", 
+                            "description": "\u0421\u0431\u043e\u0440\u043a\u0430 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u0438", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cpa_test_notify", 
+                            "description": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u0439", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "cpa_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a cpa", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "fairplay_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "fairplay_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "fairplay_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "gordon_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "gordon_recreate_db", 
+                            "description": "\u041f\u0435\u0440\u0435\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0411\u0414 gordon", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "gordon_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "gordon_build_doc", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_pip_install", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_apply_migrations", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_set_config", 
+                            "description": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043a\u043e\u043d\u0444\u0438\u0433 \u043d\u0430 \u0442\u043e\u0442, \u0447\u0442\u043e \u0443\u043a\u0430\u0437\u0430\u043d \u0432 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0435 \u043d\u0438\u0436\u0435. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441 \u0433\u0430\u043b\u043a\u043e\u0439 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430 Auth", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_set_unbannable", 
+                            "description": "\u0417\u0430\u0434\u0430\u0442\u044c \u0434\u0438\u0430\u043f\u0430\u0437\u043e\u043d\u044b \u0430\u0434\u0440\u0435\u0441\u043e\u0432, \u043d\u0435 \u043f\u043e\u0434\u0432\u0435\u0440\u0433\u0430\u044e\u0449\u0438\u0445\u0441\u044f \u0431\u0430\u043d\u0430\u043c. \u0423\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044c \u0447\u0442\u043e auth_config_name \u0441\u043e\u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u043e\u043c\u0443 \u043a\u043e\u043d\u0444\u0438\u0433\u0443.", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_recreate_db", 
+                            "description": "\u041f\u0435\u0440\u0435\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0411\u0414 auth, \u043e\u0447\u0438\u0441\u0442\u0438\u0442\u044c redis, \u0438 \u0437\u0430\u043e\u0434\u043d\u043e \u043e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0430 UGC", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_create_default_user", 
+                            "description": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0441 email da@ivi.ru, \u043f\u0430\u0440\u043e\u043b\u0435\u043c 111111 \u0438 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043d\u044b\u043c email", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_disable_mailcatcher", 
+                            "description": "\u041d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "auth_enable_mailcatcher", 
+                            "description": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher"
+                        }, 
+                        {
+                            "name": "auth_sms_to_mailcatcher", 
+                            "description": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c Mailcatcher \u0434\u043b\u044f \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u044f sms. \u041f\u0435\u0440\u0435\u0432\u044b\u043a\u043b\u0430\u0434\u043a\u0430 \u043a\u043e\u0434\u0430 \u0431\u0435\u0437 \u044d\u0442\u043e\u0439 \u0433\u0430\u043b\u043a\u0438 \u043e\u0442\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u044d\u0442\u0443 \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u044c"
+                        }, 
+                        {
+                            "name": "aurora_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "aurora_build_doc", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "aurora_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "oauth_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "oauth_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "ugc_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "ugc_pipenv_install", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "ugc_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "ugc_clean_db", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "ugc_restart", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_deploy_pipenv", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_dump_matrix", 
+                            "description": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0434\u0430\u043c\u043f \u043c\u0430\u0442\u0440\u0438\u0446", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_build_docs", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_set_storage_backend", 
+                            "description": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435 \u043d\u0430 \u0442\u043e, \u0447\u0442\u043e \u0443\u043a\u0430\u0437\u0430\u043d\u043e \u0432 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0435 \u043d\u0438\u0436\u0435. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441 \u0433\u0430\u043b\u043a\u043e\u0439 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430 Hydra", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_set_redis_port", 
+                            "description": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043f\u043e\u0440\u0442 redis \u043d\u0430 \u0442\u043e\u0442, \u0447\u0442\u043e \u0443\u043a\u0430\u0437\u0430\u043d \u0432 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0435 \u043d\u0438\u0436\u0435. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441 \u0433\u0430\u043b\u043a\u043e\u0439 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430 Hydra", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_set_mongo_schema", 
+                            "description": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u0445\u0435\u043c\u0443 \u0432 mongo \u043d\u0430 \u0442\u0443, \u0447\u0442\u043e \u0443\u043a\u0430\u0437\u0430\u043d\u0430 \u0432 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0435 \u043d\u0438\u0436\u0435. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441 \u0433\u0430\u043b\u043a\u043e\u0439 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430 Hydra", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "hydra_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a \u0433\u0438\u0434\u0440\u044b", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "echidna_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "echidna_deploy_pipenv", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "echidna_restart", 
+                            "description": "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a \u0435\u0445\u0438\u0434\u043d\u044b", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "vision_deploy_code", 
+                            "description": null, 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "use_payture_mock", 
+                            "description": "\u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0442\u0435\u0441\u0442\u043e\u0432\u0443\u044e \u043e\u043f\u043b\u0430\u0442\u0443", 
+                            "defaultValue": "false"
+                        }, 
+                        {
+                            "name": "force_ssh_on_all_machines", 
+                            "description": "\u0417\u0430\u0441\u0442\u0430\u0432\u0438\u0442\u044c Jenkins \u0437\u0430\u0439\u0442\u0438 \u043f\u043e SSH \u043d\u0430 \u043a\u0430\u0436\u0434\u0443\u044e \u043c\u0430\u0448\u0438\u043d\u0443 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043d \u0437\u0430\u0445\u043e\u0434\u0438\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0442\u0443\u0434\u0430, \u0433\u0434\u0435 \u0432\u044b\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u044b \u0444\u043b\u0430\u0436\u043a\u0438)", 
+                            "defaultValue": "false"
+                        }
+                    ], 
+                    "hudson.model.StringParameterDefinition": [
+                        {
+                            "name": "slack_user_notification", 
+                            "description": "\u0418\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0432 Slack \u043a\u0443\u0434\u0430 \u0431\u0443\u0434\u0435\u0442 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0434\u0436\u043e\u0431\u044b (\u041f\u0443\u0441\u0442\u043e\u0435 \u043f\u043e\u043b\u0435 \u0432\u044b\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0443 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439)", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "da_repo_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "bd1_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "bd1_restore_binary_dump_url", 
+                            "description": null, 
+                            "defaultValue": "http://jenkins.at.netstream.ru/view/Dump/job/DumpPG10-b2b/lastSuccessfulBuild/artifact/da_binary.tar.gz"
+                        }, 
+                        {
+                            "name": "bd1_restore_dump_url", 
+                            "description": null, 
+                            "defaultValue": "http://jenkins.at.netstream.ru/view/Dump/job/DumpPG10-b2b/lastSuccessfulBuild/artifact/da.sql.gz"
+                        }, 
+                        {
+                            "name": "bd1_enable_versions", 
+                            "description": "\u0421\u043f\u0438\u0441\u043e\u043a (\u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e) \u0430\u043f\u043f.\u0432\u0435\u0440\u0441\u0438\u0439, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043d\u0443\u0436\u043d\u043e \u0434\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u043e \u043e\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0432\u043a\u043b\u044e\u0447\u0435\u043d\u043d\u044b\u043c\u0438 \u043f\u0440\u0438 \u0432\u044b\u0431\u043e\u0440\u0435 \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0435\u0439 \u0433\u0430\u043b\u043a\u0438", 
+                            "defaultValue": "870, 449"
+                        }, 
+                        {
+                            "name": "webadmin_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "webadmin_test_video_url", 
+                            "description": null, 
+                            "defaultValue": "http://notkube.dev.ivi.ru/salt/webadmin/test_fix2.mp4"
+                        }, 
+                        {
+                            "name": "dealer_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "mapi_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "mapi_acf_subsite", 
+                            "description": "\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c apply_content_filter \u0441 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u043c --subsite={\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435}", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "mapi_acf_content", 
+                            "description": "\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c apply_content_filter \u0441 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u043c --content={\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435}", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "mapi_restore_index_dump_url", 
+                            "description": null, 
+                            "defaultValue": "http://jenkins.at.netstream.ru/job/Dump_MAPI_Elasticsearch/lastSuccessfulBuild/artifact/"
+                        }, 
+                        {
+                            "name": "sabacc_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "mapiclient_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "name": "cslight_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "geo_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "name": "mad_migrate_options", 
+                            "description": "\u041e\u043f\u0446\u0438\u0438 \u0437\u0430\u043f\u0443\u0441\u043a\u0430 \u0441\u043a\u0440\u0438\u043f\u0442\u0430, \u0447\u0435\u0440\u0435\u0437 \u043f\u0440\u043e\u0431\u0435\u043b.", 
+                            "defaultValue": "--only_active"
+                        }, 
+                        {
+                            "name": "mad_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "profit_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "profit_restore_dump_url", 
+                            "description": null, 
+                            "defaultValue": "http://jenkins.at.netstream.ru/job/Dump_profit_bd/lastSuccessfulBuild/artifact/profit_tables.sql.gz"
+                        }, 
+                        {
+                            "name": "pycrement_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "pycrement_restore_dump_url", 
+                            "description": null, 
+                            "defaultValue": "http://jenkins.at.netstream.ru/job/Dump_pycrement_bd/lastSuccessfulBuild/artifact/pyc.sql.gz"
+                        }, 
+                        {
+                            "name": "cpa_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "fairplay_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "gordon_branch", 
+                            "description": "default:master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "auth_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "auth_unbannable_value", 
+                            "description": "\u0417\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e RATE_LIMITER_UNBANNABLE = ('127.0.0.1/32', '::1/128')", 
+                            "defaultValue": "'127.0.0.1/32', '::1/128', '10.0.0.0/8'", 
+                            "trim": "false"
+                        }, 
+                        {
+                            "name": "aurora_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "oauth_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "ugc_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "hydra_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "hydra_restore_dump_matrix_url", 
+                            "description": null, 
+                            "defaultValue": "http://jenkins.at.netstream.ru/job/DumpHydraMatrix/lastSuccessfulBuild/artifact/hydramatrix.tar.gz"
+                        }, 
+                        {
+                            "name": "hydra_mongo_schema", 
+                            "description": "\u0441\u0445\u0435\u043c\u0430 \u0432 mongo, \u0435\u0441\u043b\u0438 hydra_storage_backend = mongo", 
+                            "defaultValue": "rkostyukov"
+                        }, 
+                        {
+                            "name": "echidna_branch", 
+                            "description": "default: master", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "name": "vision_branch", 
+                            "description": "default: develop", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "name": "PAYTURE_URL", 
+                            "description": "default: https://sandbox3.payture.com", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "name": "BILLING_PROXY_URL", 
+                            "description": "default: http://billing-proxy.dev.ivi.ru/payture", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }
+                    ], 
+                    "hudson.plugins.horizontal__line__parameter.HorizontalLineParameterDefinition": [
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "DA_REPO_", 
+                            "description": "\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 da", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "BD1_", 
+                            "description": "bd1.lan --- \u043e\u0441\u043d\u043e\u0432\u043d\u0430\u044f \u0411\u0414 b2b", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "WEBADMIN_", 
+                            "description": "webadmin.lan --- \u0430\u0434\u043c\u0438\u043d\u043a\u0430", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "WEBSTATS_", 
+                            "description": "adv.lan --- \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0434\u043b\u044f \u0440\u0435\u043a\u043b\u0430\u043c\u043e\u0434\u0430\u0442\u0435\u043b\u0435\u0439 IVI.RU", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "WEBSTATSPO_", 
+                            "description": "stat.lan -- \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0434\u043b\u044f \u043f\u0440\u0430\u0432\u043e\u043e\u0431\u043b\u0430\u0434\u0430\u0442\u0435\u043b\u0435\u0439 IVI.RU", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "WEBSTATSPM_", 
+                            "description": "partnerplus.lan --- \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043f\u043b\u0430\u0442\u0435\u0436\u0430\u043c \u0422\u0412", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "DEALER", 
+                            "description": "dealer.lan, dealer-admin.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "MAPI_", 
+                            "description": "mobile.lan --- MAPI", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "Sabacc_", 
+                            "description": "sabacc.lan --- \u0421\u0435\u0440\u0432\u0438\u0441 \u0434\u043b\u044f A/B \u0442\u0435\u0441\u0442\u043e\u0432", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "MAPICLIENT_", 
+                            "description": "mapiclient.lan --- \u043a\u043b\u0438\u0435\u043d\u0442 Mapi", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "CSLIGHT_", 
+                            "description": "cslight.lan --- \u043b\u0435\u0433\u043a\u0438\u0439 \u0441\u0435\u0440\u0432\u0435\u0440, \u043b\u043e\u0433\u0433\u0435\u0440", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "GEOSERVER_", 
+                            "description": "geo.lan --- \u041d\u043e\u0432\u044b\u0439 geoserver \u043f\u043e \u0441\u0442\u0430\u0440\u043e\u043c\u0443 \u0430\u0434\u0440\u0435\u0441\u0443", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "MAD_", 
+                            "description": "mad.lan - \u0440\u0435\u043a\u043b\u0430\u043c\u043d\u044b\u0439 \u0441\u0435\u0440\u0432\u0435\u0440", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "PROFIT_", 
+                            "description": "profit.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "PYCREMENT", 
+                            "description": "pycrement.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "CPA", 
+                            "description": "cpa.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "FAIRPLAY", 
+                            "description": "fairplay.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "GORDON_", 
+                            "description": "gordon.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "AUTH_", 
+                            "description": "auth.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "Aurora", 
+                            "description": "aurora.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "OAUTH_", 
+                            "description": "oauth.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "UGC_", 
+                            "description": "ugc.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "HYDRA_", 
+                            "description": "hydra.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "ECHIDNA_", 
+                            "description": "echidna.lan", 
+                            "defaultValue": null
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "VISION_", 
+                            "description": "vision.lan", 
+                            "defaultValue": null, 
+                            "trim": "false"
+                        }, 
+                        {
+                            "@plugin": "horizontal-line-parameter@1.0-SNAPSHOT", 
+                            "name": "MISCELLANEOUS_", 
+                            "description": "\u0412\u0441\u044f\u043a\u0438\u0435 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u043e-\u043e\u0442\u043b\u0430\u0434\u043e\u0447\u043d\u044b\u0435 \u0433\u0430\u043b\u043a\u0438", 
+                            "defaultValue": null
+                        }
+                    ]
+}
+}
+}
+}
+}

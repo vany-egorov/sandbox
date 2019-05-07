@@ -1,9 +1,9 @@
 SHELL := /bin/bash
 
-CXX := g++-6
+CXX := g++
 CXXFLAGS := -g
 
-CC:= gcc-6
+CC:= gcc
 # CCFLAGS :=-g -std=c11 -lpthread -lrt
 CCFLAGS := -g -std=gnu11 -lpthread -lrt -fPIC -pthread
 CCFLAGS += -O2
