@@ -18,10 +18,7 @@ PATH_DATA_JSON = "./data.json"
 
 
 # TODO: refactor via map and iterators
-# TODO: check reader type
-def parse(reader, fn):
-    doc = json.load(reader)
-
+def __parse(doc, fn):
     # project
     if "project" not in doc:
         return
@@ -69,6 +66,22 @@ def parse(reader, fn):
             fn(name)
 
 
+# parse string
+# TODO: check raw is string
+def parse_str(raw, fn):
+    # FIXME: basestring is for python2 only!
+    if not isinstance(raw, basestring):
+        return
+
+    __parse(json.loads(raw), fn)
+
+
+# parse string
+# TODO: check reader
+def parse_reader(reader, fn):
+    __parse(json.load(reader), fn)
+
+
 def main():
     # to print
     def fn_printer(s):
@@ -83,13 +96,13 @@ def main():
     # TODO: check if PATH_DATA_JSON is exists and readable
     # 1.
     with open(PATH_DATA_JSON, 'r') as f:
-        parse(f, fn_printer)
+        parse_reader(f, fn_printer)
 
     # TODO: check if PATH_DATA_JSON is exists and readable
     # 2.
     with open(PATH_DATA_JSON, 'r') as f:
         ss = list()
-        parse(f, fn_list_accumulator(ss))
+        parse_reader(f, fn_list_accumulator(ss))
         print(ss)
 
 
