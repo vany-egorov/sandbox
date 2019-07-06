@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  build-rs:
+    build:
+      dockerfile: ./cluster/build-rs/Dockerfile
+      context: ..
+    volumes:
+      - ../:/usr/local/src/011-udp-mpegts
+
+  tsplay:
+    build:
+      dockerfile: ./cluster/tsplay/Dockerfile
+      context: ..
+    volumes:
+      - ../../../c-cpp/04-udp-mpegts/tmp/:/mnt/dumps/

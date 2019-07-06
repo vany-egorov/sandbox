@@ -165,24 +165,24 @@ impl Input for InputUDP {
 
         let input_port = self.url.port().unwrap_or(5500);
 
-        let input_host_ip_v4 = try!(match input_host {
-            Host::Ipv4(v) => Ok(v),
-            _ => Err(Error::new(ErrorKind::InputUrlHostMustBeIpv4, "")),
+        let input_host_domain = try!(match input_host {
+            Host::Domain(v) => Ok(v),
+            _ => Err(Error::new(ErrorKind::InputUrlHostMustBeDomain, "")),
         });
 
-        // let iface = Ipv4Addr::new(0, 0, 0, 0);
-        // let socket = try!(UdpSocket::bind((input_host_ip_v4, input_port)));
+        let iface = Ipv4Addr::new(0, 0, 0, 0);
+        // let socket = try!(UdpSocket::bind((input_host_domain, input_port)));;
 
-        // try!(socket.join_multicast_v4(&input_host_ip_v4, &iface));
+        // let iface = Ipv4Addr::new(127, 0, 0, 1);
+        println!("[<] {:?} : {:?} @ {:?}", input_host_domain, input_port, iface);
 
-        let iface = Ipv4Addr::new(127, 0, 0, 1);
-        println!("[<] {:?} : {:?} @ {:?}", input_host_ip_v4, input_port, iface);
+        let input_host_ip_v4: Ipv4Addr = input_host_domain.parse().unwrap();
 
-        let socket = UdpSocket::bind((input_host_ip_v4, input_port))?;
-        // println!("OK bind");
+        let socket = UdpSocket::bind((input_host_domain, input_port))?;
+        println!("OK bind");
 
-        // socket.join_multicast_v4(&input_host_ip_v4, &iface)?;
-        // println!("OK join");
+        socket.join_multicast_v4(&input_host_ip_v4, &iface)?;
+        println!("OK join");
 
         let pair = self.buf.clone();
         thread::spawn(move || {

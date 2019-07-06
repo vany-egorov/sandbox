@@ -24,7 +24,7 @@ macro_rules! from {
 #[derive(Debug)]
 pub enum Kind {
     InputUrlMissingHost,
-    InputUrlHostMustBeIpv4,
+    InputUrlHostMustBeDomain,
     Io(IoError),
     Encoding(Utf8Error),
 }
@@ -65,7 +65,7 @@ impl StdError for Error {
     fn description(&self) -> &str {
         match self.kind {
             Kind::InputUrlMissingHost => "missing host inside input URL",
-            Kind::InputUrlHostMustBeIpv4 => "provided host must be valid IPv4",
+            Kind::InputUrlHostMustBeDomain => "provided host must be valid domain",
             Kind::Encoding(ref err) => err.description(),
             Kind::Io(ref err) => err.description(),
         }
@@ -74,7 +74,7 @@ impl StdError for Error {
     fn cause(&self) -> Option<&StdError> {
         match self.kind {
             Kind::InputUrlMissingHost => None,
-            Kind::InputUrlHostMustBeIpv4 => None,
+            Kind::InputUrlHostMustBeDomain => None,
             Kind::Encoding(ref err) => Some(err),
             Kind::Io(ref err) => Some(err),
         }
