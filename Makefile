@@ -9,7 +9,6 @@ rsync:
 		-e "ssh -p 2222" \
 		./* \
 		--exclude '.git' \
-		--exclude 'bin' \
 		--exclude 'obj' \
 		--exclude 'target' \
 		--exclude 'node_modules' \
