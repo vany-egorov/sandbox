@@ -57,6 +57,45 @@ pub struct TSHeader {
     cc: u8
 }
 
+#[allow(dead_code)]
+pub struct TSAdaptation {
+    // adaptation-field-length
+    // :8
+    afl: u8,
+
+    // discontinuity-indicator
+    // :1
+    di: u8,
+
+    // random-access-indicator
+    // :1
+    rai: u8,
+
+    // elementary-stream-priority-indicator
+    // :1
+    espi: u8,
+
+    // PCR_flag
+    // :1
+    pcr_flag: u8,
+
+    // OPCR_flag
+    // :1
+    opcr_flag: u8,
+
+    // splicing_point_flag
+    // :1
+    spf: u8,
+
+    // transport_private_data_flag
+    // :1
+    tpdf: u8,
+
+    // adaptation_field_extension_flag
+    // :1
+    afef: u8
+}
+
 
 pub fn parse_ts_sync_byte(input:&[u8]) -> IResult<&[u8], u8> {
   do_parse!(input,
@@ -93,6 +132,11 @@ pub fn parse_ts_header(input:&[u8]) -> IResult<&[u8], TSHeader> {
             cc: b3.3
         })
     )
+}
+
+pub fn parse_ts_adaptation(input:&[u8]) -> /*IResult<&[u8], TSAdaptation>*/Result<()> {
+    // TODO: implement
+    Ok(())
 }
 
 named!(
