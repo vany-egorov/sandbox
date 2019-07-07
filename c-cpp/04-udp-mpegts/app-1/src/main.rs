@@ -265,10 +265,10 @@ fn encode_and_send<T>(tx: &ChannelSyncSender<Message>, aw: &va::AtomWrapper<T>)
 
 
 unsafe extern "C" fn va_parser_parse_cb(ctx: *const c_void, aw: &va::AtomWrapper<*const c_void>) -> c_int {
-    if (*aw).kind == va::AtomKind::MPEGTSHeader   ||
-       (*aw).kind == va::AtomKind::MPEGTSAdaption ||
-       (*aw).kind == va::AtomKind::MPEGTSPES      ||
-       (*aw).kind == va::AtomKind::MPEGTSPSIPAT   ||
+    if (*aw).kind == va::AtomKind::MPEGTSHeader     ||
+       (*aw).kind == va::AtomKind::MPEGTSAdaptation ||
+       (*aw).kind == va::AtomKind::MPEGTSPES        ||
+       (*aw).kind == va::AtomKind::MPEGTSPSIPAT     ||
        // (*aw).kind == va::AtomKind::MPEGTSPSIPMT   ||
        (*aw).kind == va::AtomKind::MPEGTSPSISDT {
         return 0;

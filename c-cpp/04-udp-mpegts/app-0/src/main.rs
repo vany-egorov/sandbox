@@ -30,11 +30,11 @@ pub struct CbCtx {
 
 
 unsafe extern "C" fn va_parser_parse_cb(ctx: *mut c_void, atom: *mut c_void, atom_kind: va::AtomKind, offset: u64) -> c_int {
-    if atom_kind == va::AtomKind::MPEGTSHeader   ||
-       atom_kind == va::AtomKind::MPEGTSAdaption ||
-       atom_kind == va::AtomKind::MPEGTSPES      ||
-       atom_kind == va::AtomKind::MPEGTSPSIPAT   ||
-       atom_kind == va::AtomKind::MPEGTSPSIPMT   ||
+    if atom_kind == va::AtomKind::MPEGTSHeader     ||
+       atom_kind == va::AtomKind::MPEGTSAdaptation ||
+       atom_kind == va::AtomKind::MPEGTSPES        ||
+       atom_kind == va::AtomKind::MPEGTSPSIPAT     ||
+       atom_kind == va::AtomKind::MPEGTSPSIPMT     ||
        atom_kind == va::AtomKind::MPEGTSPSISDT {
         return 0;
     }

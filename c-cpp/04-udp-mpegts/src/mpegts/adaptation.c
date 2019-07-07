@@ -1,7 +1,7 @@
 #include "mpegts.h"
 
 
-void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
+void mpegts_adaptation_parse(MPEGTSAdaptation *it, uint8_t *data) {
 	uint8_t adaptation_field_length	= (uint8_t)data[0];
 	uint8_t discontinuity_indicator = !!( (uint8_t)data[1] & 0x80 );
 	uint8_t random_access_indicator = !!( (uint8_t)data[1] & 0x40 );
@@ -26,7 +26,7 @@ void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data) {
 		mpegts_pcr_parse(&it->PCR, &data[2]);
 }
 
-void mpegts_adaption_sprint_json(MPEGTSAdaption *it, char *buf, size_t bufsz) {
+void mpegts_adaptation_sprint_json(MPEGTSAdaptation *it, char *buf, size_t bufsz) {
 	snprintf(buf, bufsz,
 		"{\"adaptation-field-length\": %d"
 		", \"discontinuity-indicator\": %d"

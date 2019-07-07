@@ -16,7 +16,7 @@ use self::libc::{c_char, c_int, c_void};
 #[derive(PartialEq, Debug, RustcEncodable, RustcDecodable)]
 pub enum AtomKind {
     MPEGTSHeader,
-    MPEGTSAdaption,
+    MPEGTSAdaptation,
     MPEGTSPES,
     MPEGTSPSIPAT,
     MPEGTSPSIPMT,

@@ -12,7 +12,7 @@ void mpegts_header_parse(MPEGTSHeader *it, uint8_t *data) {
 	uint8_t transcport_priority = 0;
 	uint16_t PID = 0;
 	uint8_t transport_scrambling_control = 0;
-	uint8_t adaption_field_control = 0;
+	uint8_t adaptation_field_control = 0;
 	uint8_t contains_payload = 0;
 	uint8_t continuity_counter = 0;
 
@@ -21,7 +21,7 @@ void mpegts_header_parse(MPEGTSHeader *it, uint8_t *data) {
 	transcport_priority = !!( (uint8_t)data[0] & 0x20 );
 	PID = ( (uint16_t)data[0] << 8 | (uint16_t)data[1] ) & 0x1fff;
 	transport_scrambling_control = ((uint8_t)data[2] & 0xc0) >> 6;
-	adaption_field_control = !!( (uint8_t)data[2] & 0x20 );
+	adaptation_field_control = !!( (uint8_t)data[2] & 0x20 );
 	contains_payload = !!( (uint8_t)data[2] & 0x10 );
 	continuity_counter = (uint8_t)data[2] & 0xf;
 
@@ -30,7 +30,7 @@ void mpegts_header_parse(MPEGTSHeader *it, uint8_t *data) {
 	it->transcport_priority = transcport_priority;
 	it->PID = PID;
 	it->transport_scrambling_control = transport_scrambling_control;
-	it->adaption_field_control = adaption_field_control;
+	it->adaptation_field_control = adaptation_field_control;
 	it->contains_payload = contains_payload;
 	it->continuity_counter = continuity_counter;
 }
@@ -42,7 +42,7 @@ void mpegts_header_sprint_json(MPEGTSHeader *it, char *buf, size_t bufsz) {
 		", \"TP\": %d"
 		", \"PID\": 0x%04x / %d"
 		", \"TSC\": 0x%02x"
-		", \"adaption\": %d"
+		", \"adaptation\": %d"
 		", \"payload\": %d"
 		", \"continuity-counter\": %d"
 		"}",
@@ -51,7 +51,7 @@ void mpegts_header_sprint_json(MPEGTSHeader *it, char *buf, size_t bufsz) {
 		it->transcport_priority,
 		it->PID, it->PID,
 		it->transport_scrambling_control,
-		it->adaption_field_control,
+		it->adaptation_field_control,
 		it->contains_payload,
 		it->continuity_counter
 	);

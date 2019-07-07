@@ -65,7 +65,7 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 
 	MPEGTS *ts = NULL;
 	MPEGTSHeader ts_hdr = { 0 };
-	MPEGTSAdaption ts_adaption = { 0 };
+	MPEGTSAdaptation ts_adaptation = { 0 };
 	MPEGTSPES ts_pes = { 0 };
 
 	DemuxerTS *it = NULL;
@@ -81,12 +81,12 @@ static int consume_pkt_raw(void *ctx, uint8_t *buf, size_t bufsz) {
 
 	mpegts_header_parse(&ts_hdr, cursor); cursor += 3;
 
-	if (ts_hdr.adaption_field_control) {
-		mpegts_adaption_parse(&ts_adaption, cursor);
-		/* 1   => ts_adaption.adaptation_field_length;
-		 * ... => adaption payload;
+	if (ts_hdr.adaptation_field_control) {
+		mpegts_adaptation_parse(&ts_adaptation, cursor);
+		/* 1   => ts_adaptation.adaptation_field_length;
+		 * ... => adaptation payload;
 		 */
-		cursor += 1 + ts_adaption.adaptation_field_length;
+		cursor += 1 + ts_adaptation.adaptation_field_length;
 	} else {
 		/* PSI-PAT */
 		if ((!ts->psi_pat) &&

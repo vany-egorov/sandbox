@@ -35,8 +35,8 @@ static inline int db_store(DB *it, Slice *slice, void *item, size_t itemsz, DBAt
 int db_store_mpegts_header(DB *it, MPEGTSHeader *item, uint64_t offset) {
 	return db_store(it, &it->mpegts_headers, item, sizeof(MPEGTSHeader), DB_MPEGTS_HEADER, offset); }
 
-int db_store_mpegts_adaption(DB *it, MPEGTSAdaption *item, uint64_t offset) {
-	return db_store(it, &it->mpegts_adaptions, item, sizeof(MPEGTSAdaption), DB_MPEGTS_ADAPTION, offset); }
+int db_store_mpegts_adaptation(DB *it, MPEGTSAdaptation *item, uint64_t offset) {
+	return db_store(it, &it->mpegts_adaptations, item, sizeof(MPEGTSAdaptation), DB_MPEGTS_ADAPTION, offset); }
 
 int db_store_mpegts_pes(DB *it, MPEGTSPES *item, uint64_t offset) {
 	return db_store(it, &it->mpegts_pess, item, sizeof(MPEGTSPES), DB_MPEGTS_PES, offset); }

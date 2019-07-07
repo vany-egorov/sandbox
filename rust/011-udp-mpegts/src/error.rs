@@ -25,6 +25,8 @@ macro_rules! from {
 pub enum Kind {
     InputUrlMissingHost,
     InputUrlHostMustBeDomain,
+    UDPSocketBind,
+    UDPSocketJoin,
     Io(IoError),
     Encoding(Utf8Error),
 }
@@ -66,6 +68,8 @@ impl StdError for Error {
         match self.kind {
             Kind::InputUrlMissingHost => "missing host inside input URL",
             Kind::InputUrlHostMustBeDomain => "provided host must be valid domain",
+            Kind::UDPSocketBind => "udp-socket bind failed",
+            Kind::UDPSocketJoin => "udp-socket bind failed",
             Kind::Encoding(ref err) => err.description(),
             Kind::Io(ref err) => err.description(),
         }
@@ -75,6 +79,8 @@ impl StdError for Error {
         match self.kind {
             Kind::InputUrlMissingHost => None,
             Kind::InputUrlHostMustBeDomain => None,
+            Kind::UDPSocketBind => None,
+            Kind::UDPSocketJoin => None,
             Kind::Encoding(ref err) => Some(err),
             Kind::Io(ref err) => Some(err),
         }

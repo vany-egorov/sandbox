@@ -58,7 +58,7 @@ $(OBJS-DIR)/mpegts-mpegts.o: ./mpegts/mpegts.c
 $(OBJS-DIR)/mpegts-header.o: ./mpegts/header.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-$(OBJS-DIR)/mpegts-adaption.o: ./mpegts/adaption.c
+$(OBJS-DIR)/mpegts-adaptation.o: ./mpegts/adaptation.c
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
 $(OBJS-DIR)/mpegts-psi.o: ./mpegts/psi.c
@@ -269,7 +269,7 @@ app-1: \
 	$(OBJS-DIR)/db-db.o \
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
-	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-adaptation.o \
 	$(OBJS-DIR)/mpegts-psi.o \
 	$(OBJS-DIR)/mpegts-psi-cat.o \
 	$(OBJS-DIR)/mpegts-psi-nit.o \
@@ -304,7 +304,7 @@ app-2: \
 	$(OBJS-DIR)/db-db.o \
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
-	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-adaptation.o \
 	$(OBJS-DIR)/mpegts-psi.o \
 	$(OBJS-DIR)/mpegts-psi-cat.o \
 	$(OBJS-DIR)/mpegts-psi-nit.o \
@@ -390,7 +390,7 @@ app-3: \
 	\
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
-	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-adaptation.o \
 	$(OBJS-DIR)/mpegts-psi.o \
 	$(OBJS-DIR)/mpegts-psi-cat.o \
 	$(OBJS-DIR)/mpegts-psi-nit.o \
@@ -421,7 +421,7 @@ static: \
 	$(OBJS-DIR)/db-db.o \
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
-	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-adaptation.o \
 	$(OBJS-DIR)/mpegts-psi.o \
 	$(OBJS-DIR)/mpegts-psi-cat.o \
 	$(OBJS-DIR)/mpegts-psi-nit.o \
@@ -453,7 +453,7 @@ dynamic: \
 	$(OBJS-DIR)/db-db.o \
 	$(OBJS-DIR)/mpegts-mpegts.o \
 	$(OBJS-DIR)/mpegts-header.o \
-	$(OBJS-DIR)/mpegts-adaption.o \
+	$(OBJS-DIR)/mpegts-adaptation.o \
 	$(OBJS-DIR)/mpegts-psi.o \
 	$(OBJS-DIR)/mpegts-psi-cat.o \
 	$(OBJS-DIR)/mpegts-psi-nit.o \

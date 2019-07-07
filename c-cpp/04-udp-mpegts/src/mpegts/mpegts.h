@@ -140,7 +140,7 @@ struct mpegts_header_s { /* Transport Packet */
 	uint16_t PID:13;
 	uint8_t
 		transport_scrambling_control:2, /* TSC */
-		adaption_field_control:1,
+		adaptation_field_control:1,
 		contains_payload:1,
 		continuity_counter:4;
 };
@@ -151,8 +151,8 @@ void mpegts_header_sprint_json(MPEGTSHeader *it, char *buf, size_t bufsz);
 void mpegts_header_del(MPEGTSHeader* it);
 
 
-/* adaption.c */
-typedef struct mpegts_adaption_s MPEGTSAdaption;
+/* adaptation.c */
+typedef struct mpegts_adaptation_s MPEGTSAdaptation;
 typedef struct mpegts_PCR_s MPEGTSPCR;
 
 // Program Clock Reference
@@ -161,7 +161,7 @@ struct mpegts_PCR_s {
 	uint16_t ext:9;
 };
 
-struct mpegts_adaption_s {
+struct mpegts_adaptation_s {
 	uint8_t
 		adaptation_field_length:8,
 		discontinuity_indicator:1,
@@ -176,8 +176,8 @@ struct mpegts_adaption_s {
 	MPEGTSPCR PCR;
 };
 
-void mpegts_adaption_parse(MPEGTSAdaption *it, uint8_t *data);
-void mpegts_adaption_sprint_json(MPEGTSAdaption *it, char *buf, size_t bufsz);
+void mpegts_adaptation_parse(MPEGTSAdaptation *it, uint8_t *data);
+void mpegts_adaptation_sprint_json(MPEGTSAdaptation *it, char *buf, size_t bufsz);
 
 void mpegts_pcr_parse(MPEGTSPCR *it, uint8_t *data);
 void mpegts_pcr_sprint_json(MPEGTSPCR *it, char *buf, size_t bufsz);

@@ -5,8 +5,6 @@ services:
     build:
       dockerfile: ./cluster/build-rs/Dockerfile
       context: ..
-    volumes:
-      - ../:/usr/local/src/011-udp-mpegts
 
   tsplay:
     build:

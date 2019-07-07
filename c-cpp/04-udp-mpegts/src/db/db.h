@@ -22,7 +22,7 @@ struct db_s {
 	Slice atoms;
 
 	Slice mpegts_headers;
-	Slice mpegts_adaptions;
+	Slice mpegts_adaptations;
 	Slice mpegts_pess;
 	Slice mpegts_psi_pats;
 	Slice mpegts_psi_pmts;
@@ -67,12 +67,12 @@ struct db_atom_s {
 
 int db_new(DB **out);
 
-int db_store_mpegts_header  (DB *it, MPEGTSHeader   *item, uint64_t offset);  /* TS transport packet */
-int db_store_mpegts_adaption(DB *it, MPEGTSAdaption *item, uint64_t offset);  /* TS Adaption */
-int db_store_mpegts_pes     (DB *it, MPEGTSPES      *item, uint64_t offset);  /* PES packet */
-int db_store_mpegts_psi_pat (DB *it, MPEGTSPSIPAT   *item, uint64_t offset);  /* Program Association Table */
-int db_store_mpegts_psi_pmt (DB *it, MPEGTSPSIPMT   *item, uint64_t offset);  /* Program Map Table */
-int db_store_mpegts_psi_sdt (DB *it, MPEGTSPSISDT   *item, uint64_t offset);  /* Service Description Table */
+int db_store_mpegts_header    (DB *it, MPEGTSHeader   *item, uint64_t offset);  /* TS transport packet */
+int db_store_mpegts_adaptation(DB *it, MPEGTSAdaptation *item, uint64_t offset);  /* TS Adaptation */
+int db_store_mpegts_pes       (DB *it, MPEGTSPES      *item, uint64_t offset);  /* PES packet */
+int db_store_mpegts_psi_pat   (DB *it, MPEGTSPSIPAT   *item, uint64_t offset);  /* Program Association Table */
+int db_store_mpegts_psi_pmt   (DB *it, MPEGTSPSIPMT   *item, uint64_t offset);  /* Program Map Table */
+int db_store_mpegts_psi_sdt   (DB *it, MPEGTSPSISDT   *item, uint64_t offset);  /* Service Description Table */
 
 int db_store_h264          (DB *it, H264NAL         *nal,  uint64_t offset);
 int db_store_h264_sps      (DB *it, H264NALSPS      *item, uint64_t offset); /* H264 Sequence Parameter Set */

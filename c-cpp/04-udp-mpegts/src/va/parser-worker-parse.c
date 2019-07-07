@@ -20,7 +20,7 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 	MPEGTS *mpegts = &it->mpegts;
 	MPEGTSPSIPMTProgramElement *mpegts_psi_pmt_program_element = NULL;
 	MPEGTSHeader mpegts_header = { 0 };
-	MPEGTSAdaption mpegts_adaption = { 0 };
+	MPEGTSAdaptation mpegts_adaptation = { 0 };
 	MPEGTSPSIPMT mpegts_pmt = { 0 };
 	MPEGTSPSI mpegts_psi = { 0 };
 	char sbuf[255] = { 0 };
@@ -32,14 +32,14 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 	/* db_store_mpegts_header(it->db, &mpegts_header, it->offset+1); */
 	exec_cb(it, &mpegts_header, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+1);
 
-	if (mpegts_header.adaption_field_control) {
-		mpegts_adaption_parse(&mpegts_adaption, &msg[i+4]);
-		/* if (it->cb) it->cb(it->cb_ctx, &mpegts_adaption, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+4); */
-		/* db_store_mpegts_adaption(it->db, &mpegts_adaption, it->offset+4); */
-		exec_cb(it, &mpegts_adaption, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+4);
+	if (mpegts_header.adaptation_field_control) {
+		mpegts_adaptation_parse(&mpegts_adaptation, &msg[i+4]);
+		/* if (it->cb) it->cb(it->cb_ctx, &mpegts_adaptation, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+4); */
+		/* db_store_mpegts_adaptation(it->db, &mpegts_adaptation, it->offset+4); */
+		exec_cb(it, &mpegts_adaptation, VA_ATOM_KIND_MPEGTS_HEADER, it->offset+4);
 
-		if (mpegts_adaption.PCR_flag)
-			mpegts_pcr_sprint_json(&mpegts_adaption.PCR, sbuf, sizeof(sbuf));
+		if (mpegts_adaptation.PCR_flag)
+			mpegts_pcr_sprint_json(&mpegts_adaptation.PCR, sbuf, sizeof(sbuf));
 	}
 
 	// PSI-PAT
@@ -79,8 +79,8 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 	if (mpegts_header.contains_payload) {
 		if (mpegts_header.payload_unit_start_indicator) {
 			int pes_offset = i + 4;
-			if (mpegts_header.adaption_field_control)
-				pes_offset = pes_offset + mpegts_adaption.adaptation_field_length + 1;
+			if (mpegts_header.adaptation_field_control)
+				pes_offset = pes_offset + mpegts_adaptation.adaptation_field_length + 1;
 
 			MPEGTSPES mpegts_pes = { 0 };
 			if (!mpegts_pes_parse(&mpegts_pes, &msg[pes_offset])) {
@@ -128,8 +128,8 @@ static void on_msg(VAParserWorkerParse *it, uint8_t *msg) {
 			}
 		} else {
 			int es_offset = i + 4;
-			if (mpegts_header.adaption_field_control)
-				es_offset = es_offset + mpegts_adaption.adaptation_field_length + 1;
+			if (mpegts_header.adaptation_field_control)
+				es_offset = es_offset + mpegts_adaptation.adaptation_field_length + 1;
 			int es_length = MPEGTS_PACKET_SIZE - es_offset;
 
 			if (mpegts_header.PID == it->video_PID_H264) {

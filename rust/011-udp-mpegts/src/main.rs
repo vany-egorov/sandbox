@@ -45,7 +45,7 @@ pub struct TSHeader {
     // :2
     tsc: u8,
 
-    // adaption-field-control
+    // adaptation-field-control
     // :1
     afc: u8,
 
@@ -174,15 +174,18 @@ impl Input for InputUDP {
         // let socket = try!(UdpSocket::bind((input_host_domain, input_port)));;
 
         // let iface = Ipv4Addr::new(127, 0, 0, 1);
-        println!("[<] {:?} : {:?} @ {:?}", input_host_domain, input_port, iface);
+        println!("[<] {:?}: {:?} @ {:?}", input_host_domain, input_port, iface);
 
         let input_host_ip_v4: Ipv4Addr = input_host_domain.parse().unwrap();
 
         let socket = UdpSocket::bind((input_host_domain, input_port))?;
         println!("OK bind");
 
-        socket.join_multicast_v4(&input_host_ip_v4, &iface)?;
-        println!("OK join");
+        if socket.join_multicast_v4(&input_host_ip_v4, &iface).is_err() {
+            eprintln!("ERR join");
+        } else {
+            println!("OK join");
+        }
 
         let pair = self.buf.clone();
         thread::spawn(move || {

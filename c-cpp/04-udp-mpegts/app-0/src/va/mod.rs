@@ -14,7 +14,7 @@ use libc::{c_char, c_int, c_void};
 #[derive(PartialEq, Debug)]
 pub enum AtomKind {
     MPEGTSHeader,
-    MPEGTSAdaption,
+    MPEGTSAdaptation,
     MPEGTSPES,
     MPEGTSPSIPAT,
     MPEGTSPSIPMT,

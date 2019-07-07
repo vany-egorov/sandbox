@@ -1,9 +1,9 @@
-const MPEGTSHeader   = 0 // Symbol("MPEGTSHeader")
-const MPEGTSAdaption = 1 // Symbol("MPEGTSAdaption")
-const MPEGTSPES      = 2 // Symbol("MPEGTSPES")
-const MPEGTSPSIPAT   = 3 // Symbol("MPEGTSPSIPAT")
-const MPEGTSPSIPMT   = 4 // Symbol("MPEGTSPSIPMT")
-const MPEGTSPSISDT   = 5 // Symbol("MPEGTSPSISDT")
+const MPEGTSHeader     = 0 // Symbol("MPEGTSHeader")
+const MPEGTSAdaptation = 1 // Symbol("MPEGTSAdaptation")
+const MPEGTSPES        = 2 // Symbol("MPEGTSPES")
+const MPEGTSPSIPAT     = 3 // Symbol("MPEGTSPSIPAT")
+const MPEGTSPSIPMT     = 4 // Symbol("MPEGTSPSIPMT")
+const MPEGTSPSISDT     = 5 // Symbol("MPEGTSPSISDT")
 
 const H264SPS      = 10 // Symbol("H264SPS")
 const H264PPS      = 11 // Symbol("H264PPS")
@@ -16,7 +16,7 @@ function parse(v) {
   case 0:
     return MPEGTSHeader
   case 1:
-    return MPEGTSAdaption
+    return MPEGTSAdaptation
   case 2:
     return MPEGTSPES
   case 3:
@@ -45,8 +45,8 @@ function toString(v) {
   switch (v) {
   case MPEGTSHeader:
     return "mpegts-header"
-  case MPEGTSAdaption:
-    return "mpegts-adaption"
+  case MPEGTSAdaptation:
+    return "mpegts-adaptation"
   case MPEGTSPES:
     return "mpegts-pes"
   case MPEGTSPSIPAT:
@@ -73,7 +73,7 @@ function toString(v) {
 
 function isMPEGTS(v) {
   if ((v == MPEGTSHeader) ||
-      (v == MPEGTSAdaption) ||
+      (v == MPEGTSAdaptation) ||
       (v == MPEGTSPES) ||
       (v == MPEGTSPSIPAT) ||
       (v == MPEGTSPSIPMT) ||
@@ -98,7 +98,7 @@ function isH264(v) {
 
 export default {
   MPEGTSHeader,
-  MPEGTSAdaption,
+  MPEGTSAdaptation,
   MPEGTSPES,
   MPEGTSPSIPAT,
   MPEGTSPSIPMT,
