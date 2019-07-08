@@ -29,7 +29,6 @@ const TS_PID_SDT: u16 = 0x0011;
 const TS_PID_NULL: u16 = 0x1FFF;
 
 
-#[allow(dead_code)]
 pub struct TSHeader {
     // transcport-error-indicator
     // :1
@@ -64,7 +63,6 @@ pub struct TSHeader {
     cc: u8
 }
 
-#[allow(dead_code)]
 pub struct TSAdaptation {
     // adaptation-field-length
     // :8
@@ -82,25 +80,99 @@ pub struct TSAdaptation {
     // :1
     espi: u8,
 
-    // PCR_flag
+    // PCR-flag
     // :1
     pcr_flag: u8,
 
-    // OPCR_flag
+    // OPCR-flag
     // :1
     opcr_flag: u8,
 
-    // splicing_point_flag
+    // splicing-point-flag
     // :1
     spf: u8,
 
-    // transport_private_data_flag
+    // transport-private-data-flag
     // :1
     tpdf: u8,
 
-    // adaptation_field_extension_flag
+    // adaptation-field-extension-flag
     // :1
     afef: u8
+}
+
+// Program Specific Information
+pub struct TSPSI {
+    /* header */
+
+    // :8
+    table_id: u8,
+
+    // section-syntax-indicator
+    // :1
+    ssi: u8,
+
+    // :1
+    private_bit: u8,
+
+    // :2
+    reserved_bits: u8,
+
+    // section-length-unused-bits
+    // :2
+    slub: u8,
+
+    // section-length
+    //
+    // This is a 12-bit field, the first two bits of which shall be "00".
+    // It specifies the number of bytes of the
+    // section, starting immediately following
+    // the section_length field and including the CRC.
+    // The section_length shall not
+    // exceed 1 021 so that the entire section has a maximum length
+    // of 1 024 bytes.
+    //
+    // :10
+    section_length: u16,
+
+    /* table syntax section */
+
+    // transport-stream-id
+    // :16
+    tsi: u16,
+
+    // :2
+
+    // version-number
+    // :5
+    vn: u8,
+
+    // curent-next-indicator
+    // :1
+    cni: u8,
+
+    // section-number
+    // :8
+    sn: u8,
+
+    // last-section-number
+    // :8
+    lsn: u8,
+
+    // :32
+    crc32: u32
+}
+
+pub struct TSPSIPAT {
+    psi: TSPSI,
+
+    // Relates to the Table ID extension in the associated PMT.
+    // A value of 0 is reserved for a NIT packet identifier.
+    program_number: u16,
+
+    // The packet identifier that
+    // contains the associated PMT
+    program_map_pid: u16
 }
 
 
@@ -166,6 +238,57 @@ pub fn parse_ts_adaptation(input:&[u8]) -> IResult<&[u8], TSAdaptation> {
             spf: b2.5,
             tpdf: b2.6,
             afef: b2.7,
+        })
+    )
+}
+
+pub fn parse_ts_psi(input:&[u8]) -> IResult<&[u8], TSPSI> {
+    do_parse!(input,
+        b1: bits!(take_bits!(u8, 8)) >>
+        b2: bits!(tuple!(
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 2),
+            take_bits!(u8, 2),
+            take_bits!(u8, 2)
+        )) >>
+        b3: bits!(take_bits!(u8, 8)) >>
+        b4: bits!(take_bits!(u8, 8)) >>
+        b5: bits!(take_bits!(u8, 8)) >>
+        b6: bits!(tuple!(
+            take_bits!(u8, 2),
+            take_bits!(u8, 5),
+            take_bits!(u8, 1)
+        )) >>
+        b7: bits!(take_bits!(u8, 8)) >>
+        b8: bits!(take_bits!(u8, 8)) >>
+
+        (TSPSI{
+            table_id: b1,
+
+            ssi: b2.0,
+            private_bit: b2.1,
+            reserved_bits: b2.2,
+            slub: b2.3,
+            section_length: ((b2.4 as u16) << 8) | b3 as u16,
+
+            tsi: ((b4 as u16) << 8) | b5 as u16,
+
+            vn: b6.1,
+            cni: b6.2,
+
+            sn: b7,
+            lsn: b8,
+
+            // 3 bytes of PSI header
+            // [0, 1, 2, ..., -3, -2, -1, -0]
+            // e.g. section-length = 5;
+            //      [0, 1, 2, 3  , 4      , 5      , 6      , 7]
+            //      [header, ...
+            //          ..., data, crc32-0, crc32-1, crc32-2, crc32-3]
+            //      => section starts at data[3] where 3 is 2 + 1
+            //      => crc32-i = 7 = 2 + section-length
+            crc32: 0
         })
     )
 }
