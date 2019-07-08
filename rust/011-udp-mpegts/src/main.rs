@@ -21,6 +21,13 @@ use error::{Result, Error, Kind as ErrorKind};
 const TS_SYNC_BYTE: u8 = 0x47;
 const TS_PKT_SZ: usize = 188;
 
+const TS_PID_PAT: u16 = 0x0000;
+const TS_PID_CAT: u16 = 0x0001;
+const TS_PID_TSDT: u16 = 0x0002;
+const TS_PID_CIT: u16 = 0x0003;
+const TS_PID_SDT: u16 = 0x0011;
+const TS_PID_NULL: u16 = 0x1FFF;
+
 
 #[allow(dead_code)]
 pub struct TSHeader {
@@ -129,14 +136,38 @@ pub fn parse_ts_header(input:&[u8]) -> IResult<&[u8], TSHeader> {
             tsc: b3.0,
             afc: b3.1,
             contains_payload: b3.2,
-            cc: b3.3
+            cc: b3.3,
         })
     )
 }
 
-pub fn parse_ts_adaptation(input:&[u8]) -> /*IResult<&[u8], TSAdaptation>*/Result<()> {
-    // TODO: implement
-    Ok(())
+pub fn parse_ts_adaptation(input:&[u8]) -> IResult<&[u8], TSAdaptation> {
+    do_parse!(input,
+        b1: bits!(take_bits!(u8, 8)) >>
+        b2: bits!(tuple!(
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1)
+        )) >>
+
+        (TSAdaptation{
+            afl: b1,
+
+            di: b2.0,
+            rai: b2.1,
+            espi: b2.2,
+            pcr_flag: b2.3,
+            opcr_flag: b2.4,
+            spf: b2.5,
+            tpdf: b2.6,
+            afef: b2.7,
+        })
+    )
 }
 
 named!(
@@ -222,13 +253,10 @@ impl Input for InputUDP {
 
         let input_host_ip_v4: Ipv4Addr = input_host_domain.parse().unwrap();
 
-        let socket = UdpSocket::bind((input_host_domain, input_port))?;
-        println!("OK bind");
+        let socket = try!(UdpSocket::bind((input_host_domain, input_port)));
 
-        if socket.join_multicast_v4(&input_host_ip_v4, &iface).is_err() {
-            eprintln!("ERR join");
-        } else {
-            println!("OK join");
+        if let Err(e) = socket.join_multicast_v4(&input_host_ip_v4, &iface) {
+            eprintln!("error join-multiocast-v4: {}", e);
         }
 
         let pair = self.buf.clone();
@@ -266,23 +294,55 @@ impl Input for InputUDP {
     fn read(&mut self) -> Result<()> {
         let pair = self.buf.clone();
         let &(ref lock, ref cvar) = &*pair;
-        let mut buf = lock.lock().unwrap();
+        let mut buf = try!(lock.lock()
+            .ok()
+            .ok_or(Error::new(ErrorKind::SyncPoison, "udp read lock error")));
 
-        buf = cvar.wait(buf).unwrap();
+        buf = try!(cvar.wait(buf)
+            .ok()
+            .ok_or(Error::new(ErrorKind::SyncPoison, "udp read cwar wait erorr")));
 
         while !buf.is_empty() {
+            // TODO: move to function;
             let ts_pkt_raw = buf.pop_front().unwrap();
 
-            let res = parse_ts_single(&ts_pkt_raw);
-            match res {
-                Ok((_, (_, ts_header, _))) => {
-                    println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
-                },
-                _  => {
-                    println!("error or incomplete cap: {:?}, len: {:?}, data: 0x{:02X?}{:02X?}{:02X?}",
-                        buf.capacity(), buf.len(), ts_pkt_raw[0], ts_pkt_raw[1], ts_pkt_raw[2]);
-                }
+            let (_, (_, ts_header, ts_pkt_raw_tail)) = try!(parse_ts_single(&ts_pkt_raw));
+            if ts_header.afc == 1 {
+                println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+
+                let (_, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw_tail));
+                println!("adaptation (:pcr? {:?} :adaptation-field-length {:?})",
+                    ts_adaptation.pcr_flag,
+                    ts_adaptation.afl);
             }
+
+            if ts_header.pid == TS_PID_PAT {
+                println!("<<< got PAT");
+            }
+
+            // match res {
+            //     Ok((_, (_, ts_header, ts_pkt_tail))) => {
+            //         if ts_header.afc == 1 {
+            //             println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
+
+            //             let res = parse_ts_adaptation(&ts_pkt_tail);
+            //             match res {
+            //                 Ok((ts_pkt_tail, ts_adaptation)) => {
+            //                     println!("adaptation (:pcr? {:?} :adaptation-field-length {:?})",
+            //                         ts_adaptation.pcr_flag,
+            //                         ts_adaptation.afl);
+            //                 },
+            //                 _ => {}
+            //             }
+            //         } else {
+
+            //         }
+            //     },
+            //     _  => {
+            //         println!("error or incomplete cap: {:?}, len: {:?}, data: 0x{:02X?}{:02X?}{:02X?}",
+            //             buf.capacity(), buf.len(), ts_pkt_raw[0], ts_pkt_raw[1], ts_pkt_raw[2]);
+            //     }
+            // }
         }
 
         Ok(())

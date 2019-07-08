@@ -17,20 +17,24 @@ RUN echo "fn main() {println!(\"---\")}" > ./src/main.rs
 COPY ./Cargo.toml ./
 RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   build \
+  --release \
   --target=x86_64-unknown-linux-musl
 
 RUN rm -rvf ./target/x86_64-unknown-linux-musl/debug/deps/udp-mpegts*
 RUN rm -rvf ./target/x86_64-unknown-linux-musl/debug/udp-mpegts*
+RUN rm -rvf ./target/x86_64-unknown-linux-musl/release/deps/udp-mpegts*
+RUN rm -rvf ./target/x86_64-unknown-linux-musl/release/udp-mpegts*
 RUN rm -rvf ./src/*
 
 COPY ./src/* ./src/
 RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   build \
+  --release \
   --target=x86_64-unknown-linux-musl
 
 # -------------------------------------
 FROM alpine:latest
 
-COPY --from=build-rs /usr/local/src/udp-mpegts/target/x86_64-unknown-linux-musl/debug/udp-mpegts /usr/local/bin/udp-mpegts
+COPY --from=build-rs /usr/local/src/udp-mpegts/target/x86_64-unknown-linux-musl/release/udp-mpegts /usr/local/bin/udp-mpegts
 
 CMD ["udp-mpegts", "--input", "udp://239.255.1.1:5500"]

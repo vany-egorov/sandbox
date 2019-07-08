@@ -5,6 +5,7 @@ use std::str::Utf8Error;
 use std::io::Error as IoError;
 use std::error::Error as StdError;
 use std::result::Result as StdResult;
+use nom;
 
 
 pub type Result<T> = StdResult<T, Error>;
@@ -29,6 +30,10 @@ pub enum Kind {
     UDPSocketJoin,
     Io(IoError),
     Encoding(Utf8Error),
+    Nom,        // TODO: rewrite
+    SyncPoison, // TODO: rewrite
+
+    Unknown(Box<StdError + Send + Sync>),
 }
 
 pub struct Error {
@@ -45,6 +50,13 @@ impl Error {
             details: details.into(),
         }
     }
+
+    // pub fn into_box(self) -> Box<StdError> {
+    //     match self.kind {
+    //         Kind::Unknown(err) => err,
+    //         _ => Box::new(self),
+    //     }
+    // }
 }
 
 impl fmt::Display for Error {
@@ -69,9 +81,13 @@ impl StdError for Error {
             Kind::InputUrlMissingHost => "missing host inside input URL",
             Kind::InputUrlHostMustBeDomain => "provided host must be valid domain",
             Kind::UDPSocketBind => "udp-socket bind failed",
-            Kind::UDPSocketJoin => "udp-socket bind failed",
+            Kind::UDPSocketJoin => "udp-socket join failed",
             Kind::Encoding(ref err) => err.description(),
             Kind::Io(ref err) => err.description(),
+            Kind::Nom => "nom parser error",
+            Kind::SyncPoison => "sync lock/condvar poison error",
+
+            Kind::Unknown(ref err) => err.description(),
         }
     }
 
@@ -83,6 +99,10 @@ impl StdError for Error {
             Kind::UDPSocketJoin => None,
             Kind::Encoding(ref err) => Some(err),
             Kind::Io(ref err) => Some(err),
+            Kind::Nom => None,
+            Kind::SyncPoison => None,
+
+            Kind::Unknown(ref err) => Some(err.as_ref()),
         }
     }
 }
@@ -90,13 +110,19 @@ impl StdError for Error {
 from!(Utf8Error, Kind::Encoding);
 from!(IoError, Kind::Io);
 
-// impl From<mio::channel::SendError<Command>> for Error {
+impl From<nom::Err<&[u8]>> for Error {
+    fn from(err: nom::Err<&[u8]>) -> Error {
+        match err {
+            _ => Error::new(Kind::Nom, "")
+        }
+    }
+}
 
-//     fn from(err: mio::channel::SendError<Command>) -> Error {
-//         match err {
-//             mio::channel::SendError::Io(err) => Error::from(err),
-//             _ => Error::new(Kind::Queue(err), "")
-//         }
-//     }
+impl<B> From<Box<B>> for Error
+    where B: StdError + Send + Sync + 'static
+{
+    fn from(err: Box<B>) -> Error {
+        Error::new(Kind::Unknown(err), "")
+    }
+}
 
-// }
