@@ -65,6 +65,16 @@ pub struct TSHeader {
 
 #[allow(dead_code)]
 #[derive(Debug)]
+pub struct TSPCR {
+    // :33
+    base: u64,
+
+    // :9
+    ext: u16,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
 pub struct TSAdaptation {
     // adaptation-field-length
     // :8
@@ -101,6 +111,8 @@ pub struct TSAdaptation {
     // adaptation-field-extension-flag
     // :1
     afef: u8,
+
+    pcr: Option<TSPCR>,
 }
 
 // Program Specific Information
@@ -174,149 +186,184 @@ pub struct TSPSIPAT {
     program_map_pid: u16,
 }
 
-pub fn parse_ts_sync_byte(input: &[u8]) -> IResult<&[u8], u8> {
-    do_parse!(
-        input,
-        sync_byte: tag!(&[TS_SYNC_BYTE]) >> (*sync_byte.first().unwrap())
-    )
-}
-
+#[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
-    do_parse!(
-        input,
+    do_parse!(input,
         b1: bits!(tuple!(
             take_bits!(u8, 1),
             take_bits!(u8, 1),
             take_bits!(u8, 1),
             take_bits!(u8, 5)
-        )) >> b2: bits!(take_bits!(u8, 8))
-            >> b3: bits!(tuple!(
-                take_bits!(u8, 2),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 4)
-            ))
-            >> (TSHeader {
-                tei: b1.0,
-                pusi: b1.1,
-                tp: b1.2,
-                pid: ((b1.3 as u16) << 8) | b2 as u16,
-                tsc: b3.0,
-                afc: b3.1,
-                contains_payload: b3.2,
-                cc: b3.3,
-            })
+        ))
+        >> b2: bits!(take_bits!(u8, 8))
+        >> b3: bits!(tuple!(
+            take_bits!(u8, 2),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 4)
+        ))
+
+        >> (TSHeader {
+            tei: b1.0,
+            pusi: b1.1,
+            tp: b1.2,
+            pid: ((b1.3 as u16) << 8) | b2 as u16,
+            tsc: b3.0,
+            afc: b3.1,
+            contains_payload: b3.2,
+            cc: b3.3,
+        })
     )
 }
 
-pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {
-    do_parse!(
-        input,
-        b1: bits!(take_bits!(u8, 8))
-            >> b2: bits!(tuple!(
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 1)
-            ))
-            >> (TSAdaptation {
-                afl: b1,
+#[cfg_attr(rustfmt, rustfmt_skip)]
+pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {;
+    let (input, mut ts_adaptation) = try!(do_parse!(input,
+           b1: bits!(take_bits!(u8, 8))
+        >> b2: bits!(tuple!(
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 1)
+        ))
 
-                di: b2.0,
-                rai: b2.1,
-                espi: b2.2,
-                pcr_flag: b2.3,
-                opcr_flag: b2.4,
-                spf: b2.5,
-                tpdf: b2.6,
-                afef: b2.7,
-            })
-    )
+        >> (TSAdaptation {
+            afl: b1,
+
+            di: b2.0,
+            rai: b2.1,
+            espi: b2.2,
+            pcr_flag: b2.3,
+            opcr_flag: b2.4,
+            spf: b2.5,
+            tpdf: b2.6,
+            afef: b2.7,
+
+            pcr: None,
+        })
+    ));
+
+    if ts_adaptation.pcr_flag == 0 {
+        return Ok((input, ts_adaptation))
+    }
+
+    let (input, ts_pcr) = try!(do_parse!(input,
+           b1: bits!(take_bits!(u8, 8))
+        >> b2: bits!(take_bits!(u8, 8))
+        >> b3: bits!(take_bits!(u8, 8))
+        >> b4: bits!(take_bits!(u8, 8))
+        >> b5: bits!(take_bits!(u8, 1))
+
+        >> _b5_6: bits!(take_bits!(u8, 6))
+
+        >> b6: bits!(take_bits!(u8, 1))
+        >> b7: bits!(take_bits!(u8, 8))
+
+        >> (TSPCR {
+            base: (
+                ((b1 as u64) << 25) |
+                ((b2 as u64) << 17) |
+                ((b3 as u64) << 9) |
+                ((b4 as u64) << 1) |
+                 (b5 as u64)
+            ),
+            ext: (
+                ((b6 as u16) << 8) |
+                 (b7 as u16)
+            ),
+        })
+    ));
+
+    ts_adaptation.pcr = Some(ts_pcr);
+
+    Ok((input, ts_adaptation))
 }
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
-    do_parse!(
-        input,
-        b1: bits!(take_bits!(u8, 8))
-            >> b2: bits!(tuple!(
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 2),
-                take_bits!(u8, 2),
-                take_bits!(u8, 2)
-            ))
-            >> b3: bits!(take_bits!(u8, 8))
-            >> b4: bits!(take_bits!(u8, 8))
-            >> b5: bits!(take_bits!(u8, 8))
-            >> b6: bits!(tuple!(
-                take_bits!(u8, 2),
-                take_bits!(u8, 5),
-                take_bits!(u8, 1)
-            ))
-            >> b7: bits!(take_bits!(u8, 8))
-            >> b8: bits!(take_bits!(u8, 8))
-            >> (TSPSI {
-                table_id: b1,
+    do_parse!(input,
+           b1: bits!(take_bits!(u8, 8))
+        >> b2: bits!(tuple!(
+            take_bits!(u8, 1),
+            take_bits!(u8, 1),
+            take_bits!(u8, 2),
+            take_bits!(u8, 2),
+            take_bits!(u8, 2)
+        ))
+        >> b3: bits!(take_bits!(u8, 8))
+        >> b4: bits!(take_bits!(u8, 8))
+        >> b5: bits!(take_bits!(u8, 8))
+        >> b6: bits!(tuple!(
+            take_bits!(u8, 2),
+            take_bits!(u8, 5),
+            take_bits!(u8, 1)
+        ))
+        >> b7: bits!(take_bits!(u8, 8))
+        >> b8: bits!(take_bits!(u8, 8))
 
-                ssi: b2.0,
-                private_bit: b2.1,
-                reserved_bits: b2.2,
-                slub: b2.3,
-                section_length: ((b2.4 as u16) << 8) | b3 as u16,
+        >> (TSPSI {
+            table_id: b1,
 
-                tsi: ((b4 as u16) << 8) | b5 as u16,
+            ssi: b2.0,
+            private_bit: b2.1,
+            reserved_bits: b2.2,
+            slub: b2.3,
+            section_length: ((b2.4 as u16) << 8) | b3 as u16,
 
-                vn: b6.1,
-                cni: b6.2,
+            tsi: ((b4 as u16) << 8) | b5 as u16,
 
-                sn: b7,
-                lsn: b8,
+            vn: b6.1,
+            cni: b6.2,
 
-                // 3 bytes of PSI header
-                // [0, 1, 2, ..., -3, -2, -1, -0]
-                // e.g. section-length = 5;
-                //      [0, 1, 2, 3  , 4      , 5      , 6      , 7]
-                //      [header, ...
-                //          ..., data, crc32-0, crc32-1, crc32-2, crc32-3]
-                //      => section starts at data[3] where 3 is 2 + 1
-                //      => crc32-i = 7 = 2 + section-length
-                crc32: 0
-            })
+            sn: b7,
+            lsn: b8,
+
+            // 3 bytes of PSI header
+            // [0, 1, 2, ..., -3, -2, -1, -0]
+            // e.g. section-length = 5;
+            //      [0, 1, 2, 3  , 4      , 5      , 6      , 7]
+            //      [header, ...
+            //          ..., data, crc32-0, crc32-1, crc32-2, crc32-3]
+            //      => section starts at data[3] where 3 is 2 + 1
+            //      => crc32-i = 7 = 2 + section-length
+            crc32: 0
+        })
     )
 }
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSIPAT> {
     let (input, ts_psi_pat) = try!(parse_ts_psi(input));
 
-    do_parse!(
-        input,
-        b1: bits!(take_bits!(u8, 8))
-            >> b2: bits!(take_bits!(u8, 8))
-            >> b3: bits!(take_bits!(u8, 8))
-            >> b4: bits!(take_bits!(u8, 8))
-            >> (TSPSIPAT {
-                psi: ts_psi_pat,
+    do_parse!(input,
+           b1: bits!(take_bits!(u8, 8))
+        >> b2: bits!(take_bits!(u8, 8))
+        >> b3: bits!(take_bits!(u8, 8))
+        >> b4: bits!(take_bits!(u8, 8))
 
-                program_number: ((b1 as u16) << 8) | b2 as u16,
-                program_map_pid: ((b3 as u16) << 8) | b4 as u16,
-            })
+        >> (TSPSIPAT {
+            psi: ts_psi_pat,
+
+            program_number: ((b1 as u16) << 8) | b2 as u16,
+            program_map_pid: ((b3 as u16) << 8) | b4 as u16,
+        })
     )
 }
 
-named!(
-    parse_ts_single<&[u8], (u8, TSHeader)>,
-    tuple!(
-        parse_ts_sync_byte, // 1
-        parse_ts_header     // 3
-    )
-);
+#[cfg_attr(rustfmt, rustfmt_skip)]
+named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
+    tag!(&[TS_SYNC_BYTE])      >> // 1
+    ts_header: parse_ts_header >> // 3
 
+    (ts_header)));
+
+#[cfg_attr(rustfmt, rustfmt_skip)]
 named!(
-    parse_ts_multi<&[u8], Vec<(u8, TSHeader)>>,
+    parse_ts_multi<&[u8], Vec<TSHeader>>,
     many1!(parse_ts_single)
 );
 
@@ -449,7 +496,7 @@ impl Input for InputUDP {
             // TODO: move to function;
             let ts_pkt_raw = buf.pop_front().unwrap();
 
-            let (ts_pkt_raw, (_, ts_header)) = try!(parse_ts_single(&ts_pkt_raw));
+            let (ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));
             if ts_header.afc == 1 {
                 println!(
                     "pid: 0x{:04X}/{}, cc: {}",
@@ -461,6 +508,16 @@ impl Input for InputUDP {
                     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
                     ts_adaptation.pcr_flag, ts_adaptation.afl
                 );
+
+                if let Some(ref pcr) = ts_adaptation.pcr {
+                    println!(
+                        "pcr: {} / {} / 0:0:0:XXX ({})",
+                        pcr.base,
+                        pcr.ext,
+                        pcr.base * 300,
+                    );
+                }
+
             }
 
             if ts_header.pid == TS_PID_PAT {
