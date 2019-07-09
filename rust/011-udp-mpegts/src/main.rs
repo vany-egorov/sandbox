@@ -119,6 +119,7 @@ pub struct TSAdaptation {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct TSPSI {
+    // PSI - header
     table_id: u8,
 
     // section-syntax-indicator
@@ -135,6 +136,7 @@ pub struct TSPSI {
     // :2
     slub: u8,
 
+    // PSI - table syntax section
     // section-length
     //
     // This is a 12-bit field, the first two bits of which shall be "00".
@@ -148,9 +150,8 @@ pub struct TSPSI {
     // :10
     section_length: u16,
 
+    // :16
     tsi: u16,
-
-    // :2
 
     // version-number
     // :5
@@ -285,7 +286,8 @@ pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {;
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
-    do_parse!(input,
+    let (input, mut ts_adaptation) = try!(do_parse!(input,
+        // PSI - header - 3bytes
            b1: bits!(take_bits!(u8, 8))
         >> b2: bits!(tuple!(
             take_bits!(u8, 1),
@@ -295,6 +297,8 @@ pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
             take_bits!(u8, 2)
         ))
         >> b3: bits!(take_bits!(u8, 8))
+
+        // PSI - table syntax section - 5bytes
         >> b4: bits!(take_bits!(u8, 8))
         >> b5: bits!(take_bits!(u8, 8))
         >> b6: bits!(tuple!(
@@ -322,17 +326,38 @@ pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
             sn: b7,
             lsn: b8,
 
-            // 3 bytes of PSI header
-            // [0, 1, 2, ..., -3, -2, -1, -0]
-            // e.g. section-length = 5;
-            //      [0, 1, 2, 3  , 4      , 5      , 6      , 7]
-            //      [header, ...
-            //          ..., data, crc32-0, crc32-1, crc32-2, crc32-3]
-            //      => section starts at data[3] where 3 is 2 + 1
-            //      => crc32-i = 7 = 2 + section-length
             crc32: 0
         })
-    )
+    ));
+
+    { // TODO: use parser here; raize error on bad index;
+        // e.g.
+        // 16 bytes total
+        //
+        // section_length = 13
+        // 13 - 5 - 4 = 4;
+        //
+        // input points to 9th byte (with value 8);
+        // input+4 -> 13th byte (with value 12);
+        //
+        // [12, 13, 14, 15] -> crc32
+        //
+        // [0, 1, 2,
+        //           3, 4, 5, 6, 7,
+        //                          8, 9, 10, 11,
+        //                                        12, 13, 14, 15]
+        let i = (ts_adaptation.section_length as usize)
+            - 5  // -5 => 5bytes of "PSI - table syntax section";
+            - 4; // -4 => 4bytes of CRC32;
+
+        ts_adaptation.crc32 =
+            (input[i]   as u32) << 24 |
+            (input[i+1] as u32) << 16 |
+            (input[i+2] as u32) << 8  |
+            (input[i+3] as u32);
+    }
+
+    Ok((input, ts_adaptation))
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
