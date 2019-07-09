@@ -1,0 +1,7 @@
+version: "3"
+
+services:
+  build-rs:
+    build:
+      dockerfile: ./cluster/build-rs/Dockerfile
+      context: ..

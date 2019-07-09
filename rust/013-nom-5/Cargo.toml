@@ -1,0 +1,7 @@
+[package]
+name = "nom5"
+version = "0.0.1"
+authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
+
+[dependencies]
+nom = "5.0.0"

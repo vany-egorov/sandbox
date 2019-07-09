@@ -1,15 +1,13 @@
-use std::fmt;
+use nom;
 use std::borrow::Cow;
 use std::convert::Into;
-use std::str::Utf8Error;
-use std::io::Error as IoError;
 use std::error::Error as StdError;
+use std::fmt;
+use std::io::Error as IoError;
 use std::result::Result as StdResult;
-use nom;
-
+use std::str::Utf8Error;
 
 pub type Result<T> = StdResult<T, Error>;
-
 
 macro_rules! from {
     ($src:path, $dst:path) => {
@@ -18,9 +16,8 @@ macro_rules! from {
                 Error::new($dst(err), "")
             }
         }
-    }
+    };
 }
-
 
 #[derive(Debug)]
 pub enum Kind {
@@ -43,7 +40,8 @@ pub struct Error {
 
 impl Error {
     pub fn new<I>(kind: Kind, details: I) -> Error
-        where I: Into<Cow<'static, str>>
+    where
+        I: Into<Cow<'static, str>>,
     {
         Error {
             kind: kind,
@@ -68,7 +66,13 @@ impl fmt::Display for Error {
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.details.len() > 0 {
-            write!(f, "Error <{:?}>: \"{}\" / \"{}\"", self.kind, self.description(), self.details)
+            write!(
+                f,
+                "Error <{:?}>: \"{}\" / \"{}\"",
+                self.kind,
+                self.description(),
+                self.details
+            )
         } else {
             write!(f, "Error <{:?}>: \"{}\"", self.kind, self.description())
         }
@@ -113,16 +117,16 @@ from!(IoError, Kind::Io);
 impl From<nom::Err<&[u8]>> for Error {
     fn from(err: nom::Err<&[u8]>) -> Error {
         match err {
-            _ => Error::new(Kind::Nom, "")
+            _ => Error::new(Kind::Nom, ""),
         }
     }
 }
 
 impl<B> From<Box<B>> for Error
-    where B: StdError + Send + Sync + 'static
+where
+    B: StdError + Send + Sync + 'static,
 {
     fn from(err: Box<B>) -> Error {
         Error::new(Kind::Unknown(err), "")
     }
 }
-
