@@ -342,7 +342,9 @@ pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSIPAT> {
     do_parse!(input,
            b1: bits!(take_bits!(u8, 8))
         >> b2: bits!(take_bits!(u8, 8))
-        >> b3: bits!(take_bits!(u8, 8))
+
+        >> _b3: bits!(take_bits!(u8, 3))
+        >> b3: bits!(take_bits!(u8, 5))
         >> b4: bits!(take_bits!(u8, 8))
 
         >> (TSPSIPAT {
@@ -503,7 +505,7 @@ impl Input for InputUDP {
                     ts_header.pid, ts_header.pid, ts_header.cc
                 );
 
-                let (_, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
+                let (ts_pkt_raw, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
                 println!(
                     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
                     ts_adaptation.pcr_flag, ts_adaptation.afl
@@ -524,7 +526,6 @@ impl Input for InputUDP {
                 let (_, ts_psi_pat) = try!(parse_ts_psi_pat(&ts_pkt_raw));
                 println!("pat ({:?})", ts_psi_pat);
             }
-
             // match res {
             //     Ok((_, (_, ts_header, ts_pkt_tail))) => {
             //         if ts_header.afc == 1 {
