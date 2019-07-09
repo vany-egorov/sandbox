@@ -27,6 +27,8 @@ const TS_PID_CIT: u16 = 0x0003;
 const TS_PID_SDT: u16 = 0x0011;
 const TS_PID_NULL: u16 = 0x1FFF;
 
+#[allow(dead_code)]
+#[derive(Debug)]
 pub struct TSHeader {
     // transcport-error-indicator
     // :1
@@ -61,6 +63,8 @@ pub struct TSHeader {
     cc: u8,
 }
 
+#[allow(dead_code)]
+#[derive(Debug)]
 pub struct TSAdaptation {
     // adaptation-field-length
     // :8
@@ -100,6 +104,8 @@ pub struct TSAdaptation {
 }
 
 // Program Specific Information
+#[allow(dead_code)]
+#[derive(Debug)]
 pub struct TSPSI {
     table_id: u8,
 
@@ -154,6 +160,8 @@ pub struct TSPSI {
     crc32: u32,
 }
 
+#[allow(dead_code)]
+#[derive(Debug)]
 pub struct TSPSIPAT {
     psi: TSPSI,
 
@@ -281,17 +289,34 @@ pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
     )
 }
 
+pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSIPAT> {
+    let (input, ts_psi_pat) = try!(parse_ts_psi(input));
+
+    do_parse!(
+        input,
+        b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(take_bits!(u8, 8))
+            >> b3: bits!(take_bits!(u8, 8))
+            >> b4: bits!(take_bits!(u8, 8))
+            >> (TSPSIPAT {
+                psi: ts_psi_pat,
+
+                program_number: ((b1 as u16) << 8) | b2 as u16,
+                program_map_pid: ((b3 as u16) << 8) | b4 as u16,
+            })
+    )
+}
+
 named!(
-    parse_ts_single<&[u8], (u8, TSHeader, &[u8])>,
+    parse_ts_single<&[u8], (u8, TSHeader)>,
     tuple!(
         parse_ts_sync_byte, // 1
-        parse_ts_header,    // 3
-        take!(184)          // 188 - 1 - 3 = 184
+        parse_ts_header     // 3
     )
 );
 
 named!(
-    parse_ts_multi<&[u8], Vec<(u8, TSHeader, &[u8])>>,
+    parse_ts_multi<&[u8], Vec<(u8, TSHeader)>>,
     many1!(parse_ts_single)
 );
 
@@ -424,14 +449,14 @@ impl Input for InputUDP {
             // TODO: move to function;
             let ts_pkt_raw = buf.pop_front().unwrap();
 
-            let (_, (_, ts_header, ts_pkt_raw_tail)) = try!(parse_ts_single(&ts_pkt_raw));
+            let (ts_pkt_raw, (_, ts_header)) = try!(parse_ts_single(&ts_pkt_raw));
             if ts_header.afc == 1 {
                 println!(
                     "pid: 0x{:04X}/{}, cc: {}",
                     ts_header.pid, ts_header.pid, ts_header.cc
                 );
 
-                let (_, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw_tail));
+                let (_, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
                 println!(
                     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
                     ts_adaptation.pcr_flag, ts_adaptation.afl
@@ -439,7 +464,8 @@ impl Input for InputUDP {
             }
 
             if ts_header.pid == TS_PID_PAT {
-                println!("<<<<< got PAT");
+                let (_, ts_psi_pat) = try!(parse_ts_psi_pat(&ts_pkt_raw));
+                println!("pat ({:?})", ts_psi_pat);
             }
 
             // match res {
