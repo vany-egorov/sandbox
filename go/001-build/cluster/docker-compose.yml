@@ -1,0 +1,7 @@
+version: "3"
+
+services:
+  build-go:
+    build:
+      dockerfile: ./cluster/build-go/Dockerfile
+      context: ..

@@ -1,4 +1,4 @@
-FROM debian:9 as build-rs
+FROM debian:10 as build-rs
 
 RUN apt-get update
 RUN apt-get install -y \
@@ -10,10 +10,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN rustup target add x86_64-unknown-linux-musl
 
-WORKDIR /usr/local/src/udp-mpegts
+WORKDIR /usr/local/src/go-build
 
-RUN mkdir -v src/
-RUN echo "fn main() {println!(\"---\")}" > ./src/main.rs
 COPY ./Cargo.toml ./
 RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   build \
