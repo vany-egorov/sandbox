@@ -1,0 +1,30 @@
+version: "3.5"
+
+services:
+  ha-eta-build:
+    build:
+      dockerfile: ./cluster/ha-eta-build/Dockerfile
+      context: ..
+    image: ha-eta-build
+
+  ha-eta-node:
+    depends_on:
+      - ha-eta-build
+    build:
+      dockerfile: ./cluster/ha-eta-node/Dockerfile
+      context: ..
+    networks:
+      - ha-eta
+
+  ha-eta-balancer:
+    depends_on:
+      - ha-eta-node
+    build:
+      dockerfile: ./cluster/ha-eta-balancer/Dockerfile
+      context: ..
+    networks:
+      - ha-eta
+
+networks:
+  ha-eta:
+    name: ha-eta
