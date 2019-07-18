@@ -6,22 +6,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/vany-egorov/ha-eta/api-v1/h"
+	"github.com/gin-gonic/gin"
+
+	apiV1 "github.com/vany-egorov/ha-eta/api-v1/h"
 )
 
 type App struct {
-	name string
 }
 
 func (a *App) init() error {
-	name, e := os.Hostname()
-	if e != nil {
-		return e
-	}
-
-	a.name = name
 	return nil
 }
 
@@ -30,16 +24,19 @@ func (a *App) run(ctx context.Context) {
 		ctx = context.TODO()
 	}
 
-	t := time.NewTicker(1 * time.Second)
+	{ // http
+		router := a.HTTPRouter()
 
-	for {
-		select {
-		case <-t.C:
-			fmt.Printf("< %s/%s @ %d\n", a.name, h.Version, time.Now().Unix())
-		case <-ctx.Done():
-			return
-		}
+		go func() {
+			addr := "0.0.0.0:80"
+			if e := router.Run(addr); e != nil {
+				fmt.Fprintf(os.Stderr, "starting http (%s) server failed: %s", addr, e.Error())
+				os.Exit(1)
+			}
+		}()
 	}
+
+	<-ctx.Done()
 }
 
 func (*App) signalHandler() {
@@ -55,6 +52,30 @@ func (*App) signalHandler() {
 
 	<-ch
 	fmt.Println("will shutdown;")
+}
+
+func (a *App) HTTPRouter() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+	// ginHTTPLogger := seelog.New(g.HTTPLogger())
+
+	r := gin.New()
+	r.Use(
+		gin.Recovery(),
+		// prefix.New(),
+	)
+
+	r.HandleMethodNotAllowed = true
+	// r.NoRoute(baseH.NoRoute, ginHTTPLogger)
+	// r.NoMethod(baseH.NoMethod, ginHTTPLogger)
+
+	{
+		α := r.Group("/api/v1")
+		// α.Use(ginHTTPLogger)
+
+		α.GET("/eta", apiV1.ETA)
+	}
+
+	return r
 }
 
 func (a *App) Main() error {

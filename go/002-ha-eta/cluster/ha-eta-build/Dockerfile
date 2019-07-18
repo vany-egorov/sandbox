@@ -10,13 +10,13 @@ RUN apt-get install -y \
   curl \
   git-core
 
-# <golang>
+# <golang download>
 WORKDIR /opt
 RUN curl -O "https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 RUN mv ./go*tar.gz ./go.tar.gz
 RUN tar -xf ./go.tar.gz
 RUN rm -rf ./go.tar.gz
-# </golang>
+# </golang download>
 
 ENV GOROOT="/opt/go"
 ENV PATH="${GOROOT}/bin:${PATH}"

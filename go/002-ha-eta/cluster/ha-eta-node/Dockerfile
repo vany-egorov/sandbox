@@ -4,4 +4,6 @@ FROM debian:10
 
 COPY --from=build /usr/local/src/ha-eta/ha-eta /usr/local/bin/ha-eta
 
+EXPOSE 80
+
 ENTRYPOINT ["ha-eta"]

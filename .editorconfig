@@ -33,5 +33,13 @@ indent_size = 2
 indent_style = tab
 indent_size = 2
 
+[**/cluster/**/nginx/**/*.conf]
+indent_style = tab
+indent_size = 2
+
+[**/cluster/**/nginx/**/default]
+indent_style = tab
+indent_size = 2
+
 [Makefile]
 indent_style = tab

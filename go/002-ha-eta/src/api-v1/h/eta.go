@@ -1,3 +1,15 @@
 package h
 
-const Version = "0.0.1"
+import (
+	"os"
+
+	"github.com/gin-gonic/gin"
+)
+
+func ETA(c *gin.Context) {
+	name, _ := os.Hostname()
+
+	c.JSON(200, gin.H{
+		"hostname": name,
+	})
+}
