@@ -1,4 +1,4 @@
-FROM debian:9.9
+FROM debian:10
 
 RUN apt-get update && apt-get install -y \
   tstools
