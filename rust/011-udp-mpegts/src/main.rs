@@ -27,6 +27,8 @@ const TS_PID_CIT: u16 = 0x0003;
 const TS_PID_SDT: u16 = 0x0011;
 const TS_PID_NULL: u16 = 0x1FFF;
 
+const TS_PSI_PAT_SZ: usize = 4;
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct TSHeader {
@@ -136,7 +138,6 @@ pub struct TSPSI {
     // :2
     slub: u8,
 
-
     // table syntax section length
     //
     // This is a 12-bit field, the first two bits of which shall be "00".
@@ -178,16 +179,17 @@ pub struct TSPSI {
     // </PSI - table syntax section>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum TSPSITable {
+    None,
     PAT(TSPSIPAT),
     PMT,
     CAT,
-    NIT
+    NIT,
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TSPSIPAT {
     // Relates to the Table ID extension in the associated PMT.
     // A value of 0 is reserved for a NIT packet identifier.
@@ -373,12 +375,14 @@ pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
     Ok((input, ts_adaptation))
 }
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 fn parser_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
     do_parse!(input,
        raw: take!(n)
     >> (raw))
 }
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 fn parse_ts_psi_pat_datum(input: &[u8]) -> IResult<&[u8], TSPSITable> {
     do_parse!(input,
        b1: bits!(take_bits!(u8, 8))
@@ -400,17 +404,29 @@ fn parse_ts_psi_pat_datum(input: &[u8]) -> IResult<&[u8], TSPSITable> {
 pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSI> {
     let (input, mut ts_psi) = try!(parse_ts_psi(input));
 
-    let (input, raw) = try!(parser_take_n(input, (ts_psi.section_length as usize)
+    let (input, mut raw) = try!(parser_take_n(input, (ts_psi.section_length as usize)
         - 5  // -5 => 5bytes of "PSI - table syntax section";
-        - 4 // -4 => 4bytes of CRC32;
+        - 4  // -4 => 4bytes of CRC32;
     ));
 
-    println!(">>> {:?} {:?}", input.len(), raw.len());
+    // not working for nom 4.x.y
+    // see:
+    // https://github.com/Geal/nom/issues/790
+    //
+    // let (_, data) = try!(do_parse!(raw,
+    //     d: many1!(parse_ts_psi_pat_datum) >>
+    //     (d)
+    // ));
 
-    let (_, data) = try!(do_parse!(raw,
-        d: many0!(parse_ts_psi_pat_datum) >>
-        (d)
-    ));
+    let psi_sz = TS_PSI_PAT_SZ;
+    let mut data: Vec<TSPSITable> = vec![TSPSITable::None; raw.len()%psi_sz];
+
+    while raw.len() >= psi_sz {
+        let (_, datum) = try!(parse_ts_psi_pat_datum(&raw[0..psi_sz]));
+        data.push(datum);
+
+        raw = &raw[psi_sz..];
+    }
 
     ts_psi.data = Some(data);
 
@@ -599,7 +615,7 @@ impl Input for InputUDP {
                     // uint8_t* section_start = payload + *payload + 1
                     //
                     //
-                    ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize)+1)..];
+                    ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
                 }
 
                 if ts_header.pid == TS_PID_PAT {
