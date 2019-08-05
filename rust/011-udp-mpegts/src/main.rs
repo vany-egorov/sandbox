@@ -38,7 +38,7 @@ pub struct TSHeader {
     // Set when a PES, PSI, or DVB-MIP
     // packet begins immediately following the header.
     // :1
-    pusi: u8,
+    pusi: bool,
 
     // transport-priority
     // :1
@@ -56,7 +56,7 @@ pub struct TSHeader {
     afc: u8,
 
     // :1
-    contains_payload: u8,
+    contains_payload: bool,
 
     // continuity-counter
     // :4
@@ -136,8 +136,8 @@ pub struct TSPSI {
     // :2
     slub: u8,
 
-    // PSI - table syntax section
-    // section-length
+
+    // table syntax section length
     //
     // This is a 12-bit field, the first two bits of which shall be "00".
     // It specifies the number of bytes of the
@@ -150,6 +150,7 @@ pub struct TSPSI {
     // :10
     section_length: u16,
 
+    // <PSI - table syntax section>
     // :16
     tsi: u16,
 
@@ -169,15 +170,25 @@ pub struct TSPSI {
     // :8
     lsn: u8,
 
+    // table-data
+    data: Option<Vec<TSPSITable>>,
+
     // :32
     crc32: u32,
+    // </PSI - table syntax section>
+}
+
+#[derive(Debug)]
+enum TSPSITable {
+    PAT(TSPSIPAT),
+    PMT,
+    CAT,
+    NIT
 }
 
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct TSPSIPAT {
-    psi: TSPSI,
-
     // Relates to the Table ID extension in the associated PMT.
     // A value of 0 is reserved for a NIT packet identifier.
     program_number: u16,
@@ -206,12 +217,12 @@ pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
 
         >> (TSHeader {
             tei: b1.0,
-            pusi: b1.1,
+            pusi: b1.1 != 0,
             tp: b1.2,
             pid: ((b1.3 as u16) << 8) | b2 as u16,
             tsc: b3.0,
             afc: b3.1,
-            contains_payload: b3.2,
+            contains_payload: b3.2 != 0,
             cc: b3.3,
         })
     )
@@ -326,6 +337,8 @@ pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
             sn: b7,
             lsn: b8,
 
+            data: None,
+
             crc32: 0
         })
     ));
@@ -360,27 +373,48 @@ pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
     Ok((input, ts_adaptation))
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSIPAT> {
-    let (input, ts_psi_pat) = try!(parse_ts_psi(input));
-
+fn parser_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
     do_parse!(input,
-           b1: bits!(take_bits!(u8, 8))
-        >> b2: bits!(take_bits!(u8, 8))
+       raw: take!(n)
+    >> (raw))
+}
 
-        >> b3: bits!(tuple!(
-            take_bits!(u8, 3),
-            take_bits!(u8, 5)
-        ))
-        >> b4: bits!(take_bits!(u8, 8))
+fn parse_ts_psi_pat_datum(input: &[u8]) -> IResult<&[u8], TSPSITable> {
+    do_parse!(input,
+       b1: bits!(take_bits!(u8, 8))
+    >> b2: bits!(take_bits!(u8, 8))
 
-        >> (TSPSIPAT {
-            psi: ts_psi_pat,
+    >> b3: bits!(tuple!(
+        take_bits!(u8, 3),
+        take_bits!(u8, 5)
+    ))
+    >> b4: bits!(take_bits!(u8, 8))
 
-            program_number: ((b1 as u16) << 8) | b2 as u16,
-            program_map_pid: (((b3.1 & 0x1F) as u16) << 8) | b4 as u16,
-        })
-    )
+    >> (TSPSITable::PAT(TSPSIPAT {
+        program_number: ((b1 as u16) << 8) | b2 as u16,
+        program_map_pid: (((b3.1 & 0x1F) as u16) << 8) | b4 as u16,
+    })))
+}
+
+#[cfg_attr(rustfmt, rustfmt_skip)]
+pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSI> {
+    let (input, mut ts_psi) = try!(parse_ts_psi(input));
+
+    let (input, raw) = try!(parser_take_n(input, (ts_psi.section_length as usize)
+        - 5  // -5 => 5bytes of "PSI - table syntax section";
+        - 4 // -4 => 4bytes of CRC32;
+    ));
+
+    println!(">>> {:?} {:?}", input.len(), raw.len());
+
+    let (_, data) = try!(do_parse!(raw,
+        d: many0!(parse_ts_psi_pat_datum) >>
+        (d)
+    ));
+
+    ts_psi.data = Some(data);
+
+    Ok((input, ts_psi))
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -525,6 +559,7 @@ impl Input for InputUDP {
             // TODO: move to function;
             let ts_pkt_raw = buf.pop_front().unwrap();
 
+            // parse header
             let (mut ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));
             if ts_header.afc == 1 {
                 println!(
@@ -532,7 +567,7 @@ impl Input for InputUDP {
                     ts_header.pid, ts_header.pid, ts_header.cc
                 );
 
-                let (_, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
+                let (ts_pkt_raw, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
                 println!(
                     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
                     ts_adaptation.pcr_flag, ts_adaptation.afl
@@ -546,12 +581,33 @@ impl Input for InputUDP {
                         pcr.base * 300,
                     );
                 }
-
-            } else if ts_header.pid == TS_PID_PAT {
-                ts_pkt_raw = &ts_pkt_raw[1..]; // cursor++??? Pointer field?
-                let (_, ts_psi_pat) = try!(parse_ts_psi_pat(&ts_pkt_raw));
-                println!("pat ({:?})", ts_psi_pat);
             }
+
+            if ts_header.contains_payload {
+                if ts_header.pusi {
+                    // payload data start
+                    //
+                    // https://stackoverflow.com/a/27525217
+                    // From the en300 468 spec:
+                    //
+                    // Sections may start at the beginning of the payload of a TS packet,
+                    // but this is not a requirement, because the start of the first
+                    // section in the payload of a TS packet is pointed to by the pointer_field.
+                    //
+                    // So the section start actually is an offset from the payload:
+                    //
+                    // uint8_t* section_start = payload + *payload + 1
+                    //
+                    //
+                    ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize)+1)..];
+                }
+
+                if ts_header.pid == TS_PID_PAT {
+                    let (_, ts_psi_pat) = try!(parse_ts_psi_pat(&ts_pkt_raw));
+                    println!(">>> afc: {:?}; pat ({:?})", ts_header.afc, ts_psi_pat);
+                }
+            }
+
             // match res {
             //     Ok((_, (_, ts_header, ts_pkt_tail))) => {
             //         if ts_header.afc == 1 {
