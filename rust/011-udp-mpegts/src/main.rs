@@ -117,10 +117,20 @@ pub struct TSAdaptation {
     pcr: Option<TSPCR>,
 }
 
+#[inline]
+#[cfg_attr(rustfmt, rustfmt_skip)]
+fn parse_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
+    do_parse!(input,
+       raw: take!(n)
+    >> (raw))
+}
+
 // Program Specific Information
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct TSPSI {
+pub struct TSPSI<T>
+    where T: TSPSITableTrait
+{
     // PSI - header
     table_id: u8,
 
@@ -172,17 +182,181 @@ pub struct TSPSI {
     lsn: u8,
 
     // table-data
-    data: Option<Vec<TSPSITable>>,
+    data: Option<Vec<T>>,
 
     // :32
     crc32: u32,
     // </PSI - table syntax section>
 }
 
+impl<'a, T> TSPSI<T>
+    where T: TSPSITableTrait
+{
+    fn new() -> TSPSI<T> {
+        TSPSI{
+            table_id: 0,
+            ssi: 0,
+            private_bit: 0,
+            reserved_bits: 0,
+            slub: 0,
+            section_length: 0,
+
+            tsi: 0,
+            vn: 0,
+            cni: 0,
+            sn: 0,
+            lsn: 0,
+
+            data: None,
+
+            crc32: 0,
+        }
+    }
+
+    // PSI - header - 3bytes
+    fn parse_header(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(input, (tid, ssi, pb, rb, slub, slen)) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(tuple!(
+                take_bits!(u8, 1),
+                take_bits!(u8, 1),
+                take_bits!(u8, 2),
+                take_bits!(u8, 2),
+                take_bits!(u8, 2)
+            ))
+            >> b3: bits!(take_bits!(u8, 8))
+            >> (
+                b1,  // table-id
+                b2.0,  // ssi
+                b2.1,  // private-bit
+                b2.2,  // reserved-bits
+                b2.3,  // slub
+                ((b2.4 as u16) << 8) | b3 as u16  // section-length
+            )
+        ));
+
+        self.table_id = tid;
+        self.ssi = ssi;
+        self.private_bit = pb;
+        self.reserved_bits = rb;
+        self.slub = slub;
+        self.section_length = slen;
+
+        Ok((input, ()))
+    }
+
+    // PSI - table syntax section - 5bytes
+    fn parse_syntax_section(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, (tsi, vn, cni, sn, lsn)) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(take_bits!(u8, 8))
+            >> b3: bits!(tuple!(
+                take_bits!(u8, 2),
+                take_bits!(u8, 5),
+                take_bits!(u8, 1)
+            ))
+            >> b4: bits!(take_bits!(u8, 8))
+            >> b5: bits!(take_bits!(u8, 8))
+
+            >> (
+                ((b1 as u16) << 8) | b2 as u16,  // tsi
+                b3.1,  // vn
+                b3.2,  // cni
+                b4,  // sn
+                b5  // lsn
+            )
+        ));
+
+        self.tsi = tsi;
+        self.vn = vn;
+        self.cni = cni;
+        self.sn = sn;
+        self.lsn = lsn;
+
+        Ok((input, ()))
+    }
+
+    fn parse_crc32(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, v) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(take_bits!(u8, 8))
+            >> b3: bits!(take_bits!(u8, 8))
+            >> b4: bits!(take_bits!(u8, 8))
+
+            >> (
+                (b1 as u32) << 24 |
+                (b2 as u32) << 16 |
+                (b3 as u32) << 8  |
+                (b4 as u32)
+            )
+        ));
+
+        self.crc32 = v;
+
+        Ok((input, ()))
+    }
+
+    #[inline]
+    fn section_length_data_only(&self) -> usize {
+        (self.section_length as usize)
+            - 5  // -5 => 5bytes of "PSI - table syntax section";
+            - 4  // -4 => 4bytes of CRC32;
+    }
+}
+
+impl TSPSI<TSPSIPAT> {
+    fn parse_pat(input: &[u8]) -> IResult<&[u8], TSPSI<TSPSIPAT>> {
+        let mut ts_psi = TSPSI::new();
+
+        let(input, _) = try!(ts_psi.parse_header(input));
+        let(input, _) = try!(ts_psi.parse_syntax_section(input));
+
+        // <parse data>
+
+        // not working for nom 4.x.y
+        // see:
+        // https://github.com/Geal/nom/issues/790
+        //
+        // let (_, data) = try!(do_parse!(raw,
+        //     d: many1!(parse_ts_psi_pat_datum) >>
+        //     (d)
+        // ));
+
+        // limit reader
+        let (input, mut raw) = try!(parse_take_n(input, ts_psi.section_length_data_only()));
+
+        let sz = TSPSIPAT::sz();
+        let mut data: Vec<TSPSIPAT> = vec![TSPSIPAT::new(); raw.len()%sz];
+
+        while raw.len() >= sz {
+            let mut pat = TSPSIPAT::new();
+            try!(pat.parse(&raw[0..sz]));
+            data.push(pat);
+
+            raw = &raw[sz..];
+        }
+
+        ts_psi.data = Some(data);
+        // </parse data>
+
+        let(input, _) = try!(ts_psi.parse_crc32(input));
+
+        Ok((input, ts_psi))
+    }
+}
+
+pub trait TSPSITableTrait {
+    fn kind() -> TSPSITableKind;
+    fn sz() -> usize;
+    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()>;
+}
+
 #[derive(Clone, Debug)]
-enum TSPSITable {
-    None,
-    PAT(TSPSIPAT),
+pub enum TSPSITableKind {
+    PAT,
     PMT,
     CAT,
     NIT,
@@ -200,10 +374,49 @@ pub struct TSPSIPAT {
     program_map_pid: u16,
 }
 
+impl TSPSIPAT {
+    fn new() -> TSPSIPAT {
+        TSPSIPAT{
+            program_number: 0,
+            program_map_pid: 0,
+        }
+    }
+}
+
+impl TSPSITableTrait for TSPSIPAT {
+    fn kind() -> TSPSITableKind { TSPSITableKind::PAT }
+
+    fn sz() -> usize { TS_PSI_PAT_SZ }
+
+    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(input, (pn, pmp)) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(take_bits!(u8, 8))
+
+            >> b3: bits!(tuple!(
+                take_bits!(u8, 3),
+                take_bits!(u8, 5)
+            ))
+            >> b4: bits!(take_bits!(u8, 8))
+
+            >> (
+                ((b1 as u16) << 8) | b2 as u16, // program_number
+                (((b3.1 & 0x1F) as u16) << 8) | b4 as u16 // program_map_pid
+            )
+        ));
+
+        self.program_number = pn;
+        self.program_map_pid = pmp;
+
+        Ok((input, ()))
+    }
+}
+
 #[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
     do_parse!(input,
-        b1: bits!(tuple!(
+           b1: bits!(tuple!(
             take_bits!(u8, 1),
             take_bits!(u8, 1),
             take_bits!(u8, 1),
@@ -295,142 +508,6 @@ pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {;
     ts_adaptation.pcr = Some(ts_pcr);
 
     Ok((input, ts_adaptation))
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-pub fn parse_ts_psi(input: &[u8]) -> IResult<&[u8], TSPSI> {
-    let (input, mut ts_adaptation) = try!(do_parse!(input,
-        // PSI - header - 3bytes
-           b1: bits!(take_bits!(u8, 8))
-        >> b2: bits!(tuple!(
-            take_bits!(u8, 1),
-            take_bits!(u8, 1),
-            take_bits!(u8, 2),
-            take_bits!(u8, 2),
-            take_bits!(u8, 2)
-        ))
-        >> b3: bits!(take_bits!(u8, 8))
-
-        // PSI - table syntax section - 5bytes
-        >> b4: bits!(take_bits!(u8, 8))
-        >> b5: bits!(take_bits!(u8, 8))
-        >> b6: bits!(tuple!(
-            take_bits!(u8, 2),
-            take_bits!(u8, 5),
-            take_bits!(u8, 1)
-        ))
-        >> b7: bits!(take_bits!(u8, 8))
-        >> b8: bits!(take_bits!(u8, 8))
-
-        >> (TSPSI {
-            table_id: b1,
-
-            ssi: b2.0,
-            private_bit: b2.1,
-            reserved_bits: b2.2,
-            slub: b2.3,
-            section_length: ((b2.4 as u16) << 8) | b3 as u16,
-
-            tsi: ((b4 as u16) << 8) | b5 as u16,
-
-            vn: b6.1,
-            cni: b6.2,
-
-            sn: b7,
-            lsn: b8,
-
-            data: None,
-
-            crc32: 0
-        })
-    ));
-
-    { // TODO: use parser here; raize error on bad index;
-        // e.g.
-        // 16 bytes total
-        //
-        // section_length = 13
-        // 13 - 5 - 4 = 4;
-        //
-        // input points to 9th byte (with value 8);
-        // input+4 -> 13th byte (with value 12);
-        //
-        // [12, 13, 14, 15] -> crc32
-        //
-        // [0, 1, 2,
-        //           3, 4, 5, 6, 7,
-        //                          8, 9, 10, 11,
-        //                                        12, 13, 14, 15]
-        let i = (ts_adaptation.section_length as usize)
-            - 5  // -5 => 5bytes of "PSI - table syntax section";
-            - 4; // -4 => 4bytes of CRC32;
-
-        ts_adaptation.crc32 =
-            (input[i]   as u32) << 24 |
-            (input[i+1] as u32) << 16 |
-            (input[i+2] as u32) << 8  |
-            (input[i+3] as u32);
-    }
-
-    Ok((input, ts_adaptation))
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-fn parser_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
-    do_parse!(input,
-       raw: take!(n)
-    >> (raw))
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-fn parse_ts_psi_pat_datum(input: &[u8]) -> IResult<&[u8], TSPSITable> {
-    do_parse!(input,
-       b1: bits!(take_bits!(u8, 8))
-    >> b2: bits!(take_bits!(u8, 8))
-
-    >> b3: bits!(tuple!(
-        take_bits!(u8, 3),
-        take_bits!(u8, 5)
-    ))
-    >> b4: bits!(take_bits!(u8, 8))
-
-    >> (TSPSITable::PAT(TSPSIPAT {
-        program_number: ((b1 as u16) << 8) | b2 as u16,
-        program_map_pid: (((b3.1 & 0x1F) as u16) << 8) | b4 as u16,
-    })))
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-pub fn parse_ts_psi_pat(input: &[u8]) -> IResult<&[u8], TSPSI> {
-    let (input, mut ts_psi) = try!(parse_ts_psi(input));
-
-    let (input, mut raw) = try!(parser_take_n(input, (ts_psi.section_length as usize)
-        - 5  // -5 => 5bytes of "PSI - table syntax section";
-        - 4  // -4 => 4bytes of CRC32;
-    ));
-
-    // not working for nom 4.x.y
-    // see:
-    // https://github.com/Geal/nom/issues/790
-    //
-    // let (_, data) = try!(do_parse!(raw,
-    //     d: many1!(parse_ts_psi_pat_datum) >>
-    //     (d)
-    // ));
-
-    let psi_sz = TS_PSI_PAT_SZ;
-    let mut data: Vec<TSPSITable> = vec![TSPSITable::None; raw.len()%psi_sz];
-
-    while raw.len() >= psi_sz {
-        let (_, datum) = try!(parse_ts_psi_pat_datum(&raw[0..psi_sz]));
-        data.push(datum);
-
-        raw = &raw[psi_sz..];
-    }
-
-    ts_psi.data = Some(data);
-
-    Ok((input, ts_psi))
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -583,11 +660,12 @@ impl Input for InputUDP {
                     ts_header.pid, ts_header.pid, ts_header.cc
                 );
 
-                let (ts_pkt_raw, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
+                let (tail, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
                 println!(
                     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
                     ts_adaptation.pcr_flag, ts_adaptation.afl
                 );
+                ts_pkt_raw = tail;
 
                 if let Some(ref pcr) = ts_adaptation.pcr {
                     println!(
@@ -619,8 +697,8 @@ impl Input for InputUDP {
                 }
 
                 if ts_header.pid == TS_PID_PAT {
-                    let (_, ts_psi_pat) = try!(parse_ts_psi_pat(&ts_pkt_raw));
-                    println!(">>> afc: {:?}; pat ({:?})", ts_header.afc, ts_psi_pat);
+                    let (_, pat) = try!(TSPSI::parse_pat(ts_pkt_raw));
+                    println!(">>> afc: {:?}; pat ({:?})", ts_header.afc, pat);
                 }
             }
 
