@@ -305,6 +305,11 @@ impl<'a, T> TSPSI<T>
             - 5  // -5 => 5bytes of "PSI - table syntax section";
             - 4  // -4 => 4bytes of CRC32;
     }
+
+    fn check_crc32() -> bool {
+        // TODO: crc32 check here
+        true
+    }
 }
 
 impl TSPSI<TSPSIPAT> {
@@ -350,7 +355,6 @@ impl TSPSI<TSPSIPAT> {
 
 pub trait TSPSITableTrait {
     fn kind() -> TSPSITableKind;
-    fn sz() -> usize;
     fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()>;
 }
 
@@ -360,6 +364,7 @@ pub enum TSPSITableKind {
     PMT,
     CAT,
     NIT,
+    EIT,
 }
 
 #[allow(dead_code)]
@@ -383,10 +388,12 @@ impl TSPSIPAT {
     }
 }
 
+impl TSPSIPAT {
+    fn sz() -> usize { TS_PSI_PAT_SZ }
+}
+
 impl TSPSITableTrait for TSPSIPAT {
     fn kind() -> TSPSITableKind { TSPSITableKind::PAT }
-
-    fn sz() -> usize { TS_PSI_PAT_SZ }
 
     fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
         #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -410,6 +417,74 @@ impl TSPSITableTrait for TSPSIPAT {
         self.program_map_pid = pmp;
 
         Ok((input, ()))
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct TSPSIPMT {
+    // TODO: handle 0x1FFF
+    //
+    // reserved_bits
+    // :3
+    //
+    // The packet identifier that contains the program clock reference used to
+    // improve the random access accuracy of the stream's timing that is
+    // derived from the program timestamp. If this is unused.
+    // then it is set to 0x1FFF (all bits on).
+    // :13
+    pcr_pid: u16,
+
+    // reserved bits (Set to 0x0F (all bits on))
+    // :4
+    //
+    // program info length unused bits (Set to 0 (all bits off))
+    // :2
+    //
+    // program_info_length
+    // The number of bytes that follow for the program descriptors.
+    // :10
+    pil: u16,
+
+    // program descriptors
+
+    // elementary stream info data
+}
+
+impl TSPSITableTrait for TSPSIPMT {
+    fn kind() -> TSPSITableKind { TSPSITableKind::PMT }
+
+    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        Ok((input, ()))
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct TSPSISDT {
+}
+
+impl TSPSITableTrait for TSPSISDT {
+    fn kind() -> TSPSITableKind { TSPSITableKind::PMT }
+
+    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        Ok((input, ()))
+    }
+}
+
+pub struct TS {
+    pat: Option<TSPSI<TSPSIPAT>>,
+    pmt: Option<TSPSI<TSPSIPMT>>,
+    sdt: Option<TSPSI<TSPSISDT>>,
+}
+
+impl TS {
+    fn new() -> TS {
+        TS{
+            pat: None,
+            pmt: None,
+            sdt: None,
+        }
     }
 }
 
@@ -661,11 +736,12 @@ impl Input for InputUDP {
                 );
 
                 let (tail, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
+                ts_pkt_raw = tail;
+
                 println!(
                     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
                     ts_adaptation.pcr_flag, ts_adaptation.afl
                 );
-                ts_pkt_raw = tail;
 
                 if let Some(ref pcr) = ts_adaptation.pcr {
                     println!(
