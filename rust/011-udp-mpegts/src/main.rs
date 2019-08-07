@@ -129,7 +129,8 @@ fn parse_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct TSPSI<T>
-    where T: TSPSITableTrait
+where
+    T: TSPSITableTrait,
 {
     // PSI - header
     table_id: u8,
@@ -190,10 +191,11 @@ pub struct TSPSI<T>
 }
 
 impl<'a, T> TSPSI<T>
-    where T: TSPSITableTrait
+where
+    T: TSPSITableTrait,
 {
     fn new() -> TSPSI<T> {
-        TSPSI{
+        TSPSI {
             table_id: 0,
             ssi: 0,
             private_bit: 0,
@@ -303,7 +305,7 @@ impl<'a, T> TSPSI<T>
     fn section_length_data_only(&self) -> usize {
         (self.section_length as usize)
             - 5  // -5 => 5bytes of "PSI - table syntax section";
-            - 4  // -4 => 4bytes of CRC32;
+            - 4 // -4 => 4bytes of CRC32;
     }
 
     fn check_crc32() -> bool {
@@ -314,10 +316,10 @@ impl<'a, T> TSPSI<T>
 
 impl TSPSI<TSPSIPAT> {
     fn parse_pat(input: &[u8]) -> IResult<&[u8], TSPSI<TSPSIPAT>> {
-        let mut ts_psi = TSPSI::new();
+        let mut psi = TSPSI::new();
 
-        let(input, _) = try!(ts_psi.parse_header(input));
-        let(input, _) = try!(ts_psi.parse_syntax_section(input));
+        let (input, _) = try!(psi.parse_header(input));
+        let (input, _) = try!(psi.parse_syntax_section(input));
 
         // <parse data>
 
@@ -331,25 +333,66 @@ impl TSPSI<TSPSIPAT> {
         // ));
 
         // limit reader
-        let (input, mut raw) = try!(parse_take_n(input, ts_psi.section_length_data_only()));
+        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
 
         let sz = TSPSIPAT::sz();
-        let mut data: Vec<TSPSIPAT> = vec![TSPSIPAT::new(); raw.len()%sz];
+        let mut data: Vec<TSPSIPAT> = vec![TSPSIPAT::new(); raw.len() % sz];
 
         while raw.len() >= sz {
             let mut pat = TSPSIPAT::new();
-            try!(pat.parse(&raw[0..sz]));
+            let (tail, _) = try!(pat.parse(&raw));
             data.push(pat);
 
-            raw = &raw[sz..];
+            raw = tail;
         }
 
-        ts_psi.data = Some(data);
+        psi.data = Some(data);
         // </parse data>
 
-        let(input, _) = try!(ts_psi.parse_crc32(input));
+        let (input, _) = try!(psi.parse_crc32(input));
 
-        Ok((input, ts_psi))
+        Ok((input, psi))
+    }
+
+    #[inline]
+    fn first_program_map_pid(&self) -> Option<u16> {
+        self.data
+            .as_ref()
+            .and_then(|ref data| { data.first() })
+            .and_then(|ref pat| { Some(pat.program_map_pid) })
+    }
+}
+
+impl TSPSI<TSPSIPMT> {
+    fn parse_pmt(input: &[u8]) -> IResult<&[u8], TSPSI<TSPSIPMT>> {
+        let mut psi = TSPSI::new();
+
+        let (input, _) = try!(psi.parse_header(input));
+        let (input, _) = try!(psi.parse_syntax_section(input));
+
+        // <parse data>
+
+        // not working for nom 4.x.y
+        // see:
+        // https://github.com/Geal/nom/issues/790
+        //
+        // let (_, data) = try!(do_parse!(raw,
+        //     d: many1!(parse_ts_psi_pat_datum) >>
+        //     (d)
+        // ));
+
+        // limit reader
+        let (input, raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+
+        let mut pmt = TSPSIPMT::new();
+        try!(pmt.parse(&raw));
+
+        psi.data = Some(vec![pmt]);
+        // </parse data>
+
+        let (input, _) = try!(psi.parse_crc32(input));
+
+        Ok((input, psi))
     }
 }
 
@@ -362,6 +405,7 @@ pub trait TSPSITableTrait {
 pub enum TSPSITableKind {
     PAT,
     PMT,
+    SDT,
     CAT,
     NIT,
     EIT,
@@ -381,14 +425,12 @@ pub struct TSPSIPAT {
 
 impl TSPSIPAT {
     fn new() -> TSPSIPAT {
-        TSPSIPAT{
+        TSPSIPAT {
             program_number: 0,
             program_map_pid: 0,
         }
     }
-}
 
-impl TSPSIPAT {
     fn sz() -> usize { TS_PSI_PAT_SZ }
 }
 
@@ -409,7 +451,7 @@ impl TSPSITableTrait for TSPSIPAT {
 
             >> (
                 ((b1 as u16) << 8) | b2 as u16, // program_number
-                (((b3.1 & 0x1F) as u16) << 8) | b4 as u16 // program_map_pid
+                ((b3.1 as u16) << 8) | b4 as u16 // program_map_pid
             )
         ));
 
@@ -417,6 +459,86 @@ impl TSPSITableTrait for TSPSIPAT {
         self.program_map_pid = pmp;
 
         Ok((input, ()))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TSPSIPMTStream {
+    // This defines the structure of the data
+    // contained within the elementary packet identifier.
+    // :8
+    stream_type: u8,
+
+    // reserved bits (set to 0x07 (all bits on))
+    // :3
+    //
+    // The packet identifier that contains the stream type data.
+    // :13
+    pid: u16,
+
+    // reserved bits (set to 0x0F (all bits on))
+    // :4
+    //
+    // ES Info length unused bits (set to 0 (all bits off))
+    // :2
+    //
+    // The number of bytes that follow for the elementary stream descriptors.
+    // :10
+    descriptors_len: u16,
+
+    // When the ES info length is non-zero,
+    // this is the ES info length number of elementary stream descriptor bytes.
+    descriptors: Option<Vec<()>>,
+}
+
+impl TSPSIPMTStream {
+    fn new() -> TSPSIPMTStream {
+        TSPSIPMTStream {
+            stream_type: 0,
+            pid: 0,
+
+            descriptors_len: 0,
+            descriptors: None,
+        }
+    }
+
+    fn parse(input: &[u8]) -> IResult<&[u8], TSPSIPMTStream> {
+        let mut s = TSPSIPMTStream::new();
+
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(mut input, (st, pid, dsc_len)) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(tuple!(
+                take_bits!(u8, 3),
+                take_bits!(u8, 5)
+            ))
+            >> b3: bits!(take_bits!(u8, 8))
+            >> b4: bits!(tuple!(
+                take_bits!(u8, 4),
+                take_bits!(u8, 2),
+                take_bits!(u8, 2)
+            ))
+            >> b5: bits!(take_bits!(u8, 8))
+
+            >> (
+                b1,  // stream_type
+                ((b2.1 as u16) << 8) | b3 as u16,  // pid
+                ((b4.2 as u16) << 8) | b5 as u16  // descriptors_len
+            )
+        ));
+
+        s.stream_type = st;
+        s.pid = pid;
+        s.descriptors_len = dsc_len;
+
+        println!("[t] [pmt]   (:type {} :pid {} :len {})",
+            st, pid, dsc_len);
+
+        if dsc_len > 0 {
+            input = try!(parse_take_n(input, dsc_len as usize)).0;
+        }
+
+        Ok((input, s))
     }
 }
 
@@ -435,37 +557,93 @@ pub struct TSPSIPMT {
     // :13
     pcr_pid: u16,
 
-    // reserved bits (Set to 0x0F (all bits on))
+    // reserved bits (set to 0x0F (all bits on))
     // :4
     //
-    // program info length unused bits (Set to 0 (all bits off))
+    // program info length unused bits (set to 0 (all bits off))
     // :2
     //
     // program_info_length
     // The number of bytes that follow for the program descriptors.
     // :10
-    pil: u16,
+    pi_len: u16,
 
     // program descriptors
+    descriptors: Option<()>,
 
     // elementary stream info data
+    streams: Option<Vec<TSPSIPMTStream>>,
+}
+
+impl TSPSIPMT {
+    fn new() -> TSPSIPMT {
+        TSPSIPMT {
+            pcr_pid: 0,
+            pi_len: 0,
+
+            descriptors: None,
+
+            streams: None,
+        }
+    }
 }
 
 impl TSPSITableTrait for TSPSIPMT {
     fn kind() -> TSPSITableKind { TSPSITableKind::PMT }
 
     fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(mut input, (pcr_pid, pi_len)) = try!(do_parse!(input,
+            b1: bits!(tuple!(
+                take_bits!(u8, 3),
+                take_bits!(u8, 5)
+            ))
+            >> b2: bits!(take_bits!(u8, 8))
+            >> b3: bits!(tuple!(
+                take_bits!(u8, 4),
+                take_bits!(u8, 2),
+                take_bits!(u8, 2)
+            ))
+            >> b4: bits!(take_bits!(u8, 8))
+
+            >> (
+                ((b1.1 as u16) << 8) | b2 as u16, // pcr_pid
+                ((b3.2 as u16) << 8) | b4 as u16 // program_info_length
+            )
+        ));
+
+        self.pcr_pid = pcr_pid;
+        self.pi_len = pi_len;
+
+        if self.pi_len > 0 {
+            input = try!(parse_take_n(input, self.pi_len as usize)).0;
+        }
+
+        println!("[t] [pmt] :pcr-pid {}", pcr_pid);
+
+        let mut streams = vec![TSPSIPMTStream::new(); 5];
+
+        while input.len() > 0 {
+            let (tail, stream) = try!(TSPSIPMTStream::parse(input));
+            streams.push(stream);
+
+            input = tail;
+        }
+
+        self.streams = Some(streams);
+
         Ok((input, ()))
     }
 }
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub struct TSPSISDT {
-}
+pub struct TSPSISDT {}
 
 impl TSPSITableTrait for TSPSISDT {
-    fn kind() -> TSPSITableKind { TSPSITableKind::PMT }
+    fn kind() -> TSPSITableKind {
+        TSPSITableKind::SDT
+    }
 
     fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
         Ok((input, ()))
@@ -480,7 +658,7 @@ pub struct TS {
 
 impl TS {
     fn new() -> TS {
-        TS{
+        TS {
             pat: None,
             pmt: None,
             sdt: None,
@@ -491,7 +669,7 @@ impl TS {
 #[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
     do_parse!(input,
-           b1: bits!(tuple!(
+        b1: bits!(tuple!(
             take_bits!(u8, 1),
             take_bits!(u8, 1),
             take_bits!(u8, 1),
@@ -632,6 +810,8 @@ struct InputUDP {
     // circullar-buffer / fifo
     buf: Arc<(Mutex<VecDeque<[u8; TS_PKT_SZ]>>, Condvar)>,
 
+    ts: TS,
+
     socket: Option<UdpSocket>,
 }
 
@@ -640,6 +820,8 @@ impl InputUDP {
         InputUDP {
             url: url,
             buf: Arc::new((Mutex::new(VecDeque::with_capacity(buf_cap)), Condvar::new())),
+
+            ts: TS::new(),
 
             socket: None,
         }
@@ -729,52 +911,64 @@ impl Input for InputUDP {
 
             // parse header
             let (mut ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));
-            if ts_header.afc == 1 {
-                println!(
-                    "pid: 0x{:04X}/{}, cc: {}",
-                    ts_header.pid, ts_header.pid, ts_header.cc
-                );
 
+            if ts_header.afc == 1 {
                 let (tail, ts_adaptation) = try!(parse_ts_adaptation(&ts_pkt_raw));
                 ts_pkt_raw = tail;
 
-                println!(
-                    "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
-                    ts_adaptation.pcr_flag, ts_adaptation.afl
-                );
+                // println!(
+                //     "adaptation (:pcr? {:?} :adaptation-field-length {:?})",
+                //     ts_adaptation.pcr_flag, ts_adaptation.afl
+                // );
 
                 if let Some(ref pcr) = ts_adaptation.pcr {
-                    println!(
-                        "pcr: {} / {} / 0:0:0:XXX ({})",
-                        pcr.base,
-                        pcr.ext,
-                        pcr.base * 300,
-                    );
+                    // println!(
+                    //     "pcr: {} / {} / 0:0:0:XXX ({})",
+                    //     pcr.base,
+                    //     pcr.ext,
+                    //     pcr.base * 300,
+                    // );
                 }
             }
 
-            if ts_header.contains_payload {
-                if ts_header.pusi {
-                    // payload data start
-                    //
-                    // https://stackoverflow.com/a/27525217
-                    // From the en300 468 spec:
-                    //
-                    // Sections may start at the beginning of the payload of a TS packet,
-                    // but this is not a requirement, because the start of the first
-                    // section in the payload of a TS packet is pointed to by the pointer_field.
-                    //
-                    // So the section start actually is an offset from the payload:
-                    //
-                    // uint8_t* section_start = payload + *payload + 1
-                    //
-                    //
-                    ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
-                }
+            if !ts_header.contains_payload {
+                continue
+            }
 
-                if ts_header.pid == TS_PID_PAT {
-                    let (_, pat) = try!(TSPSI::parse_pat(ts_pkt_raw));
-                    println!(">>> afc: {:?}; pat ({:?})", ts_header.afc, pat);
+            if ts_header.pusi {
+                // payload data start
+                //
+                // https://stackoverflow.com/a/27525217
+                // From the en300 468 spec:
+                //
+                // Sections may start at the beginning of the payload of a TS packet,
+                // but this is not a requirement, because the start of the first
+                // section in the payload of a TS packet is pointed to by the pointer_field.
+                //
+                // So the section start actually is an offset from the payload:
+                //
+                // uint8_t* section_start = payload + *payload + 1
+                ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
+            }
+
+            if ts_header.pid == TS_PID_PAT && self.ts.pat.is_none() {
+                let (_, psi) = try!(TSPSI::parse_pat(ts_pkt_raw));
+                self.ts.pat = Some(psi);
+
+                println!(
+                    "[+] (:PAT (:pid 0x{:04X}/{} :cc {}))",
+                    ts_header.pid, ts_header.pid, ts_header.cc
+                );
+
+            } else if let Some(ref pat) = self.ts.pat {
+                if self.ts.pmt.is_none() && Some(ts_header.pid) == pat.first_program_map_pid() {
+                    let (_, psi) = try!(TSPSI::parse_pmt(ts_pkt_raw));
+                    self.ts.pmt = Some(psi);
+
+                    println!(
+                        "[+] (:PMT (:pid 0x{:04X}/{} :cc {}))",
+                        ts_header.pid, ts_header.pid, ts_header.cc
+                    );
                 }
             }
 
