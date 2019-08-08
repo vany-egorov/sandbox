@@ -4,16 +4,21 @@ mod error;
 extern crate nom;
 extern crate clap;
 extern crate url;
+extern crate num_derive;
+extern crate num_traits;
 
 use clap::{App, Arg};
 use nom::IResult;
 use std::collections::VecDeque;
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
+use std::str;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
 use url::{Host /*, ParseError*/, Url};
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 
 use error::{Error, Kind as ErrorKind, Result};
 
@@ -22,9 +27,9 @@ const TS_PKT_SZ: usize = 188;
 
 const TS_PID_PAT: u16 = 0x0000;
 const TS_PID_CAT: u16 = 0x0001;
-const TS_PID_TSDT: u16 = 0x0002;
-const TS_PID_CIT: u16 = 0x0003;
+const TS_PID_NIT: u16 = 0x0010;
 const TS_PID_SDT: u16 = 0x0011;
+const TS_PID_EIT: u16 = 0x0012;
 const TS_PID_NULL: u16 = 0x1FFF;
 
 const TS_PSI_PAT_SZ: usize = 4;
@@ -125,6 +130,39 @@ fn parse_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
     >> (raw))
 }
 
+
+// ETSI EN 300 468 V1.3.1 (1998-02)
+// ETSI EN 300 468 V1.11.1 (2010-04)
+#[derive(Clone, Debug, FromPrimitive)]
+pub enum TSTableID {
+    ProgramAssociationSection = 0x00,
+    ConditionalAccessSection = 0x01,
+    ProgramMapSection = 0x02,
+    TransportStreamDescriptionSection = 0x03,
+
+    NetworkInformationSectionActualNetwork = 0x40,
+    NetworkInformationSectionOtherNetwork = 0x41,
+    ServiceDescriptionSectionActualTransportStream = 0x42,
+    ServiceDescriptionSectionOtherTransportStream = 0x46,
+    BouquetAssociationSection = 0x4A,
+    EventInformationSectionActualTransportStream = 0x4E,
+    EventInformationSectionOtherTransportStream = 0x4F,
+
+    TimeDateSection = 0x70,
+    RunningStatusSection = 0x71,
+    StuffingSection = 0x72,
+    TimeOffsetSection = 0x73,
+    ApplicationInformationSection = 0x74,
+    ContainerSection = 0x75,
+    RelatedContentSection = 0x76,
+    ContentIdentifierSection = 0x77,
+    MPEFECSection = 0x78,
+    ResolutionNotificationSection = 0x79,
+    MPEIFECSection = 0x7A,
+    DiscontinuityInformationSection = 0x7E,
+    SelectionInformationSection = 0x7F,
+}
+
 // Program Specific Information
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -133,7 +171,7 @@ where
     T: TSPSITableTrait,
 {
     // PSI - header
-    table_id: u8,
+    table_id: Option<TSTableID>,
 
     // section-syntax-indicator
     // :1
@@ -196,7 +234,7 @@ where
 {
     fn new() -> TSPSI<T> {
         TSPSI {
-            table_id: 0,
+            table_id: None,
             ssi: 0,
             private_bit: 0,
             reserved_bits: 0,
@@ -238,7 +276,7 @@ where
             )
         ));
 
-        self.table_id = tid;
+        self.table_id = TSTableID::from_u8(tid);
         self.ssi = ssi;
         self.private_bit = pb;
         self.reserved_bits = rb;
@@ -339,10 +377,9 @@ impl TSPSI<TSPSIPAT> {
         let mut data: Vec<TSPSIPAT> = vec![TSPSIPAT::new(); raw.len() % sz];
 
         while raw.len() >= sz {
-            let mut pat = TSPSIPAT::new();
-            let (tail, _) = try!(pat.parse(&raw));
-            data.push(pat);
+            let (tail, pat) = try!(TSPSIPAT::parse(&raw));
 
+            data.push(pat);
             raw = tail;
         }
 
@@ -371,23 +408,19 @@ impl TSPSI<TSPSIPMT> {
         let (input, _) = try!(psi.parse_syntax_section(input));
 
         // <parse data>
-
-        // not working for nom 4.x.y
-        // see:
-        // https://github.com/Geal/nom/issues/790
-        //
-        // let (_, data) = try!(do_parse!(raw,
-        //     d: many1!(parse_ts_psi_pat_datum) >>
-        //     (d)
-        // ));
-
         // limit reader
-        let (input, raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
 
-        let mut pmt = TSPSIPMT::new();
-        try!(pmt.parse(&raw));
+        let mut data: Vec<TSPSIPMT> = vec![TSPSIPMT::new(); 1];
 
-        psi.data = Some(vec![pmt]);
+        while raw.len() > 0 {
+            let (tail, pmt) = try!(TSPSIPMT::parse(&raw));
+
+            data.push(pmt);
+            raw = tail;
+        }
+
+        psi.data = Some(data);
         // </parse data>
 
         let (input, _) = try!(psi.parse_crc32(input));
@@ -396,19 +429,78 @@ impl TSPSI<TSPSIPMT> {
     }
 }
 
-pub trait TSPSITableTrait {
+impl TSPSI<TSPSISDT> {
+    fn parse_sdt(input: &[u8]) -> IResult<&[u8], TSPSI<TSPSISDT>> {
+        let mut psi = TSPSI::new();
+
+        let (input, _) = try!(psi.parse_header(input));
+        let (input, _) = try!(psi.parse_syntax_section(input));
+
+        // <parse data>
+        // limit reader
+        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+
+        let mut data: Vec<TSPSISDT> = vec![TSPSISDT::new(); 1];
+
+        while raw.len() > 0 {
+            let (tail, sdt) = try!(TSPSISDT::parse(&raw));
+
+            data.push(sdt);
+            raw = tail;
+        }
+
+        psi.data = Some(data);
+        // </parse data>
+
+        let (input, _) = try!(psi.parse_crc32(input));
+
+        Ok((input, psi))
+    }
+}
+
+impl TSPSI<TSPSIEIT> {
+    fn parse_eit(input: &[u8]) -> IResult<&[u8], TSPSI<TSPSIEIT>> {
+        let mut psi = TSPSI::new();
+
+        let (input, _) = try!(psi.parse_header(input));
+        let (input, _) = try!(psi.parse_syntax_section(input));
+
+        // <parse data>
+        // limit reader
+        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+
+        let mut data: Vec<TSPSIEIT> = vec![TSPSIEIT::new(); 1];
+
+        while raw.len() > 0 {
+            let (tail, eit) = try!(TSPSIEIT::parse(&raw));
+
+            data.push(eit);
+            raw = tail;
+        }
+
+        psi.data = Some(data);
+        // </parse data>
+
+        let (input, _) = try!(psi.parse_crc32(input));
+
+        Ok((input, psi))
+    }
+}
+
+pub trait TSPSITableTrait: Sized {
     fn kind() -> TSPSITableKind;
-    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()>;
+    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], Self>;
 }
 
 #[derive(Clone, Debug)]
 pub enum TSPSITableKind {
-    PAT,
-    PMT,
-    SDT,
-    CAT,
-    NIT,
-    EIT,
+    PAT, // Program Association Table
+    PMT, // Program Map Table
+    SDT, // Service Description Table
+    EIT, // Event Information Table
+
+    CAT, // Conditional Access
+    NIT, // Network Information Table
 }
 
 #[allow(dead_code)]
@@ -437,7 +529,9 @@ impl TSPSIPAT {
 impl TSPSITableTrait for TSPSIPAT {
     fn kind() -> TSPSITableKind { TSPSITableKind::PAT }
 
-    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIPAT> {
+        let mut psi = TSPSIPAT::new();
+
         #[cfg_attr(rustfmt, rustfmt_skip)]
         let(input, (pn, pmp)) = try!(do_parse!(input,
                b1: bits!(take_bits!(u8, 8))
@@ -455,10 +549,136 @@ impl TSPSITableTrait for TSPSIPAT {
             )
         ));
 
-        self.program_number = pn;
-        self.program_map_pid = pmp;
+        psi.program_number = pn;
+        psi.program_map_pid = pmp;
 
-        Ok((input, ()))
+        Ok((input, psi))
+    }
+}
+
+#[derive(Clone, Debug, FromPrimitive)]
+pub enum TSStreamType {
+    Reserved0x00 = 0x00,
+
+    MPEG1Video = 0x01,
+    H262 = 0x02,
+    MPEG1Audio = 0x03, // mp2
+    MPEG2Audio = 0x04, // mp2
+    MPEG2TabledData = 0x05,
+    MPEG2PacketizedData = 0x06, // mp3
+    MHEG = 0x07,
+    DSMCCInAPacketizedStream = 0x08,
+    H222AuxiliaryData = 0x09,
+    DSMCCMultiprotocolEncapsulation = 0x0A,
+    DSMCCUNMessages = 0x0B,
+    DSMCCStreamDescriptors = 0x0C,
+    DSMCCTabledData = 0x0D,
+    ISOIEC138181AuxiliaryData = 0x0E,
+    AAC = 0x0F, // AAC
+    MPEG4H263Video = 0x10,
+    MPEG4LOAS = 0x11,
+    MPEG4FlexMux = 0x12,
+    MPEG4FlexMuxTables = 0x13,
+    DSMCCSynchronizedDownloadProtocol = 0x14,
+    PacketizedMetadata = 0x15,
+    SectionedMetadata = 0x16,
+    DSMCCDataCarouselMetadata = 0x17,
+    DSMCCObjectCarouselMetadata = 0x18,
+    SynchronizedDownloadProtocolMetadata = 0x19,
+    IPMP = 0x1A,
+    H264 = 0x1B,
+    MPEG4RawAudio = 0x1C,
+    MPEG4Text = 0x1D,
+    MPEG4AuxiliaryVideo = 0x1E,
+    SVC = 0x1F,
+    MVC = 0x20,
+    JPEG2000Video = 0x21,
+
+    Reserved0x22 = 0x22,
+    Reserved0x23 = 0x23,
+
+    H265 = 0x24,
+
+    Reserved0x25 = 0x25,
+    // ...
+    Reserved0x41 = 0x41,
+
+    ChineseVideoStandard = 0x42,
+
+    Reserved0x43 = 0x43,
+    // ...
+    Reserved0x7E = 0x7E,
+
+    IPMPDRM = 0x7F,
+    H262DES64CBC = 0x80,
+    AC3 = 0x81, // AC3
+    SCTESubtitle = 0x82, // SCTE
+    DolbyTrueHDAudio = 0x83,
+    AC3DolbyDigitalPlus = 0x84,
+    DTS8 = 0x85,
+    SCTE35 = 0x86,
+    AC3DolbyDigitalPlus16 = 0x87,
+
+    Reserved0x88 = 0x88,
+    // ...
+    Reserved0x8F = 0x8F,
+}
+
+#[derive(Clone, Debug)]
+pub struct TSDescriptor {
+    // the tag defines the structure of the
+    // contained data following the descriptor length.
+    // :8
+    tag: u8,
+
+    // the number of bytes that are to follow.
+    // :8
+    len: u8,
+
+    data: Option<Vec<u8>>,
+}
+
+impl TSDescriptor {
+    fn new() -> TSDescriptor {
+        TSDescriptor {
+            tag: 0,
+            len: 0,
+
+            data: None,
+        }
+    }
+
+    fn data_as_str(&self) -> &str {
+        self.data
+            .as_ref()
+            .and_then(|ref data| { str::from_utf8(data).ok() })
+            .unwrap_or("---")
+    }
+
+    fn parse(input: &[u8]) -> IResult<&[u8], TSDescriptor> {
+        let mut d = TSDescriptor::new();
+
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(mut input, (tag, len, data)) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(take_bits!(u8, 8))
+            >> bn: take!(b2)
+
+            >> (
+                b1,  // tag
+                b2,  // len
+                bn  // data
+            )
+        ));
+
+        d.tag = tag;
+        d.len = len;
+        d.data = Some(data.to_vec());
+
+        println!("[t] [pmt]     (:tag ({:?}) :len {} :data {})",
+            d.tag, d.len, d.data_as_str());
+
+        Ok((input, d))
     }
 }
 
@@ -467,7 +687,7 @@ pub struct TSPSIPMTStream {
     // This defines the structure of the data
     // contained within the elementary packet identifier.
     // :8
-    stream_type: u8,
+    stream_type: Option<TSStreamType>,
 
     // reserved bits (set to 0x07 (all bits on))
     // :3
@@ -484,20 +704,20 @@ pub struct TSPSIPMTStream {
     //
     // The number of bytes that follow for the elementary stream descriptors.
     // :10
-    descriptors_len: u16,
+    descriptors_length: u16,
 
     // When the ES info length is non-zero,
     // this is the ES info length number of elementary stream descriptor bytes.
-    descriptors: Option<Vec<()>>,
+    descriptors: Option<Vec<TSDescriptor>>,
 }
 
 impl TSPSIPMTStream {
     fn new() -> TSPSIPMTStream {
         TSPSIPMTStream {
-            stream_type: 0,
+            stream_type: None,
             pid: 0,
 
-            descriptors_len: 0,
+            descriptors_length: 0,
             descriptors: None,
         }
     }
@@ -523,19 +743,31 @@ impl TSPSIPMTStream {
             >> (
                 b1,  // stream_type
                 ((b2.1 as u16) << 8) | b3 as u16,  // pid
-                ((b4.2 as u16) << 8) | b5 as u16  // descriptors_len
+                ((b4.2 as u16) << 8) | b5 as u16  // descriptors_length
             )
         ));
 
-        s.stream_type = st;
+        s.stream_type = TSStreamType::from_u8(st);
         s.pid = pid;
-        s.descriptors_len = dsc_len;
+        s.descriptors_length = dsc_len;
 
-        println!("[t] [pmt]   (:type {} :pid {} :len {})",
-            st, pid, dsc_len);
+        println!("[t] [pmt]   (:type ({:?}) :pid {} :len {})",
+            s.stream_type, pid, dsc_len);
+
+        // limit-reader
+        let(input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
 
         if dsc_len > 0 {
-            input = try!(parse_take_n(input, dsc_len as usize)).0;
+            let mut descriptors = vec![TSDescriptor::new(); 2];
+
+            while raw.len() > 0 {
+                let (tail, descriptor) = try!(TSDescriptor::parse(raw));
+                descriptors.push(descriptor);
+
+                raw = tail;
+            }
+
+            s.descriptors = Some(descriptors);
         }
 
         Ok((input, s))
@@ -566,10 +798,10 @@ pub struct TSPSIPMT {
     // program_info_length
     // The number of bytes that follow for the program descriptors.
     // :10
-    pi_len: u16,
+    pi_length: u16,
 
     // program descriptors
-    descriptors: Option<()>,
+    descriptors: Option<Vec<TSDescriptor>>,
 
     // elementary stream info data
     streams: Option<Vec<TSPSIPMTStream>>,
@@ -579,7 +811,7 @@ impl TSPSIPMT {
     fn new() -> TSPSIPMT {
         TSPSIPMT {
             pcr_pid: 0,
-            pi_len: 0,
+            pi_length: 0,
 
             descriptors: None,
 
@@ -591,9 +823,11 @@ impl TSPSIPMT {
 impl TSPSITableTrait for TSPSIPMT {
     fn kind() -> TSPSITableKind { TSPSITableKind::PMT }
 
-    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], Self> {
+        let mut psi = TSPSIPMT::new();
+
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(mut input, (pcr_pid, pi_len)) = try!(do_parse!(input,
+        let(mut input, (pcr_pid, pi_length)) = try!(do_parse!(input,
             b1: bits!(tuple!(
                 take_bits!(u8, 3),
                 take_bits!(u8, 5)
@@ -612,11 +846,11 @@ impl TSPSITableTrait for TSPSIPMT {
             )
         ));
 
-        self.pcr_pid = pcr_pid;
-        self.pi_len = pi_len;
+        psi.pcr_pid = pcr_pid;
+        psi.pi_length = pi_length;
 
-        if self.pi_len > 0 {
-            input = try!(parse_take_n(input, self.pi_len as usize)).0;
+        if pi_length > 0 {
+            input = try!(parse_take_n(input, pi_length as usize)).0;
         }
 
         println!("[t] [pmt] :pcr-pid {}", pcr_pid);
@@ -630,9 +864,9 @@ impl TSPSITableTrait for TSPSIPMT {
             input = tail;
         }
 
-        self.streams = Some(streams);
+        psi.streams = Some(streams);
 
-        Ok((input, ()))
+        Ok((input, psi))
     }
 }
 
@@ -640,13 +874,112 @@ impl TSPSITableTrait for TSPSIPMT {
 #[derive(Clone, Debug)]
 pub struct TSPSISDT {}
 
+impl TSPSISDT {
+    fn new() -> TSPSISDT {
+        TSPSISDT {}
+    }
+}
+
 impl TSPSITableTrait for TSPSISDT {
     fn kind() -> TSPSITableKind {
         TSPSITableKind::SDT
     }
 
-    fn parse<'a>(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
-        Ok((input, ()))
+    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSISDT> {
+        let psi = TSPSISDT::new();
+
+        Ok((input, psi))
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct TSPSIEIT {}
+
+impl TSPSIEIT {
+    fn new() -> TSPSIEIT {
+        TSPSIEIT {}
+    }
+}
+
+impl TSPSITableTrait for TSPSIEIT {
+    fn kind() -> TSPSITableKind {
+        TSPSITableKind::EIT
+    }
+
+    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIEIT> {
+        let psi = TSPSIEIT::new();
+
+        Ok((input, psi))
+    }
+}
+
+pub struct TSPESOptionalHeader {
+    // marker_bits              :2
+    // scrambling_control       :2
+    // priority                 :1
+    // data_alignment_indicator :1
+    // copyright                :1
+    // original_or_copy         :1
+    b1: u8,
+
+    // PTS_DTS_indicator         :2
+    // ESCR_flag                 :1
+    // ES_rate_flag              :1
+    // DSM_trick_mode_flag       :1
+    // additional_copy_info_flag :1
+    // CRC_flag                  :1
+    // extension_flag            :1
+    b2: u8,
+
+    header_length: u8,
+
+    dts: Option<u64>,
+    pts: Option<u64>,
+}
+
+pub struct TSPES {
+    stream_id: u8,
+
+    packet_length: u16,
+
+    header: Option<TSPESOptionalHeader>,
+}
+
+impl TSPES {
+    fn new() -> TSPES {
+        TSPES {
+            stream_id: 0,
+            packet_length: 0,
+            header: None,
+        }
+    }
+
+    fn parse(input: &[u8]) -> IResult<&[u8], TSPES> {
+        let mut p = TSPES::new();
+
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(mut input, (sid, p_len)) = try!(do_parse!(input,
+            _start_code: tag!(&[0x00, 0x00, 0x01])  // TODO: move to PESStartCode as const
+
+            >> b1: bits!(take_bits!(u8, 8))
+
+            >> b2: bits!(take_bits!(u8, 8))
+            >> b3: bits!(take_bits!(u8, 8))
+
+            >> (
+                b1,
+                ((b2 as u16) << 8) | b3 as u16
+            )
+        ));
+
+        p.stream_id = sid;
+        p.packet_length = p_len;
+
+        println!("[t] [PES] (:stream-id {} :packet-length {})",
+            p.stream_id, p.packet_length);
+
+        Ok((input, p))
     }
 }
 
@@ -769,12 +1102,6 @@ named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
     ts_header: parse_ts_header >> // 3
 
     (ts_header)));
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-named!(
-    parse_ts_multi<&[u8], Vec<TSHeader>>,
-    many1!(parse_ts_single)
-);
 
 struct DemuxerTS {}
 
@@ -970,31 +1297,16 @@ impl Input for InputUDP {
                         ts_header.pid, ts_header.pid, ts_header.cc
                     );
                 }
+
+            } else if ts_header.pid == TS_PID_SDT && self.ts.sdt.is_none() {
+                let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
+                self.ts.sdt = Some(psi);
+
+            } else if ts_header.pid == TS_PID_EIT {
+                let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
+                println!("[+] (:EIT {:?})", psi);
+
             }
-
-            // match res {
-            //     Ok((_, (_, ts_header, ts_pkt_tail))) => {
-            //         if ts_header.afc == 1 {
-            //             println!("pid: 0x{:04X}/{}, cc: {}", ts_header.pid, ts_header.pid, ts_header.cc);
-
-            //             let res = parse_ts_adaptation(&ts_pkt_tail);
-            //             match res {
-            //                 Ok((ts_pkt_tail, ts_adaptation)) => {
-            //                     println!("adaptation (:pcr? {:?} :adaptation-field-length {:?})",
-            //                         ts_adaptation.pcr_flag,
-            //                         ts_adaptation.afl);
-            //                 },
-            //                 _ => {}
-            //             }
-            //         } else {
-
-            //         }
-            //     },
-            //     _  => {
-            //         println!("error or incomplete cap: {:?}, len: {:?}, data: 0x{:02X?}{:02X?}{:02X?}",
-            //             buf.capacity(), buf.len(), ts_pkt_raw[0], ts_pkt_raw[1], ts_pkt_raw[2]);
-            //     }
-            // }
         }
 
         Ok(())
