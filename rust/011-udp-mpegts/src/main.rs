@@ -3,12 +3,14 @@ mod error;
 #[macro_use]
 extern crate nom;
 extern crate clap;
-extern crate url;
 extern crate num_derive;
 extern crate num_traits;
+extern crate url;
 
 use clap::{App, Arg};
 use nom::IResult;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use std::collections::VecDeque;
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
@@ -17,19 +19,41 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
 use url::{Host /*, ParseError*/, Url};
-use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
 
 use error::{Error, Kind as ErrorKind, Result};
 
 const TS_SYNC_BYTE: u8 = 0x47;
 const TS_PKT_SZ: usize = 188;
 
+// TODO: move to enum?
 const TS_PID_PAT: u16 = 0x0000;
 const TS_PID_CAT: u16 = 0x0001;
+const TS_PID_TSDT: u16 = 0x0002;
+
+// 0x0003 ... 0x000F - reserved
+
+// NIT, ST
 const TS_PID_NIT: u16 = 0x0010;
+// SDT, BAT, ST
 const TS_PID_SDT: u16 = 0x0011;
+// EIT, ST CIT (TS 102 323 [13])
 const TS_PID_EIT: u16 = 0x0012;
+// RST, ST
+const TS_PID_RST: u16 = 0x0013;
+// TDT, TOT, ST
+const TS_PID_TDT: u16 = 0x0014;
+// network synchronization
+const TS_PID_NetworkSynchronization: u16 = 0x0015;
+// RNT (TS 102 323 [13])
+const TS_PID_RNT: u16 = 0x0016;
+
+// 0x0017 ... 0x001B - reserved
+
+const TS_PID_InbandSignalling: u16 = 0x001C;
+const TS_PID_Measurement: u16 = 0x001D;
+const TS_PID_DIT: u16 = 0x001E;
+const TS_PID_SIT: u16 = 0x001F;
+
 const TS_PID_NULL: u16 = 0x1FFF;
 
 const TS_PSI_PAT_SZ: usize = 4;
@@ -125,16 +149,14 @@ pub struct TSAdaptation {
 #[inline]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 fn parse_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
-    do_parse!(input,
-       raw: take!(n)
-    >> (raw))
+    do_parse!(input, raw: take!(n) >> (raw))
 }
-
 
 // ETSI EN 300 468 V1.3.1 (1998-02)
 // ETSI EN 300 468 V1.11.1 (2010-04)
+// ISO/IEC 13818-1
 #[derive(Clone, Debug, FromPrimitive)]
-pub enum TSTableID {
+pub enum TSTableIDSingle {
     ProgramAssociationSection = 0x00,
     ConditionalAccessSection = 0x01,
     ProgramMapSection = 0x02,
@@ -143,10 +165,11 @@ pub enum TSTableID {
     NetworkInformationSectionActualNetwork = 0x40,
     NetworkInformationSectionOtherNetwork = 0x41,
     ServiceDescriptionSectionActualTransportStream = 0x42,
+
     ServiceDescriptionSectionOtherTransportStream = 0x46,
     BouquetAssociationSection = 0x4A,
-    EventInformationSectionActualTransportStream = 0x4E,
-    EventInformationSectionOtherTransportStream = 0x4F,
+    EISActualTransportStream = 0x4E,
+    EISOtherTransportStream = 0x4F,
 
     TimeDateSection = 0x70,
     RunningStatusSection = 0x71,
@@ -163,30 +186,53 @@ pub enum TSTableID {
     SelectionInformationSection = 0x7F,
 }
 
-// Program Specific Information
-#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub enum TSTableID {
+    Single(TSTableIDSingle),
+
+    // 0x50 ... 0x5F
+    EISActualTransportStreamSchedule(u8),
+    // 0x60 ... 0x6F
+    EISOtherTransportStreamSchedule(u8),
+
+    // 0x04 ... 0x3F
+    // 0x43 ... 0x45
+    Reserved(u8),
+}
+
+impl TSTableID {
+    fn from_u8(d: u8) -> Option<TSTableID> {
+        match TSTableIDSingle::from_u8(d) {
+            Some(tidk) => Some(TSTableID::Single(tidk)),
+            None => match d {
+                0x04...0x3F | 0x43...0x45 => Some(TSTableID::Reserved(d)),
+                0x50...0x5F => Some(TSTableID::EISActualTransportStreamSchedule(d)),
+                0x60...0x6F => Some(TSTableID::EISOtherTransportStreamSchedule(d)),
+                _ => None,
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
-pub struct TSPSI<T>
-where
-    T: TSPSITableTrait,
-{
-    // PSI - header
+pub struct TSPSIHeader {
+    // :8
     table_id: Option<TSTableID>,
 
-    // section-syntax-indicator
+    // section_syntax_indicator
+    // The section_syntax_indicator is a 1-bit
+    // field which shall be set to "1".
     // :1
-    ssi: u8,
-
+    //
+    // reserved_future_use
     // :1
-    private_bit: u8,
-
+    //
+    // reserved_bits
     // :2
-    reserved_bits: u8,
-
+    //
     // section-length-unused-bits
     // :2
-    slub: u8,
-
+    //
     // table syntax section length
     //
     // This is a 12-bit field, the first two bits of which shall be "00".
@@ -198,11 +244,113 @@ where
     // of 1 024 bytes.
     //
     // :10
-    section_length: u16,
+    b1: u8,
+    b2: u8,
+}
+
+impl TSPSIHeader {
+    fn new() -> TSPSIHeader {
+        TSPSIHeader {
+            table_id: None,
+            b1: 0,
+            b2: 0,
+        }
+    }
+
+    fn parse(input: &[u8]) -> IResult<&[u8], TSPSIHeader> {
+        let mut header = TSPSIHeader::new();
+
+        let (input, raw) = try!(
+            do_parse!(input,
+                raw: take!(3)
+                >> (raw)
+        ));
+
+        header.table_id = TSTableID::from_u8(raw[0]);
+        header.b1 = raw[1];
+        header.b2 = raw[2];
+
+        Ok((input, header))
+    }
+
+    #[inline]
+    fn section_length(&self) -> u16 {
+        ((self.b1 & 0x03) as u16) << 8 | self.b2 as u16
+    }
+}
+
+// for SDT, EIT
+#[derive(Debug)]
+pub struct TSPSISyntaxSectionDVB {
+    // This is a 16-bit field which serves as a label
+    // for identification of the TS, about which the EIT
+    // informs, from any other multiplex within the delivery system.
+    // :16
+    transport_stream_id: u16,
+
+    // This 16-bit field gives the label identifying
+    // the network_id of the originating delivery system.
+    // :16
+    original_network_id: u16,
+
+    // This 8-bit field specifies the number of the
+    // last section of this segment of the sub_table.
+    // For sub_tables which are not segmented, this field shall
+    // be set to the same value as the last_section_number field
+    // :8
+    segment_last_section_number: u8,
+
+    // This 8-bit field identifies the last table_id used
+    // :8
+    last_table_id: u8,
+}
+
+impl TSPSISyntaxSectionDVB {
+    fn new() -> TSPSISyntaxSectionDVB {
+        TSPSISyntaxSectionDVB {
+            transport_stream_id: 0,
+            original_network_id: 0,
+            segment_last_section_number: 0,
+            last_table_id: 0,
+        }
+    }
+
+    fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSectionDVB> {
+        let mut tss = TSPSISyntaxSectionDVB::new();
+
+        let (input, raw) = try!(do_parse!(input, raw: take!(6) >> (raw)));
+
+        tss.transport_stream_id = (raw[0] as u16) << 8 | raw[1] as u16;
+        tss.original_network_id = (raw[2] as u16) << 8 | raw[3] as u16;
+        tss.segment_last_section_number = raw[4];
+        tss.last_table_id = raw[5];
+
+        Ok((input, tss))
+    }
+}
+
+#[derive(Debug)]
+pub struct TSPSISyntaxSection {}
+
+impl TSPSISyntaxSection {}
+
+// Program Specific Information
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct TSPSI<T>
+where
+    T: TSPSITableTrait,
+{
+    header: TSPSIHeader,
 
     // <PSI - table syntax section>
+    // This is a 16-bit field which serves as a label to identify this service from any other service within a TS. The
+    // service_id is the same as the program_number in the corresponding program_map_section.
     // :16
-    tsi: u16,
+    service_id: u16,
+
+    // :2
+    // reserved
 
     // version-number
     // :5
@@ -220,6 +368,8 @@ where
     // :8
     lsn: u8,
 
+    syntax_section_dvb: Option<TSPSISyntaxSectionDVB>,
+
     // table-data
     data: Option<Vec<T>>,
 
@@ -234,18 +384,15 @@ where
 {
     fn new() -> TSPSI<T> {
         TSPSI {
-            table_id: None,
-            ssi: 0,
-            private_bit: 0,
-            reserved_bits: 0,
-            slub: 0,
-            section_length: 0,
+            header: TSPSIHeader::new(),
 
-            tsi: 0,
+            service_id: 0,
             vn: 0,
             cni: 0,
             sn: 0,
             lsn: 0,
+
+            syntax_section_dvb: None,
 
             data: None,
 
@@ -253,43 +400,17 @@ where
         }
     }
 
-    // PSI - header - 3bytes
     fn parse_header(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
-        #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(input, (tid, ssi, pb, rb, slub, slen)) = try!(do_parse!(input,
-               b1: bits!(take_bits!(u8, 8))
-            >> b2: bits!(tuple!(
-                take_bits!(u8, 1),
-                take_bits!(u8, 1),
-                take_bits!(u8, 2),
-                take_bits!(u8, 2),
-                take_bits!(u8, 2)
-            ))
-            >> b3: bits!(take_bits!(u8, 8))
-            >> (
-                b1,  // table-id
-                b2.0,  // ssi
-                b2.1,  // private-bit
-                b2.2,  // reserved-bits
-                b2.3,  // slub
-                ((b2.4 as u16) << 8) | b3 as u16  // section-length
-            )
-        ));
+        let (input, header) = try!(TSPSIHeader::parse(input));
 
-        self.table_id = TSTableID::from_u8(tid);
-        self.ssi = ssi;
-        self.private_bit = pb;
-        self.reserved_bits = rb;
-        self.slub = slub;
-        self.section_length = slen;
+        self.header = header;
 
         Ok((input, ()))
     }
 
-    // PSI - table syntax section - 5bytes
     fn parse_syntax_section(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let (input, (tsi, vn, cni, sn, lsn)) = try!(do_parse!(input,
+        let (input, (service_id, vn, cni, sn, lsn)) = try!(do_parse!(input,
                b1: bits!(take_bits!(u8, 8))
             >> b2: bits!(take_bits!(u8, 8))
             >> b3: bits!(tuple!(
@@ -301,7 +422,7 @@ where
             >> b5: bits!(take_bits!(u8, 8))
 
             >> (
-                ((b1 as u16) << 8) | b2 as u16,  // tsi
+                ((b1 as u16) << 8) | b2 as u16,  // service_id
                 b3.1,  // vn
                 b3.2,  // cni
                 b4,  // sn
@@ -309,7 +430,7 @@ where
             )
         ));
 
-        self.tsi = tsi;
+        self.service_id = service_id;
         self.vn = vn;
         self.cni = cni;
         self.sn = sn;
@@ -318,30 +439,30 @@ where
         Ok((input, ()))
     }
 
+    fn parse_syntax_section_dvb(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        let (input, ss_dvb) = try!(TSPSISyntaxSectionDVB::parse(input));
+
+        self.syntax_section_dvb = Some(ss_dvb);
+
+        Ok((input, ()))
+    }
+
+
     fn parse_crc32(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
-        #[cfg_attr(rustfmt, rustfmt_skip)]
-        let (input, v) = try!(do_parse!(input,
-               b1: bits!(take_bits!(u8, 8))
-            >> b2: bits!(take_bits!(u8, 8))
-            >> b3: bits!(take_bits!(u8, 8))
-            >> b4: bits!(take_bits!(u8, 8))
+        let (input, raw) = try!(do_parse!(input, raw: take!(4) >> (raw)));
 
-            >> (
-                (b1 as u32) << 24 |
-                (b2 as u32) << 16 |
-                (b3 as u32) << 8  |
-                (b4 as u32)
-            )
-        ));
-
-        self.crc32 = v;
+        self.crc32 =
+            (raw[0] as u32) << 24 |
+            (raw[1] as u32) << 16 |
+            (raw[2] as u32) << 8 |
+            (raw[3] as u32);
 
         Ok((input, ()))
     }
 
     #[inline]
     fn section_length_data_only(&self) -> usize {
-        (self.section_length as usize)
+        (self.header.section_length() as usize)
             - 5  // -5 => 5bytes of "PSI - table syntax section";
             - 4 // -4 => 4bytes of CRC32;
     }
@@ -374,7 +495,7 @@ impl TSPSI<TSPSIPAT> {
         let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
 
         let sz = TSPSIPAT::sz();
-        let mut data: Vec<TSPSIPAT> = vec![TSPSIPAT::new(); raw.len() % sz];
+        let mut data: Vec<TSPSIPAT> = Vec::new();
 
         while raw.len() >= sz {
             let (tail, pat) = try!(TSPSIPAT::parse(&raw));
@@ -395,8 +516,8 @@ impl TSPSI<TSPSIPAT> {
     fn first_program_map_pid(&self) -> Option<u16> {
         self.data
             .as_ref()
-            .and_then(|ref data| { data.first() })
-            .and_then(|ref pat| { Some(pat.program_map_pid) })
+            .and_then(|ref data| data.first())
+            .and_then(|ref pat| Some(pat.program_map_pid))
     }
 }
 
@@ -411,7 +532,7 @@ impl TSPSI<TSPSIPMT> {
         // limit reader
         let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
 
-        let mut data: Vec<TSPSIPMT> = vec![TSPSIPMT::new(); 1];
+        let mut data: Vec<TSPSIPMT> = Vec::new();
 
         while raw.len() > 0 {
             let (tail, pmt) = try!(TSPSIPMT::parse(&raw));
@@ -435,6 +556,7 @@ impl TSPSI<TSPSISDT> {
 
         let (input, _) = try!(psi.parse_header(input));
         let (input, _) = try!(psi.parse_syntax_section(input));
+        let (input, _) = try!(psi.parse_syntax_section_dvb(input));
 
         // <parse data>
         // limit reader
@@ -464,12 +586,13 @@ impl TSPSI<TSPSIEIT> {
 
         let (input, _) = try!(psi.parse_header(input));
         let (input, _) = try!(psi.parse_syntax_section(input));
+        let (input, _) = try!(psi.parse_syntax_section_dvb(input));
 
         // <parse data>
         // limit reader
         let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
 
-        let mut data: Vec<TSPSIEIT> = vec![TSPSIEIT::new(); 1];
+        let mut data: Vec<TSPSIEIT> = Vec::new();
 
         while raw.len() > 0 {
             let (tail, eit) = try!(TSPSIEIT::parse(&raw));
@@ -523,14 +646,18 @@ impl TSPSIPAT {
         }
     }
 
-    fn sz() -> usize { TS_PSI_PAT_SZ }
+    fn sz() -> usize {
+        TS_PSI_PAT_SZ
+    }
 }
 
 impl TSPSITableTrait for TSPSIPAT {
-    fn kind() -> TSPSITableKind { TSPSITableKind::PAT }
+    fn kind() -> TSPSITableKind {
+        TSPSITableKind::PAT
+    }
 
     fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIPAT> {
-        let mut psi = TSPSIPAT::new();
+        let mut pat = TSPSIPAT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
         let(input, (pn, pmp)) = try!(do_parse!(input,
@@ -549,10 +676,10 @@ impl TSPSITableTrait for TSPSIPAT {
             )
         ));
 
-        psi.program_number = pn;
-        psi.program_map_pid = pmp;
+        pat.program_number = pn;
+        pat.program_map_pid = pmp;
 
-        Ok((input, psi))
+        Ok((input, pat))
     }
 }
 
@@ -611,7 +738,7 @@ pub enum TSStreamType {
 
     IPMPDRM = 0x7F,
     H262DES64CBC = 0x80,
-    AC3 = 0x81, // AC3
+    AC3 = 0x81,          // AC3
     SCTESubtitle = 0x82, // SCTE
     DolbyTrueHDAudio = 0x83,
     AC3DolbyDigitalPlus = 0x84,
@@ -651,7 +778,7 @@ impl TSDescriptor {
     fn data_as_str(&self) -> &str {
         self.data
             .as_ref()
-            .and_then(|ref data| { str::from_utf8(data).ok() })
+            .and_then(|ref data| str::from_utf8(data).ok())
             .unwrap_or("---")
     }
 
@@ -659,7 +786,7 @@ impl TSDescriptor {
         let mut d = TSDescriptor::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(mut input, (tag, len, data)) = try!(do_parse!(input,
+        let(input, (tag, len, data)) = try!(do_parse!(input,
                b1: bits!(take_bits!(u8, 8))
             >> b2: bits!(take_bits!(u8, 8))
             >> bn: take!(b2)
@@ -675,8 +802,12 @@ impl TSDescriptor {
         d.len = len;
         d.data = Some(data.to_vec());
 
-        println!("[t] [pmt]     (:tag ({:?}) :len {} :data {})",
-            d.tag, d.len, d.data_as_str());
+        println!(
+            "[t] [dsc]     (:tag ({:?}) :len {} :data {})",
+            d.tag,
+            d.len,
+            d.data_as_str()
+        );
 
         Ok((input, d))
     }
@@ -726,7 +857,7 @@ impl TSPSIPMTStream {
         let mut s = TSPSIPMTStream::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(mut input, (st, pid, dsc_len)) = try!(do_parse!(input,
+        let(input, (st, pid, dsc_len)) = try!(do_parse!(input,
                b1: bits!(take_bits!(u8, 8))
             >> b2: bits!(tuple!(
                 take_bits!(u8, 3),
@@ -751,14 +882,16 @@ impl TSPSIPMTStream {
         s.pid = pid;
         s.descriptors_length = dsc_len;
 
-        println!("[t] [pmt]   (:type ({:?}) :pid {} :len {})",
-            s.stream_type, pid, dsc_len);
+        println!(
+            "[t] [pmt]   (:type ({:?}) :pid {} :len {})",
+            s.stream_type, pid, dsc_len
+        );
 
         // limit-reader
-        let(input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
+        let (input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
 
         if dsc_len > 0 {
-            let mut descriptors = vec![TSDescriptor::new(); 2];
+            let mut descriptors: Vec<TSDescriptor> = Vec::new();
 
             while raw.len() > 0 {
                 let (tail, descriptor) = try!(TSDescriptor::parse(raw));
@@ -782,12 +915,14 @@ pub struct TSPSIPMT {
     // reserved_bits
     // :3
     //
+    // pcr_pid
     // The packet identifier that contains the program clock reference used to
     // improve the random access accuracy of the stream's timing that is
     // derived from the program timestamp. If this is unused.
     // then it is set to 0x1FFF (all bits on).
     // :13
-    pcr_pid: u16,
+    b1: u8,
+    b2: u8,
 
     // reserved bits (set to 0x0F (all bits on))
     // :4
@@ -798,7 +933,8 @@ pub struct TSPSIPMT {
     // program_info_length
     // The number of bytes that follow for the program descriptors.
     // :10
-    pi_length: u16,
+    b3: u8,
+    b4: u8,
 
     // program descriptors
     descriptors: Option<Vec<TSDescriptor>>,
@@ -810,52 +946,64 @@ pub struct TSPSIPMT {
 impl TSPSIPMT {
     fn new() -> TSPSIPMT {
         TSPSIPMT {
-            pcr_pid: 0,
-            pi_length: 0,
+            b1: 0,
+            b2: 0,
+
+            b3: 0,
+            b4: 0,
 
             descriptors: None,
 
             streams: None,
         }
     }
+
+    #[inline]
+    fn sz() -> u8 {
+        4
+    }
+
+    #[inline]
+    fn pcr_pid(&self) -> u16 {
+        ((self.b1 & 0x1F) as u16) << 8 | self.b2 as u16
+    }
+
+    // #[inline]
+    // fn set_pcr_pid(&mut self, v: u16) {}
+
+    #[inline]
+    fn program_info_length(&self) -> u16 {
+        ((self.b3 & 0x03) as u16) << 8 | self.b4 as u16
+    }
 }
 
 impl TSPSITableTrait for TSPSIPMT {
-    fn kind() -> TSPSITableKind { TSPSITableKind::PMT }
+    fn kind() -> TSPSITableKind {
+        TSPSITableKind::PMT
+    }
 
     fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], Self> {
-        let mut psi = TSPSIPMT::new();
+        let mut pmt = TSPSIPMT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(mut input, (pcr_pid, pi_length)) = try!(do_parse!(input,
-            b1: bits!(tuple!(
-                take_bits!(u8, 3),
-                take_bits!(u8, 5)
-            ))
-            >> b2: bits!(take_bits!(u8, 8))
-            >> b3: bits!(tuple!(
-                take_bits!(u8, 4),
-                take_bits!(u8, 2),
-                take_bits!(u8, 2)
-            ))
-            >> b4: bits!(take_bits!(u8, 8))
+        let(mut input, head) = try!(do_parse!(input,
+                raw: take!(TSPSIPMT::sz() as usize)
+                >> (raw))
+        );
 
-            >> (
-                ((b1.1 as u16) << 8) | b2 as u16, // pcr_pid
-                ((b3.2 as u16) << 8) | b4 as u16 // program_info_length
-            )
-        ));
+        pmt.b1 = head[0];
+        pmt.b2 = head[1];
 
-        psi.pcr_pid = pcr_pid;
-        psi.pi_length = pi_length;
+        pmt.b3 = head[2];
+        pmt.b3 = head[3];
 
-        if pi_length > 0 {
-            input = try!(parse_take_n(input, pi_length as usize)).0;
+        if let len = pmt.program_info_length() {
+            if len > 0 {
+                input = try!(parse_take_n(input, len as usize)).0;
+            }
         }
 
-        println!("[t] [pmt] :pcr-pid {}", pcr_pid);
-
-        let mut streams = vec![TSPSIPMTStream::new(); 5];
+        let mut streams: Vec<TSPSIPMTStream> = Vec::new();
 
         while input.len() > 0 {
             let (tail, stream) = try!(TSPSIPMTStream::parse(input));
@@ -864,19 +1012,84 @@ impl TSPSITableTrait for TSPSIPMT {
             input = tail;
         }
 
-        psi.streams = Some(streams);
+        pmt.streams = Some(streams);
 
-        Ok((input, psi))
+        Ok((input, pmt))
     }
 }
 
+// Service Description Table
+//
+// the SDT contains data describing the services
+// in the system e.g. names of services, the service provider, etc.
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub struct TSPSISDT {}
+pub struct TSPSISDT {
+    // This is a 16-bit field which serves as a label
+    // to identify this service from any other service within the TS.
+    // The service_id is the same as the program_number
+    // in the corresponding program_map_section.
+    // :16
+    service_id: u16,
+
+    // reserved future use
+    // :6
+    //
+    // This is a 1-bit field which when set to "1"
+    // indicates that EIT schedule information for the service is
+    // present in the current TS, see ETR 211 [7] for
+    // information on maximum time interval between
+    // occurrences of an EIT schedule sub_table).
+    // If the flag is set to 0 then the EIT schedule information
+    // for the service should not be present in the TS.
+    // :1
+    //
+    // This is a 1-bit field which when set to "1" indicates
+    // that EIT_present_following information for the service
+    // is present in the current TS, see ETR 211 [7] for
+    // information on maximum time interval between occurrences
+    // of an EIT present/following sub_table).
+    // If the flag is set to 0 then the EIT present/following
+    // information for the service should not be present in the TS.
+    // :1
+    b1: u8,
+
+    // running status
+    // :3
+    //
+    // free CA mode
+    // This 1-bit field, when set to "0"
+    // indicates that all the component streams
+    // of the service are not scrambled.
+    // When set to "1" it indicates that access to
+    // one or more streams may be controlled by a CA system.
+    // :1
+    //
+    // descriptors-loop-len.0
+    // :4
+    b2: u8,
+
+    // descriptors-loop-len.1
+    // :8
+    b3: u8,
+
+    descriptors: Option<Vec<TSDescriptor>>,
+}
 
 impl TSPSISDT {
     fn new() -> TSPSISDT {
-        TSPSISDT {}
+        TSPSISDT {
+            service_id: 0,
+            b1: 0,
+            b2: 0,
+            b3: 0,
+            descriptors: None,
+        }
+    }
+
+    #[inline]
+    fn descriptors_length(&self) -> u16 {
+        ((self.b2 & 0x0F) as u16) << 8 | self.b3 as u16
     }
 }
 
@@ -886,19 +1099,123 @@ impl TSPSITableTrait for TSPSISDT {
     }
 
     fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSISDT> {
-        let psi = TSPSISDT::new();
+        let mut sdt = TSPSISDT::new();
 
-        Ok((input, psi))
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(input, raw) = try!(
+            do_parse!(input,
+                raw: take!(5)
+                >> (raw))
+        );
+
+        sdt.service_id = ((raw[0] as u16) << 8) | raw[1] as u16;
+        sdt.b1 = raw[2];
+        sdt.b2 = raw[3];
+        sdt.b3 = raw[4];
+
+        // limit-reader
+        let dsc_len = sdt.descriptors_length();
+        let(input, mut raw) = try!(
+            do_parse!(input,
+                raw: take!(dsc_len)
+                >> (raw))
+        );
+
+        if dsc_len > 0 {
+            let mut descriptors: Vec<TSDescriptor> = Vec::new();
+
+            while raw.len() > 0 {
+                let (tail, descriptor) = try!(TSDescriptor::parse(raw));
+                descriptors.push(descriptor);
+
+                raw = tail;
+            }
+
+            sdt.descriptors = Some(descriptors);
+        }
+
+        Ok((input, sdt))
     }
 }
 
+// Event Information Table
+// - the EIT contains data concerning events
+//   or programmes such as event name, start time, duration, etc.;
+// - the use of different descriptors allows the transmission of different kinds of event information e.g. for
+//   different service types.
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub struct TSPSIEIT {}
+pub struct TSPSIEIT {
+    // This 16-bit field contains the identification number
+    // of the described event (uniquely allocated within a
+    // service definition).
+    // :16
+    event_id: u16,
+
+    // This 40-bit field contains the start time of the event in Universal Time,
+    // Co-ordinated (UTC) and Modified Julian Date (MJD) (see annex C).
+    // This field is coded as 16 bits giving the 16 LSBs
+    // of MJD followed by 24 bits coded as
+    // 6 digits in 4-bit Binary Coded Decimal (BCD).
+    // If the start time is undefined (e.g. for an event in a NVOD reference
+    // service) all bits of the field are set to "1".
+    //
+    // EXAMPLE 1: 93/10/13 12:45:00 is coded as "0xC079124500".
+    //
+    // :40
+    start_time_b: [u8; 5],
+
+    // A 24-bit field containing the duration of the event in hours, minutes, seconds. format: 6 digits,
+    // 4-bit BCD = 24 bit.
+    //
+    // EXAMPLE 2: 01:45:30 is coded as "0x014530".
+    //
+    // :24
+    duration_b: [u8; 3],
+
+    // running_status
+    // This is a 3-bit field indicating the status of the event as defined in table 6.
+    // For an NVOD reference event the value of the running_status
+    // shall be set to "0".
+    // :3
+    //
+    // free_CA_mode
+    // This 1-bit field, when set to "0" indicates that all
+    // the component streams of the event are not scrambled.
+    // When set to "1" it indicates that access to one or
+    // more streams is controlled by a CA system.
+    // :1
+    //
+    // descriptors_loop_length.0
+    // This 12-bit field gives the total
+    // length in bytes of the following descriptors.
+    // :4
+    //
+    // :8
+    b1: u8,
+
+    // descriptors_loop_length.1
+    // :8
+    b2: u8,
+
+    descriptors: Option<Vec<TSDescriptor>>,
+}
 
 impl TSPSIEIT {
     fn new() -> TSPSIEIT {
-        TSPSIEIT {}
+        TSPSIEIT {
+            event_id: 0,
+            start_time_b: [0; 5],
+            duration_b: [0; 3],
+            b1: 0,
+            b2: 0,
+            descriptors: None,
+        }
+    }
+
+    #[inline]
+    fn descriptors_length(&self) -> u16 {
+        ((self.b1 & 0x0F) as u16) << 8 | self.b2 as u16
     }
 }
 
@@ -908,9 +1225,54 @@ impl TSPSITableTrait for TSPSIEIT {
     }
 
     fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIEIT> {
-        let psi = TSPSIEIT::new();
+        let mut eit = TSPSIEIT::new();
 
-        Ok((input, psi))
+        println!("<<<000 {}", input.len());
+
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let(input, (event_id, st_b, db_b, b1, b2)) = try!(do_parse!(input,
+               b1: bits!(take_bits!(u8, 8))
+            >> b2: bits!(take_bits!(u8, 8))
+
+            >> b3: take!(5)
+            >> b4: take!(3)
+
+            >> b5: bits!(take_bits!(u8, 8))
+            >> b6: bits!(take_bits!(u8, 8))
+
+            >> (
+                ((b1 as u16) << 8) | b2 as u16,
+                b3, b4, b5, b6
+            )
+        ));
+
+        eit.event_id = event_id;
+        eit.start_time_b.clone_from_slice(st_b);
+        eit.duration_b.clone_from_slice(db_b);
+        eit.b1 = b1;
+        eit.b2 = b2;
+
+        println!("<<<111 EIT {:?}", eit);
+
+        // limit-reader
+        let dsc_len = eit.descriptors_length();
+        let (input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
+
+        if dsc_len > 0 {
+            let mut descriptors: Vec<TSDescriptor> = Vec::new();
+
+            while raw.len() > 0 {
+                let (tail, descriptor) = try!(TSDescriptor::parse(raw));
+                descriptors.push(descriptor);
+
+                raw = tail;
+            }
+
+            eit.descriptors = Some(descriptors);
+        }
+
+        println!("<<<222 EIT {:?} / len {}", eit, dsc_len);
+        Ok((input, eit))
     }
 }
 
@@ -959,7 +1321,7 @@ impl TSPES {
         let mut p = TSPES::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(mut input, (sid, p_len)) = try!(do_parse!(input,
+        let(input, (sid, p_len)) = try!(do_parse!(input,
             _start_code: tag!(&[0x00, 0x00, 0x01])  // TODO: move to PESStartCode as const
 
             >> b1: bits!(take_bits!(u8, 8))
@@ -976,8 +1338,10 @@ impl TSPES {
         p.stream_id = sid;
         p.packet_length = p_len;
 
-        println!("[t] [PES] (:stream-id {} :packet-length {})",
-            p.stream_id, p.packet_length);
+        println!(
+            "[t] [PES] (:stream-id {} :packet-length {})",
+            p.stream_id, p.packet_length
+        );
 
         Ok((input, p))
     }
@@ -1259,7 +1623,7 @@ impl Input for InputUDP {
             }
 
             if !ts_header.contains_payload {
-                continue
+                continue;
             }
 
             if ts_header.pusi {
@@ -1274,8 +1638,13 @@ impl Input for InputUDP {
                 //
                 // So the section start actually is an offset from the payload:
                 //
-                // uint8_t* section_start = payload + *payload + 1
-                ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
+                // uint8_t* section_start = payload + *payload + 1;
+                // ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
+                ts_pkt_raw = try!(
+                    do_parse!(ts_pkt_raw,
+                        raw: take!(ts_pkt_raw[0]+1)
+                        >> (raw))
+                ).0;
             }
 
             if ts_header.pid == TS_PID_PAT && self.ts.pat.is_none() {
@@ -1286,7 +1655,6 @@ impl Input for InputUDP {
                     "[+] (:PAT (:pid 0x{:04X}/{} :cc {}))",
                     ts_header.pid, ts_header.pid, ts_header.cc
                 );
-
             } else if let Some(ref pat) = self.ts.pat {
                 if self.ts.pmt.is_none() && Some(ts_header.pid) == pat.first_program_map_pid() {
                     let (_, psi) = try!(TSPSI::parse_pmt(ts_pkt_raw));
@@ -1297,15 +1665,15 @@ impl Input for InputUDP {
                         ts_header.pid, ts_header.pid, ts_header.cc
                     );
                 }
+            }
 
-            } else if ts_header.pid == TS_PID_SDT && self.ts.sdt.is_none() {
+            if ts_header.pid == TS_PID_SDT && self.ts.sdt.is_none() {
                 let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
+                println!("[+] (:SDT {:?})", psi);
                 self.ts.sdt = Some(psi);
-
             } else if ts_header.pid == TS_PID_EIT {
                 let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
                 println!("[+] (:EIT {:?})", psi);
-
             }
         }
 
