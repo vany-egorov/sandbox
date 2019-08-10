@@ -461,9 +461,19 @@ where
     }
 
     #[inline]
+    fn syntax_section_dvb_length(&self) -> usize {
+        if !self.syntax_section_dvb.is_none() {
+            6 // TODO: move to const
+        } else {
+            0
+        }
+    }
+
+    #[inline]
     fn section_length_data_only(&self) -> usize {
         (self.header.section_length() as usize)
             - 5  // -5 => 5bytes of "PSI - table syntax section";
+            - self.syntax_section_dvb_length()
             - 4 // -4 => 4bytes of CRC32;
     }
 
@@ -1227,8 +1237,6 @@ impl TSPSITableTrait for TSPSIEIT {
     fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIEIT> {
         let mut eit = TSPSIEIT::new();
 
-        println!("<<<000 {}", input.len());
-
         #[cfg_attr(rustfmt, rustfmt_skip)]
         let(input, (event_id, st_b, db_b, b1, b2)) = try!(do_parse!(input,
                b1: bits!(take_bits!(u8, 8))
@@ -1252,8 +1260,6 @@ impl TSPSITableTrait for TSPSIEIT {
         eit.b1 = b1;
         eit.b2 = b2;
 
-        println!("<<<111 EIT {:?}", eit);
-
         // limit-reader
         let dsc_len = eit.descriptors_length();
         let (input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
@@ -1271,7 +1277,6 @@ impl TSPSITableTrait for TSPSIEIT {
             eit.descriptors = Some(descriptors);
         }
 
-        println!("<<<222 EIT {:?} / len {}", eit, dsc_len);
         Ok((input, eit))
     }
 }
