@@ -146,6 +146,7 @@ pub struct TSAdaptation {
     pcr: Option<TSPCR>,
 }
 
+// TODO: remove
 #[inline]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 fn parse_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
@@ -216,6 +217,12 @@ impl TSTableID {
 
 #[derive(Debug)]
 pub struct TSPSIHeader {
+    // table_id
+    // - The table_id identifies to which table the section belongs.
+    // - Some table_ids have been defined by ISO and others by ETSI.
+    //   Other values of the table_id can be allocated by the user
+    //   for private purposes. The list of values of table_id is
+    //   contained in table 2.
     // :8
     table_id: Option<TSTableID>,
 
@@ -279,9 +286,9 @@ impl TSPSIHeader {
     }
 }
 
-// for SDT, EIT
+// for EIT
 #[derive(Debug)]
-pub struct TSPSISyntaxSectionDVB {
+pub struct TSPSISyntaxSectionDVBEIT {
     // This is a 16-bit field which serves as a label
     // for identification of the TS, about which the EIT
     // informs, from any other multiplex within the delivery system.
@@ -305,9 +312,9 @@ pub struct TSPSISyntaxSectionDVB {
     last_table_id: u8,
 }
 
-impl TSPSISyntaxSectionDVB {
-    fn new() -> TSPSISyntaxSectionDVB {
-        TSPSISyntaxSectionDVB {
+impl TSPSISyntaxSectionDVBEIT {
+    fn new() -> TSPSISyntaxSectionDVBEIT {
+        TSPSISyntaxSectionDVBEIT {
             transport_stream_id: 0,
             original_network_id: 0,
             segment_last_section_number: 0,
@@ -315,10 +322,13 @@ impl TSPSISyntaxSectionDVB {
         }
     }
 
-    fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSectionDVB> {
-        let mut tss = TSPSISyntaxSectionDVB::new();
+    #[inline]
+    fn sz() -> usize { 6 }
 
-        let (input, raw) = try!(do_parse!(input, raw: take!(6) >> (raw)));
+    fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSectionDVBEIT> {
+        let mut tss = TSPSISyntaxSectionDVBEIT::new();
+
+        let (input, raw) = try!(do_parse!(input, raw: take!(TSPSISyntaxSectionDVBSDT::sz()) >> (raw)));
 
         tss.transport_stream_id = (raw[0] as u16) << 8 | raw[1] as u16;
         tss.original_network_id = (raw[2] as u16) << 8 | raw[3] as u16;
@@ -329,11 +339,47 @@ impl TSPSISyntaxSectionDVB {
     }
 }
 
+// for SDT
+#[derive(Debug)]
+pub struct TSPSISyntaxSectionDVBSDT {
+    // This 16-bit field gives the label identifying
+    // the network_id of the originating delivery system.
+    // :16
+    original_network_id: u16,
+
+    // :8
+    reserved_future_use: u8
+}
+
+impl TSPSISyntaxSectionDVBSDT {
+    fn new() -> TSPSISyntaxSectionDVBSDT {
+        TSPSISyntaxSectionDVBSDT {
+            original_network_id: 0,
+            reserved_future_use: 0,
+        }
+    }
+
+    #[inline]
+    fn sz() -> usize { 3 }
+
+    fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSectionDVBSDT> {
+        let mut tss = TSPSISyntaxSectionDVBSDT::new();
+
+        // TODO: format
+        let (input, raw) = try!(do_parse!(input,raw: take!(TSPSISyntaxSectionDVBSDT::sz()) >> (raw)));
+
+        tss.original_network_id = (raw[0] as u16) << 8 | raw[1] as u16;
+        tss.reserved_future_use = raw[2];
+        Ok((input, tss))
+    }
+}
+
 #[derive(Debug)]
 pub struct TSPSISyntaxSection {}
 
 impl TSPSISyntaxSection {}
 
+// TODO: SDT, EIT are not PSI
 // Program Specific Information
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -368,7 +414,9 @@ where
     // :8
     lsn: u8,
 
-    syntax_section_dvb: Option<TSPSISyntaxSectionDVB>,
+    // TODO: join together with enum + table syntax section
+    syntax_section_dvb_sdt: Option<TSPSISyntaxSectionDVBSDT>,
+    syntax_section_dvb_eit: Option<TSPSISyntaxSectionDVBEIT>,
 
     // table-data
     data: Option<Vec<T>>,
@@ -392,7 +440,8 @@ where
             sn: 0,
             lsn: 0,
 
-            syntax_section_dvb: None,
+            syntax_section_dvb_sdt: None,
+            syntax_section_dvb_eit: None,
 
             data: None,
 
@@ -439,16 +488,24 @@ where
         Ok((input, ()))
     }
 
-    fn parse_syntax_section_dvb(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
-        let (input, ss_dvb) = try!(TSPSISyntaxSectionDVB::parse(input));
+    fn parse_syntax_section_dvb_sdt(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        let (input, ss_dvb) = try!(TSPSISyntaxSectionDVBSDT::parse(input));
 
-        self.syntax_section_dvb = Some(ss_dvb);
+        self.syntax_section_dvb_sdt = Some(ss_dvb);
 
         Ok((input, ()))
     }
 
+    fn parse_syntax_section_dvb_eit(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        let (input, ss_dvb) = try!(TSPSISyntaxSectionDVBEIT::parse(input));
+
+        self.syntax_section_dvb_eit = Some(ss_dvb);
+
+        Ok((input, ()))
+    }
 
     fn parse_crc32(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+        // TODO: format
         let (input, raw) = try!(do_parse!(input, raw: take!(4) >> (raw)));
 
         self.crc32 =
@@ -461,9 +518,18 @@ where
     }
 
     #[inline]
-    fn syntax_section_dvb_length(&self) -> usize {
-        if !self.syntax_section_dvb.is_none() {
-            6 // TODO: move to const
+    fn syntax_section_dvb_sdt_length(&self) -> usize {
+        if !self.syntax_section_dvb_sdt.is_none() {
+            TSPSISyntaxSectionDVBSDT::sz() // TODO: move to const
+        } else {
+            0
+        }
+    }
+
+    #[inline]
+    fn syntax_section_dvb_eit_length(&self) -> usize {
+        if !self.syntax_section_dvb_eit.is_none() {
+            TSPSISyntaxSectionDVBEIT::sz() // TODO: move to const
         } else {
             0
         }
@@ -473,7 +539,8 @@ where
     fn section_length_data_only(&self) -> usize {
         (self.header.section_length() as usize)
             - 5  // -5 => 5bytes of "PSI - table syntax section";
-            - self.syntax_section_dvb_length()
+            - self.syntax_section_dvb_sdt_length()
+            - self.syntax_section_dvb_eit_length()
             - 4 // -4 => 4bytes of CRC32;
     }
 
@@ -566,7 +633,7 @@ impl TSPSI<TSPSISDT> {
 
         let (input, _) = try!(psi.parse_header(input));
         let (input, _) = try!(psi.parse_syntax_section(input));
-        let (input, _) = try!(psi.parse_syntax_section_dvb(input));
+        let (input, _) = try!(psi.parse_syntax_section_dvb_sdt(input));
 
         // <parse data>
         // limit reader
@@ -596,7 +663,7 @@ impl TSPSI<TSPSIEIT> {
 
         let (input, _) = try!(psi.parse_header(input));
         let (input, _) = try!(psi.parse_syntax_section(input));
-        let (input, _) = try!(psi.parse_syntax_section_dvb(input));
+        let (input, _) = try!(psi.parse_syntax_section_dvb_eit(input));
 
         // <parse data>
         // limit reader
@@ -1675,10 +1742,10 @@ impl Input for InputUDP {
             if ts_header.pid == TS_PID_SDT && self.ts.sdt.is_none() {
                 let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
                 println!("[+] (:SDT {:?})", psi);
-                self.ts.sdt = Some(psi);
+                // self.ts.sdt = Some(psi);
             } else if ts_header.pid == TS_PID_EIT {
-                let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
-                println!("[+] (:EIT {:?})", psi);
+                // let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
+                // println!("[+] (:EIT {:?})", psi);
             }
         }
 
