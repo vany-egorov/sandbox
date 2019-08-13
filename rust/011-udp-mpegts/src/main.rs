@@ -11,6 +11,7 @@ use clap::{App, Arg};
 use nom::IResult;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
+use std::fmt;
 use std::collections::VecDeque;
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
@@ -23,7 +24,6 @@ use error::{Error, Kind as ErrorKind, Result};
 
 const TSSyncByte: u8 = 0x47;
 const TSPktSz: usize = 188;
-const TSPSIPATSz: usize = 4;
 
 #[derive(Clone, Copy, Debug, FromPrimitive, ToPrimitive, PartialEq)]
 pub enum TSPIDKnown {
@@ -183,13 +183,6 @@ pub struct TSAdaptation {
     afef: u8,
 
     pcr: Option<TSPCR>,
-}
-
-// TODO: remove
-#[inline]
-#[cfg_attr(rustfmt, rustfmt_skip)]
-fn parse_take_n(input: &[u8], n: usize) -> IResult<&[u8], &[u8]> {
-    do_parse!(input, raw: take!(n) >> (raw))
 }
 
 // ETSI EN 300 468 V1.15.1 (2016-03)
@@ -626,7 +619,11 @@ impl TSPSI<TSPSIPAT> {
         // ));
 
         // limit reader
-        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(psi.section_length_data_only())
+            >> (raw)
+        ));
 
         let mut data: Vec<TSPSIPAT> = Vec::new();
 
@@ -662,8 +659,11 @@ impl TSPSI<TSPSIPMT> {
         let (input, _) = try!(psi.parse_syntax_section(input));
 
         // <parse data>
-        // limit reader
-        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(psi.section_length_data_only())
+            >> (raw)
+        ));
 
         let mut data: Vec<TSPSIPMT> = Vec::new();
 
@@ -692,8 +692,12 @@ impl TSPSI<TSPSISDT> {
         let (input, _) = try!(psi.parse_syntax_section_dvb_sdt(input));
 
         // <parse data>
-        // limit reader
-        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+        // <parse data>
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(psi.section_length_data_only())
+            >> (raw)
+        ));
 
         let mut data: Vec<TSPSISDT> = vec![TSPSISDT::new(); 1];
 
@@ -722,8 +726,11 @@ impl TSPSI<TSPSIEIT> {
         let (input, _) = try!(psi.parse_syntax_section_dvb_eit(input));
 
         // <parse data>
-        // limit reader
-        let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(psi.section_length_data_only())
+            >> (raw)
+        ));
 
         let mut data: Vec<TSPSIEIT> = Vec::new();
 
@@ -1148,7 +1155,7 @@ impl<'buf> Iterator for TSDescriptors<'buf> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct TSDescriptor<'buf> {
     // the descriptor tag is an 8-bit field which identifies each descriptor.
     // Those values with MPEG-2
@@ -1181,59 +1188,13 @@ impl<'buf> TSDescriptor<'buf> {
 
     #[inline]
     fn sz(&self) -> usize { Self::HEADER_SZ + self.len() }
+}
 
-    // fn new() -> TSDescriptor {
-    //     TSDescriptor {
-    //         tag: None,
-    //         len: 0,
-    //     }
-    // }
-
-    // fn data_as_str(&self) -> &str {
-    //     self.data
-    //         .as_ref()
-    //         .and_then(|ref data| str::from_utf8(data).ok())
-    //         .unwrap_or("---")
-    // }
-
-    // fn tag_to_u8(&self) -> u8 {
-    //     self.tag
-    //         .as_ref()
-    //         .unwrap_or(&TSDescriptorTag::Reserved(0))
-    //         .to_u8()
-    //         .unwrap_or(0)
-    // }
-
-    // fn parse(input: &[u8]) -> IResult<&[u8], TSDescriptor> {
-    //     let mut d = TSDescriptor::new();
-
-    //     #[cfg_attr(rustfmt, rustfmt_skip)]
-    //     let(input, (tag, len, data)) = try!(do_parse!(input,
-    //            b1: bits!(take_bits!(u8, 8))
-    //         >> b2: bits!(take_bits!(u8, 8))
-    //         >> bn: take!(b2)
-
-    //         >> (
-    //             b1, // tag
-    //             b2, // len
-    //             bn // data
-    //         )
-    //     ));
-
-    //     d.tag = TSDescriptorTag::from_u8(tag);
-    //     d.len = len;
-
-    //     println!(
-    //         "[t] [dsc]     (:tag ({:?}/0x{:02X}/{}) :len {} :data {})",
-    //         d.tag,
-    //         d.tag_to_u8(),
-    //         d.tag_to_u8(),
-    //         d.len,
-    //         d.data_as_str()
-    //     );
-
-    //     Ok((input, d))
-    // }
+impl<'buf> fmt::Debug for TSDescriptor<'buf> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(:ts-descriptor (:tag {:?} :len {:?}))",
+            self.tag(), self.len())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1311,20 +1272,18 @@ impl TSPSIPMTStream {
         );
 
         // limit-reader
-        let (input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(dsc_len)
+            >> (raw)
+        ));
 
-        // if dsc_len > 0 {
-        //     let mut descriptors: Vec<TSDescriptor> = Vec::new();
-
-        //     while raw.len() > 0 {
-        //         let (tail, descriptor) = try!(TSDescriptor::parse(raw));
-        //         descriptors.push(descriptor);
-
-        //         raw = tail;
-        //     }
-
-        //     s.descriptors = Some(descriptors);
-        // }
+        if dsc_len > 0 {
+            let mut descriptors = TSDescriptors{b: raw};
+            for desc in descriptors {
+                println!("[dsc] {:?}", desc);
+            }
+        }
 
         Ok((input, s))
     }
@@ -1421,7 +1380,11 @@ impl TSPSITableTrait for TSPSIPMT {
         {
             let len = pmt.program_info_length();
             if len > 0 {
-                input = try!(parse_take_n(input, len as usize)).0;
+                // <parse data>
+                input = try!(do_parse!(input,
+                    raw: take!(len)
+                    >> (raw)
+                )).0;
             }
         }
 
@@ -1535,20 +1498,18 @@ impl TSPSITableTrait for TSPSISDT {
 
         // limit-reader
         let dsc_len = sdt.descriptors_length();
-        let (input, mut raw) = try!(do_parse!(input, raw: take!(dsc_len) >> (raw)));
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(dsc_len)
+            >> (raw)
+        ));
 
-        // if dsc_len > 0 {
-        //     let mut descriptors: Vec<TSDescriptor> = Vec::new();
-
-        //     while raw.len() > 0 {
-        //         let (tail, descriptor) = try!(TSDescriptor::parse(raw));
-        //         descriptors.push(descriptor);
-
-        //         raw = tail;
-        //     }
-
-        //     sdt.descriptors = Some(descriptors);
-        // }
+        if dsc_len > 0 {
+            let mut descriptors = TSDescriptors{b: raw};
+            for desc in descriptors {
+                println!("[dsc] {:?}", desc);
+            }
+        }
 
         Ok((input, sdt))
     }
@@ -1672,21 +1633,10 @@ impl TSPSITableTrait for TSPSIEIT {
         ));
 
         if dsc_len > 0 {
-            let mut descriptors = TSDescriptors{b: input};
+            let mut descriptors = TSDescriptors{b: raw};
             for desc in descriptors {
                 println!("[dsc] {:?}", desc);
             }
-
-        //     let mut descriptors: Vec<TSDescriptor> = Vec::new();
-
-        //     while raw.len() > 0 {
-        //         let (tail, descriptor) = try!(TSDescriptor::parse(raw));
-        //         descriptors.push(descriptor);
-
-        //         raw = tail;
-        //     }
-
-        //     eit.descriptors = Some(descriptors);
         }
 
         Ok((input, eit))
