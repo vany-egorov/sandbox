@@ -14,7 +14,6 @@ use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::VecDeque;
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
-use std::str;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -317,7 +316,7 @@ impl TSPSIHeader {
 
     #[inline]
     fn section_length(&self) -> u16 {
-        ((self.b1 & 0x03) as u16) << 8 | self.b2 as u16
+        ((self.b1 & 0b0000_0011) as u16) << 8 | self.b2 as u16
     }
 }
 
@@ -348,6 +347,8 @@ pub struct TSPSISyntaxSectionDVBEIT {
 }
 
 impl TSPSISyntaxSectionDVBEIT {
+    const SZ: usize = 6;
+
     fn new() -> TSPSISyntaxSectionDVBEIT {
         TSPSISyntaxSectionDVBEIT {
             transport_stream_id: 0,
@@ -357,17 +358,12 @@ impl TSPSISyntaxSectionDVBEIT {
         }
     }
 
-    #[inline]
-    fn sz() -> usize {
-        6
-    }
-
     fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSectionDVBEIT> {
         let mut tss = TSPSISyntaxSectionDVBEIT::new();
 
         let (input, raw) = try!(do_parse!(
             input,
-            raw: take!(TSPSISyntaxSectionDVBEIT::sz()) >> (raw)
+            raw: take!(TSPSISyntaxSectionDVBEIT::SZ) >> (raw)
         ));
 
         tss.transport_stream_id = (raw[0] as u16) << 8 | raw[1] as u16;
@@ -392,6 +388,8 @@ pub struct TSPSISyntaxSectionDVBSDT {
 }
 
 impl TSPSISyntaxSectionDVBSDT {
+    const SZ: usize = 3;
+
     fn new() -> TSPSISyntaxSectionDVBSDT {
         TSPSISyntaxSectionDVBSDT {
             original_network_id: 0,
@@ -399,17 +397,12 @@ impl TSPSISyntaxSectionDVBSDT {
         }
     }
 
-    #[inline]
-    fn sz() -> usize {
-        3
-    }
-
     fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSectionDVBSDT> {
         let mut tss = TSPSISyntaxSectionDVBSDT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
         let (input, raw) = try!(do_parse!(input,
-            raw: take!(TSPSISyntaxSectionDVBSDT::sz())
+            raw: take!(TSPSISyntaxSectionDVBSDT::SZ)
             >> (raw)
         ));
 
@@ -447,6 +440,8 @@ pub struct TSPSISyntaxSection {
 }
 
 impl TSPSISyntaxSection {
+    const SZ: usize = 5;
+
     fn new() -> TSPSISyntaxSection {
         TSPSISyntaxSection {
             service_id: 0,
@@ -456,16 +451,12 @@ impl TSPSISyntaxSection {
         }
     }
 
-    fn sz() -> usize {
-        5
-    }
-
     fn parse(input: &[u8]) -> IResult<&[u8], TSPSISyntaxSection> {
         let mut tss = TSPSISyntaxSection::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
         let (input, raw) = try!(do_parse!(input,
-            raw: take!(TSPSISyntaxSection::sz())
+            raw: take!(TSPSISyntaxSection::SZ)
             >> (raw)
         ));
 
@@ -479,12 +470,12 @@ impl TSPSISyntaxSection {
 
     #[inline]
     fn version_number(&self) -> u8 {
-        (self.b1 >> 1) | 0x1F
+        (self.b1 >> 1) | 0b0001_1111
     }
 
     #[inline]
     fn current_next_indicator(&self) -> bool {
-        (self.b1 | 0x01) == 1
+        (self.b1 | 0b0000_0001) == 1
     }
 }
 
@@ -518,7 +509,7 @@ where
     crc32: u32,
 }
 
-impl<'a, T> TSPSI<T>
+impl<'buf, T> TSPSI<T>
 where
     T: TSPSITableTrait,
 {
@@ -537,7 +528,7 @@ where
         }
     }
 
-    fn parse_header(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse_header(&mut self, input: &'buf [u8]) -> IResult<&'buf [u8], ()> {
         let (input, header) = try!(TSPSIHeader::parse(input));
 
         self.header = header;
@@ -545,7 +536,7 @@ where
         Ok((input, ()))
     }
 
-    fn parse_syntax_section(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse_syntax_section(&mut self, input: &'buf [u8]) -> IResult<&'buf [u8], ()> {
         let (input, ss) = try!(TSPSISyntaxSection::parse(input));
 
         self.syntax_section = Some(ss);
@@ -553,7 +544,7 @@ where
         Ok((input, ()))
     }
 
-    fn parse_syntax_section_dvb_sdt(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse_syntax_section_dvb_sdt(&mut self, input: &'buf [u8]) -> IResult<&'buf [u8], ()> {
         let (input, ss_dvb) = try!(TSPSISyntaxSectionDVBSDT::parse(input));
 
         self.syntax_section_dvb_sdt = Some(ss_dvb);
@@ -561,7 +552,7 @@ where
         Ok((input, ()))
     }
 
-    fn parse_syntax_section_dvb_eit(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse_syntax_section_dvb_eit(&mut self, input: &'buf [u8]) -> IResult<&'buf [u8], ()> {
         let (input, ss_dvb) = try!(TSPSISyntaxSectionDVBEIT::parse(input));
 
         self.syntax_section_dvb_eit = Some(ss_dvb);
@@ -569,7 +560,7 @@ where
         Ok((input, ()))
     }
 
-    fn parse_crc32(&mut self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn parse_crc32(&mut self, input: &'buf [u8]) -> IResult<&'buf [u8], ()> {
         #[cfg_attr(rustfmt, rustfmt_skip)]
         let (input, raw) = try!(
             do_parse!(input,
@@ -586,7 +577,7 @@ where
     #[inline]
     fn syntax_section_dvb_sdt_length(&self) -> usize {
         if !self.syntax_section_dvb_sdt.is_none() {
-            TSPSISyntaxSectionDVBSDT::sz() // TODO: move to const
+            TSPSISyntaxSectionDVBSDT::SZ // TODO: move to const
         } else {
             0
         }
@@ -595,7 +586,7 @@ where
     #[inline]
     fn syntax_section_dvb_eit_length(&self) -> usize {
         if !self.syntax_section_dvb_eit.is_none() {
-            TSPSISyntaxSectionDVBEIT::sz() // TODO: move to const
+            TSPSISyntaxSectionDVBEIT::SZ // TODO: move to const
         } else {
             0
         }
@@ -637,10 +628,9 @@ impl TSPSI<TSPSIPAT> {
         // limit reader
         let (input, mut raw) = try!(parse_take_n(input, psi.section_length_data_only()));
 
-        let sz = TSPSIPAT::sz();
         let mut data: Vec<TSPSIPAT> = Vec::new();
 
-        while raw.len() >= sz {
+        while raw.len() >= TSPSIPAT::SZ {
             let (tail, pat) = try!(TSPSIPAT::parse(&raw));
 
             data.push(pat);
@@ -754,19 +744,29 @@ impl TSPSI<TSPSIEIT> {
 }
 
 pub trait TSPSITableTrait: Sized {
-    fn kind() -> TSPSITableKind;
-    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], Self>;
+    const KIND: TSPSITableKind;
+
+    fn parse<'buf>(input: &'buf [u8]) -> IResult<&'buf [u8], Self>;
 }
 
 #[derive(Clone, Debug)]
 pub enum TSPSITableKind {
+    // PSI tables
     PAT, // Program Association Table
+    CAT, // Conditional Access Table
     PMT, // Program Map Table
+    NIT, // Network Information Table
+
+    // ETSI EN 300 468 tables
+    BAT, // Bouquet Association Table
     SDT, // Service Description Table
     EIT, // Event Information Table
-
-    CAT, // Conditional Access
-    NIT, // Network Information Table
+    RST, // Running Status Table
+    TDT, // Time and Date Table
+    TOT, // Time Offset Table
+    ST,  // Stuffing Table
+    SIT, // Selection Information Table
+    DIT, // Discontinuity Information Table
 }
 
 #[allow(dead_code)]
@@ -782,24 +782,20 @@ pub struct TSPSIPAT {
 }
 
 impl TSPSIPAT {
+    const SZ: usize = 4;
+
     fn new() -> TSPSIPAT {
         TSPSIPAT {
             program_number: 0,
             program_map_pid: 0,
         }
     }
-
-    fn sz() -> usize {
-        TSPSIPATSz
-    }
 }
 
 impl TSPSITableTrait for TSPSIPAT {
-    fn kind() -> TSPSITableKind {
-        TSPSITableKind::PAT
-    }
+    const KIND: TSPSITableKind = TSPSITableKind::PAT;
 
-    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIPAT> {
+    fn parse<'buf>(input: &'buf [u8]) -> IResult<&'buf [u8], TSPSIPAT> {
         let mut pat = TSPSIPAT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -1103,76 +1099,141 @@ impl TSDescriptorTag {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct TSDescriptor {
-    // the tag defines the structure of the
-    // contained data following the descriptor length.
-    // :8
-    tag: Option<TSDescriptorTag>,
-
-    // the number of bytes that are to follow.
-    // :8
-    len: u8,
-
-    data: Option<Vec<u8>>,
+pub struct TSDescriptorDVBExtendedEvent<'buf> {
+    b: &'buf [u8],
 }
 
-impl TSDescriptor {
-    fn new() -> TSDescriptor {
-        TSDescriptor {
-            tag: None,
-            len: 0,
+impl<'buf> TSDescriptorDVBExtendedEvent<'buf> {
+    fn from_bytes(b: &'buf [u8]) -> Result<(TSDescriptorDVBExtendedEvent, &'buf [u8])> {
+        let event = TSDescriptorDVBExtendedEvent{b: b};
 
-            data: None,
+        Ok((event, b))
+    }
+
+    fn descriptor_number(&self) -> u8 {
+        0
+    }
+
+    fn last_descriptor_number(&self) -> u8 {
+        0
+    }
+}
+
+#[derive(Debug)]
+enum IterResult<T, E> {
+    Value(T),
+    Err(E),
+}
+
+struct TSDescriptors<'buf> {
+    b: &'buf [u8],
+}
+
+impl<'buf> Iterator for TSDescriptors<'buf> {
+    type Item = IterResult<TSDescriptor<'buf>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.b.len() > 0 {
+            let d = match TSDescriptor::from_bytes(self.b) {
+                Err(e) => return Some(IterResult::Err(e)),
+                Ok(d) => d,
+            };
+
+            self.b = self.b.split_at(d.sz()).1;
+
+            Some(IterResult::Value(d))
+        } else {
+            None
         }
     }
+}
 
-    fn data_as_str(&self) -> &str {
-        self.data
-            .as_ref()
-            .and_then(|ref data| str::from_utf8(data).ok())
-            .unwrap_or("---")
+#[derive(Clone, Debug)]
+pub struct TSDescriptor<'buf> {
+    // the descriptor tag is an 8-bit field which identifies each descriptor.
+    // Those values with MPEG-2
+    // normative meaning are described in ISO/IEC 13818-1 [18].
+    // (descriptor_tag :8 uimsbf)
+    //
+    // the descriptor length is an 8-bit field specifying the total
+    // number of bytes of the data portion of the descriptor
+    // following the byte defining the value of this field.
+    // (descriptor_length :8 uimsbf)
+    //
+    // (...)
+    b: &'buf [u8],
+}
+
+impl<'buf> TSDescriptor<'buf> {
+    const HEADER_SZ: usize = 2;
+
+    fn from_bytes(b: &'buf [u8]) -> Result<TSDescriptor<'buf>> {
+        let d = TSDescriptor{b};
+
+        Ok(d)
     }
 
-    fn tag_to_u8(&self) -> u8 {
-        self.tag
-            .as_ref()
-            .unwrap_or(&TSDescriptorTag::Reserved(0))
-            .to_u8()
-            .unwrap_or(0)
-    }
+    #[inline]
+    fn tag(&self) -> Option<TSDescriptorTag> { TSDescriptorTag::from_u8(self.b[0]) }
 
-    fn parse(input: &[u8]) -> IResult<&[u8], TSDescriptor> {
-        let mut d = TSDescriptor::new();
+    #[inline]
+    fn len(&self) -> usize { self.b[1] as usize }
 
-        #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(input, (tag, len, data)) = try!(do_parse!(input,
-               b1: bits!(take_bits!(u8, 8))
-            >> b2: bits!(take_bits!(u8, 8))
-            >> bn: take!(b2)
+    #[inline]
+    fn sz(&self) -> usize { Self::HEADER_SZ + self.len() }
 
-            >> (
-                b1, // tag
-                b2, // len
-                bn // data
-            )
-        ));
+    // fn new() -> TSDescriptor {
+    //     TSDescriptor {
+    //         tag: None,
+    //         len: 0,
+    //     }
+    // }
 
-        d.tag = TSDescriptorTag::from_u8(tag);
-        d.len = len;
-        d.data = Some(data.to_vec());
+    // fn data_as_str(&self) -> &str {
+    //     self.data
+    //         .as_ref()
+    //         .and_then(|ref data| str::from_utf8(data).ok())
+    //         .unwrap_or("---")
+    // }
 
-        println!(
-            "[t] [dsc]     (:tag ({:?}/0x{:02X}/{}) :len {} :data {})",
-            d.tag,
-            d.tag_to_u8(),
-            d.tag_to_u8(),
-            d.len,
-            d.data_as_str()
-        );
+    // fn tag_to_u8(&self) -> u8 {
+    //     self.tag
+    //         .as_ref()
+    //         .unwrap_or(&TSDescriptorTag::Reserved(0))
+    //         .to_u8()
+    //         .unwrap_or(0)
+    // }
 
-        Ok((input, d))
-    }
+    // fn parse(input: &[u8]) -> IResult<&[u8], TSDescriptor> {
+    //     let mut d = TSDescriptor::new();
+
+    //     #[cfg_attr(rustfmt, rustfmt_skip)]
+    //     let(input, (tag, len, data)) = try!(do_parse!(input,
+    //            b1: bits!(take_bits!(u8, 8))
+    //         >> b2: bits!(take_bits!(u8, 8))
+    //         >> bn: take!(b2)
+
+    //         >> (
+    //             b1, // tag
+    //             b2, // len
+    //             bn // data
+    //         )
+    //     ));
+
+    //     d.tag = TSDescriptorTag::from_u8(tag);
+    //     d.len = len;
+
+    //     println!(
+    //         "[t] [dsc]     (:tag ({:?}/0x{:02X}/{}) :len {} :data {})",
+    //         d.tag,
+    //         d.tag_to_u8(),
+    //         d.tag_to_u8(),
+    //         d.len,
+    //         d.data_as_str()
+    //     );
+
+    //     Ok((input, d))
+    // }
 }
 
 #[derive(Clone, Debug)]
@@ -1199,9 +1260,9 @@ pub struct TSPSIPMTStream {
     // :10
     descriptors_length: u16,
 
-    // When the ES info length is non-zero,
-    // this is the ES info length number of elementary stream descriptor bytes.
-    descriptors: Option<Vec<TSDescriptor>>,
+    // // When the ES info length is non-zero,
+    // // this is the ES info length number of elementary stream descriptor bytes.
+    // descriptors: Option<Vec<TSDescriptor>>,
 }
 
 impl TSPSIPMTStream {
@@ -1211,7 +1272,7 @@ impl TSPSIPMTStream {
             pid: 0,
 
             descriptors_length: 0,
-            descriptors: None,
+            // descriptors: None,
         }
     }
 
@@ -1252,18 +1313,18 @@ impl TSPSIPMTStream {
         // limit-reader
         let (input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
 
-        if dsc_len > 0 {
-            let mut descriptors: Vec<TSDescriptor> = Vec::new();
+        // if dsc_len > 0 {
+        //     let mut descriptors: Vec<TSDescriptor> = Vec::new();
 
-            while raw.len() > 0 {
-                let (tail, descriptor) = try!(TSDescriptor::parse(raw));
-                descriptors.push(descriptor);
+        //     while raw.len() > 0 {
+        //         let (tail, descriptor) = try!(TSDescriptor::parse(raw));
+        //         descriptors.push(descriptor);
 
-                raw = tail;
-            }
+        //         raw = tail;
+        //     }
 
-            s.descriptors = Some(descriptors);
-        }
+        //     s.descriptors = Some(descriptors);
+        // }
 
         Ok((input, s))
     }
@@ -1298,8 +1359,8 @@ pub struct TSPSIPMT {
     b3: u8,
     b4: u8,
 
-    // program descriptors
-    descriptors: Option<Vec<TSDescriptor>>,
+    // // program descriptors
+    // descriptors: Option<Vec<TSDescriptor>>,
 
     // elementary stream info data
     streams: Option<Vec<TSPSIPMTStream>>,
@@ -1314,7 +1375,7 @@ impl TSPSIPMT {
             b3: 0,
             b4: 0,
 
-            descriptors: None,
+            // descriptors: None,
 
             streams: None,
         }
@@ -1327,7 +1388,7 @@ impl TSPSIPMT {
 
     #[inline]
     fn pcr_pid(&self) -> u16 {
-        ((self.b1 & 0x1F) as u16) << 8 | self.b2 as u16
+        ((self.b1 & 0b0001_1111) as u16) << 8 | self.b2 as u16
     }
 
     // #[inline]
@@ -1335,16 +1396,14 @@ impl TSPSIPMT {
 
     #[inline]
     fn program_info_length(&self) -> u16 {
-        ((self.b3 & 0x03) as u16) << 8 | self.b4 as u16
+        ((self.b3 & 0b0000_0011) as u16) << 8 | self.b4 as u16
     }
 }
 
 impl TSPSITableTrait for TSPSIPMT {
-    fn kind() -> TSPSITableKind {
-        TSPSITableKind::PMT
-    }
+    const KIND: TSPSITableKind = TSPSITableKind::PMT;
 
-    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], Self> {
+    fn parse<'buf>(input: &'buf [u8]) -> IResult<&'buf [u8], Self> {
         let mut pmt = TSPSIPMT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -1436,7 +1495,7 @@ pub struct TSPSISDT {
     // :8
     b3: u8,
 
-    descriptors: Option<Vec<TSDescriptor>>,
+    // descriptors: Option<Vec<TSDescriptor>>,
 }
 
 impl TSPSISDT {
@@ -1446,22 +1505,20 @@ impl TSPSISDT {
             b1: 0,
             b2: 0,
             b3: 0,
-            descriptors: None,
+            // descriptors: None,
         }
     }
 
     #[inline]
     fn descriptors_length(&self) -> u16 {
-        ((self.b2 & 0x0F) as u16) << 8 | self.b3 as u16
+        ((self.b2 & 0b0000_1111) as u16) << 8 | self.b3 as u16
     }
 }
 
 impl TSPSITableTrait for TSPSISDT {
-    fn kind() -> TSPSITableKind {
-        TSPSITableKind::SDT
-    }
+    const KIND: TSPSITableKind = TSPSITableKind::SDT;
 
-    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSISDT> {
+    fn parse<'buf>(input: &'buf [u8]) -> IResult<&'buf [u8], TSPSISDT> {
         let mut sdt = TSPSISDT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -1480,18 +1537,18 @@ impl TSPSITableTrait for TSPSISDT {
         let dsc_len = sdt.descriptors_length();
         let (input, mut raw) = try!(do_parse!(input, raw: take!(dsc_len) >> (raw)));
 
-        if dsc_len > 0 {
-            let mut descriptors: Vec<TSDescriptor> = Vec::new();
+        // if dsc_len > 0 {
+        //     let mut descriptors: Vec<TSDescriptor> = Vec::new();
 
-            while raw.len() > 0 {
-                let (tail, descriptor) = try!(TSDescriptor::parse(raw));
-                descriptors.push(descriptor);
+        //     while raw.len() > 0 {
+        //         let (tail, descriptor) = try!(TSDescriptor::parse(raw));
+        //         descriptors.push(descriptor);
 
-                raw = tail;
-            }
+        //         raw = tail;
+        //     }
 
-            sdt.descriptors = Some(descriptors);
-        }
+        //     sdt.descriptors = Some(descriptors);
+        // }
 
         Ok((input, sdt))
     }
@@ -1557,7 +1614,7 @@ pub struct TSPSIEIT {
     // :8
     b2: u8,
 
-    descriptors: Option<Vec<TSDescriptor>>,
+    // descriptors: Option<Vec<TSDescriptor>>,
 }
 
 impl TSPSIEIT {
@@ -1568,22 +1625,20 @@ impl TSPSIEIT {
             duration_b: [0; 3],
             b1: 0,
             b2: 0,
-            descriptors: None,
+            // descriptors: None,
         }
     }
 
     #[inline]
     fn descriptors_length(&self) -> u16 {
-        ((self.b1 & 0x0F) as u16) << 8 | self.b2 as u16
+        ((self.b1 & 0b0000_1111) as u16) << 8 | self.b2 as u16
     }
 }
 
 impl TSPSITableTrait for TSPSIEIT {
-    fn kind() -> TSPSITableKind {
-        TSPSITableKind::EIT
-    }
+    const KIND: TSPSITableKind = TSPSITableKind::EIT;
 
-    fn parse<'a>(input: &'a [u8]) -> IResult<&'a [u8], TSPSIEIT> {
+    fn parse<'buf>(input: &'buf [u8]) -> IResult<&'buf [u8], TSPSIEIT> {
         let mut eit = TSPSIEIT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -1611,19 +1666,27 @@ impl TSPSITableTrait for TSPSIEIT {
 
         // limit-reader
         let dsc_len = eit.descriptors_length();
-        let (input, mut raw) = try!(parse_take_n(input, dsc_len as usize));
+        let (input, mut raw) = try!(do_parse!(input,
+            raw: take!(dsc_len)
+            >> (raw)
+        ));
 
         if dsc_len > 0 {
-            let mut descriptors: Vec<TSDescriptor> = Vec::new();
-
-            while raw.len() > 0 {
-                let (tail, descriptor) = try!(TSDescriptor::parse(raw));
-                descriptors.push(descriptor);
-
-                raw = tail;
+            let mut descriptors = TSDescriptors{b: input};
+            for desc in descriptors {
+                println!("[dsc] {:?}", desc);
             }
 
-            eit.descriptors = Some(descriptors);
+        //     let mut descriptors: Vec<TSDescriptor> = Vec::new();
+
+        //     while raw.len() > 0 {
+        //         let (tail, descriptor) = try!(TSDescriptor::parse(raw));
+        //         descriptors.push(descriptor);
+
+        //         raw = tail;
+        //     }
+
+        //     eit.descriptors = Some(descriptors);
         }
 
         Ok((input, eit))
