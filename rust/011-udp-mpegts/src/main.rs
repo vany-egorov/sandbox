@@ -83,7 +83,7 @@ impl TSPID {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn must_from_u16(d: u16) -> TSPID {
         TSPID::from_u16(d).unwrap_or(TSPID::Other(d))
     }
@@ -307,7 +307,7 @@ impl TSPSIHeader {
         Ok((input, header))
     }
 
-    #[inline]
+    #[inline(always)]
     fn section_length(&self) -> u16 {
         ((self.b1 & 0b0000_0011) as u16) << 8 | self.b2 as u16
     }
@@ -461,12 +461,12 @@ impl TSPSISyntaxSection {
         Ok((input, tss))
     }
 
-    #[inline]
+    #[inline(always)]
     fn version_number(&self) -> u8 {
         (self.b1 >> 1) | 0b0001_1111
     }
 
-    #[inline]
+    #[inline(always)]
     fn current_next_indicator(&self) -> bool {
         (self.b1 | 0b0000_0001) == 1
     }
@@ -567,7 +567,7 @@ where
         Ok((input, ()))
     }
 
-    #[inline]
+    #[inline(always)]
     fn syntax_section_dvb_sdt_length(&self) -> usize {
         if !self.syntax_section_dvb_sdt.is_none() {
             TSPSISyntaxSectionDVBSDT::SZ // TODO: move to const
@@ -576,7 +576,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn syntax_section_dvb_eit_length(&self) -> usize {
         if !self.syntax_section_dvb_eit.is_none() {
             TSPSISyntaxSectionDVBEIT::SZ // TODO: move to const
@@ -585,7 +585,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn section_length_data_only(&self) -> usize {
         (self.header.section_length() as usize)
             - 5  // -5 => 5bytes of "PSI - table syntax section";
@@ -642,7 +642,7 @@ impl TSPSI<TSPSIPAT> {
         Ok((input, psi))
     }
 
-    #[inline]
+    #[inline(always)]
     fn first_program_map_pid(&self) -> Option<TSPID> {
         self.data
             .as_ref()
@@ -1180,13 +1180,13 @@ impl<'buf> TSDescriptor<'buf> {
         Ok(d)
     }
 
-    #[inline]
+    #[inline(always)]
     fn tag(&self) -> Option<TSDescriptorTag> { TSDescriptorTag::from_u8(self.b[0]) }
 
-    #[inline]
+    #[inline(always)]
     fn len(&self) -> usize { self.b[1] as usize }
 
-    #[inline]
+    #[inline(always)]
     fn sz(&self) -> usize { Self::HEADER_SZ + self.len() }
 }
 
@@ -1340,12 +1340,12 @@ impl TSPSIPMT {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn sz() -> u8 {
         4
     }
 
-    #[inline]
+    #[inline(always)]
     fn pcr_pid(&self) -> u16 {
         ((self.b1 & 0b0001_1111) as u16) << 8 | self.b2 as u16
     }
@@ -1353,7 +1353,7 @@ impl TSPSIPMT {
     // #[inline]
     // fn set_pcr_pid(&mut self, v: u16) {}
 
-    #[inline]
+    #[inline(always)]
     fn program_info_length(&self) -> u16 {
         ((self.b3 & 0b0000_0011) as u16) << 8 | self.b4 as u16
     }
@@ -1472,7 +1472,7 @@ impl TSPSISDT {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn descriptors_length(&self) -> u16 {
         ((self.b2 & 0b0000_1111) as u16) << 8 | self.b3 as u16
     }
@@ -1590,7 +1590,7 @@ impl TSPSIEIT {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn descriptors_length(&self) -> u16 {
         ((self.b1 & 0b0000_1111) as u16) << 8 | self.b2 as u16
     }
@@ -1835,6 +1835,259 @@ named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
 
     (ts_header)));
 
+mod ts {
+    use {TSPID, Error, ErrorKind, Result};
+    use num_derive::{FromPrimitive};
+    use num_traits::{FromPrimitive};
+
+    #[derive(Clone, Copy, Debug, FromPrimitive, PartialEq)]
+    pub enum TransportScramblingControl {
+        NotScrambled = 0b0000_0000,
+        ScrambledReserved = 0b0000_0001,
+        ScrambledEven = 0b0000_0010,
+        ScrambledOdd = 0b0000_0011,
+    }
+
+    impl TransportScramblingControl {
+        #[inline(always)]
+        fn must_from_u8(d: u8) -> TransportScramblingControl {
+            TransportScramblingControl::from_u8(d)
+                .unwrap_or(TransportScramblingControl::NotScrambled)
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct PCR {
+        // :33
+        base: u64,
+
+        // :9
+        ext: u16,
+    }
+
+    impl PCR {
+        const SZ: usize = 6;
+
+        pub fn from_bytes(buf: &[u8]) -> PCR {
+            PCR{base: 0, ext: 0}
+        }
+    }
+
+    pub struct Adaptation<'buf> {
+        buf: &'buf [u8],
+    }
+
+    impl<'buf> Adaptation<'buf> {
+        const HEADER_SZ: usize = 2;
+
+        #[inline(always)]
+        fn new(buf: &'buf [u8]) -> Result<Adaptation<'buf>> {
+            Ok(Adaptation{buf})
+        }
+
+        // number of bytes in the adaptation field
+        // immediately following this byte
+        #[inline(always)]
+        fn field_length(&self) -> u8 { self.buf[0] }
+
+        // set if current TS packet is in a discontinuity
+        // state with respect to either the continuity
+        // counter or the program clock reference
+        #[inline(always)]
+        fn discontinuity_indicator(&self) -> bool {
+            (self.buf[1] & 0b1000_0000) != 0
+        }
+
+        // set when the stream may be decoded without
+        // errors from this point
+        #[inline(always)]
+        fn random_access_indicator(&self) -> bool {
+            (self.buf[1] & 0b0100_0000) != 0
+        }
+
+        // set when this stream should be considered "high priority"
+        #[inline(always)]
+        pub fn elementary_stream_priority_indicator(&self) -> bool {
+            (self.buf[1] & 0b0010_0000) != 0
+        }
+
+        // set when PCR field is present
+        #[inline(always)]
+        fn pcr_flag(&self) -> bool {
+            (self.buf[1] & 0b0001_0000) != 0
+        }
+
+        // set when OPCR field is present
+        #[inline(always)]
+        pub fn opcr_flag(&self) -> bool {
+            (self.buf[1] & 0b0000_1000) != 0
+        }
+
+        // set when splice countdown field is present
+        #[inline(always)]
+        pub fn splicing_point_flag(&self) -> bool {
+            (self.buf[1] & 0b0000_0100) != 0
+        }
+
+        // set when transport private data is present
+        #[inline(always)]
+        pub fn transport_private_data_flag(&self) -> bool {
+            (self.buf[1] & 0b0000_0010) != 0
+        }
+
+        // set when transport private data is present
+        #[inline(always)]
+        pub fn adaptation_field_extension_flag(&self) -> bool {
+            (self.buf[1] & 0b0000_0001) != 0
+        }
+
+        // seek to PCR start position
+        #[inline(always)]
+        fn buf_seek_pcr(&self) -> &'buf [u8] {
+            &self.buf[Self::HEADER_SZ..]
+        }
+
+        // seek to OPCR start position
+        fn buf_seek_opcr(&self) -> &'buf [u8] {
+            let mut buf = self.buf_seek_pcr();
+            if self.pcr_flag() {
+                buf = &buf[PCR::SZ..];
+            }
+            buf
+        }
+
+        #[inline(always)]
+        pub fn pcr(&self) -> Option<PCR> {
+            if self.pcr_flag() {
+                Some(PCR::from_bytes(self.buf_seek_pcr()))
+            } else {
+                None
+            }
+        }
+
+        #[inline(always)]
+        pub fn opcr(&self) -> Option<PCR> {
+            if self.opcr_flag() {
+                Some(PCR::from_bytes(self.buf_seek_opcr()))
+            } else {
+                None
+            }
+        }
+    }
+
+    pub struct Header<'buf> {
+        buf: &'buf [u8],
+    }
+
+    impl<'buf> Header<'buf> {
+        const SZ: usize = 4;
+
+        #[inline(always)]
+        fn new(buf: &'buf [u8]) -> Header<'buf> {
+            Header{buf}
+        }
+
+        #[inline(always)]
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() < Self::SZ {
+                Err(Error::new(ErrorKind::TSHeaderTooShort(self.buf.len())))
+            } else {
+                Ok(())
+            }
+        }
+
+        // Set when a demodulator can't correct errors from FEC data;
+        // indicating the packet is corrupt.
+        #[inline(always)]
+        fn tei(&self) -> bool {
+            (self.buf[1] & 0b1000_0000) != 0
+        }
+
+        // Set when a PES, PSI, or DVB-MIP
+        // packet begins immediately following the header.
+        #[inline(always)]
+        fn pusi(&self) -> bool {
+            (self.buf[1] & 0b0100_0000) != 0
+        }
+
+        // Set when the current packet has a higher
+        // priority than other packets with the same PID.
+        #[inline(always)]
+        fn transport_priority(&self) -> bool {
+            (self.buf[1] & 0b0010_0000) != 0
+        }
+
+        // Packet Identifier, describing the payload data.
+        #[inline(always)]
+        pub fn pid(&self) -> TSPID {
+            TSPID::must_from_u16(
+                (((self.buf[1] & 0b0001_1111) as u16) << 8) | self.buf[2] as u16)
+        }
+
+        // transport-scrambling-control
+        #[inline(always)]
+        fn tsc(&self) -> TransportScramblingControl {
+            TransportScramblingControl::must_from_u8(
+                (self.buf[3] & 0b1100_0000) >> 6)
+        }
+
+        #[inline(always)]
+        fn got_adaptation(&self) -> bool {
+            (self.buf[3] & 0b0010_0000) != 0
+        }
+
+        #[inline(always)]
+        fn got_payload(&self) -> bool {
+            (self.buf[3] & 0b0001_0000) != 0
+        }
+
+        #[inline(always)]
+        pub fn cc(&self) -> u8 { self.buf[3] & 0b0000_1111 }
+    }
+
+    pub struct Packet<'buf> {
+        buf: &'buf [u8],
+    }
+
+    impl<'buf> Packet<'buf> {
+        const SZ: usize = 188;
+        const SYNC_BYTE: u8 = 0x47;
+
+        #[inline(always)]
+        pub fn new(buf: &'buf [u8]) -> Result<Packet<'buf>> {
+            let pkt = Packet{buf};
+
+            pkt.validate()?;
+
+            Ok(pkt)
+        }
+
+        #[inline(always)]
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() != Self::SZ {
+                Err(Error::new(ErrorKind::TSPaketLenMismatch(self.buf.len())))
+            } else if self.buf[0] != Self::SYNC_BYTE {
+                Err(Error::new(ErrorKind::TSSyncByteMismatch(self.buf[0])))
+            } else {
+                Ok(())
+            }
+        }
+
+        #[inline(always)]
+        pub fn header(&self) -> Header<'buf> { Header::new(self.buf) }
+
+        pub fn adaptation(&self) -> Option<Result<Adaptation<'buf>>> {
+            let header = self.header();
+
+            if header.got_adaptation() {
+                Some(Adaptation::new(&self.buf[Header::SZ..]))
+            } else {
+                None
+            }
+        }
+    }
+}
+
 struct DemuxerTS {}
 
 impl DemuxerTS {
@@ -1885,6 +2138,90 @@ impl InputUDP {
             socket: None,
         }
     }
+
+    fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
+        let ts_pkt = ts::Packet::new(&ts_pkt_raw)?;
+        let ts_header = ts_pkt.header();
+
+        println!("(:pid {:?} :cc {})", ts_pkt.header().pid(), ts_pkt.header().cc());
+
+        // parse header
+        let (mut ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));
+
+        if ts_header.afc == 1 {
+            let (tail, _) = try!(parse_ts_adaptation(&ts_pkt_raw));
+            ts_pkt_raw = tail;
+        }
+
+        if !ts_header.contains_payload {
+            return Ok(())
+        }
+
+        if ts_header.pusi {
+            // payload data start
+            //
+            // https://stackoverflow.com/a/27525217
+            // From the en300 468 spec:
+            //
+            // Sections may start at the beginning of the payload of a TS packet,
+            // but this is not a requirement, because the start of the first
+            // section in the payload of a TS packet is pointed to by the pointer_field.
+            //
+            // So the section start actually is an offset from the payload:
+            //
+            // uint8_t* section_start = payload + *payload + 1;
+            // ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
+            ts_pkt_raw = try!(do_parse!(
+                ts_pkt_raw,
+                raw: take!(ts_pkt_raw[0] + 1) >> (raw)
+            ))
+            .0;
+        }
+
+        match ts_header.pid {
+            TSPID::Known(TSPIDKnown::PAT) if self.ts.pat.is_none() => {
+                let (_, psi) = try!(TSPSI::parse_pat(ts_pkt_raw));
+                self.ts.pat = Some(psi);
+
+                println!("[+] (:PAT (:pid {:?} :cc {}))", ts_header.pid, ts_header.cc);
+            }
+
+            TSPID::Known(TSPIDKnown::SDT) if self.ts.sdt.is_none() => {
+                let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
+                println!("[+] (:SDT {:?})", psi);
+                self.ts.sdt = Some(psi);
+            }
+
+            TSPID::Known(TSPIDKnown::EIT) => {
+                let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
+                println!("[+] (:EIT {:?})", psi);
+            }
+
+            _ => {}
+        }
+
+        if self.ts.pmt.is_none() && !self.ts.pat.is_none() {
+            let pid_pmt = self
+                .ts
+                .pat
+                .as_ref()
+                .and_then(|pat| pat.first_program_map_pid());
+
+            if pid_pmt == Some(ts_header.pid) {
+                let (_, psi) = try!(TSPSI::parse_pmt(ts_pkt_raw));
+                self.ts.pmt = Some(psi);
+
+                println!(
+                    "[+] (:PMT (:pid {:?}/0x{:02X} :cc {}))",
+                    ts_header.pid,
+                    ts_header.pid.to_u16().unwrap_or(0),
+                    ts_header.cc
+                );
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Input for InputUDP {
@@ -1892,13 +2229,13 @@ impl Input for InputUDP {
         let input_host = try!(self
             .url
             .host()
-            .ok_or(Error::new(ErrorKind::InputUrlMissingHost, "")));
+            .ok_or(Error::new(ErrorKind::InputUrlMissingHost)));
 
         let input_port = self.url.port().unwrap_or(5500);
 
         let input_host_domain = try!(match input_host {
             Host::Domain(v) => Ok(v),
-            _ => Err(Error::new(ErrorKind::InputUrlHostMustBeDomain, "")),
+            _ => Err(Error::new(ErrorKind::InputUrlHostMustBeDomain)),
         });
 
         let iface = Ipv4Addr::new(0, 0, 0, 0);
@@ -1956,90 +2293,18 @@ impl Input for InputUDP {
         let mut buf = try!(lock
             .lock()
             .ok()
-            .ok_or(Error::new(ErrorKind::SyncPoison, "udp read lock error")));
+            .ok_or(Error::new_with_details(ErrorKind::SyncPoison, "udp read lock error")));
 
-        buf = try!(cvar.wait(buf).ok().ok_or(Error::new(
+        buf = try!(cvar.wait(buf).ok().ok_or(Error::new_with_details(
             ErrorKind::SyncPoison,
             "udp read cwar wait erorr"
         )));
 
         while !buf.is_empty() {
-            // TODO: move to function;
             let ts_pkt_raw = buf.pop_front().unwrap();
 
-            // parse header
-            let (mut ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));
-
-            if ts_header.afc == 1 {
-                let (tail, _) = try!(parse_ts_adaptation(&ts_pkt_raw));
-                ts_pkt_raw = tail;
-            }
-
-            if !ts_header.contains_payload {
-                continue;
-            }
-
-            if ts_header.pusi {
-                // payload data start
-                //
-                // https://stackoverflow.com/a/27525217
-                // From the en300 468 spec:
-                //
-                // Sections may start at the beginning of the payload of a TS packet,
-                // but this is not a requirement, because the start of the first
-                // section in the payload of a TS packet is pointed to by the pointer_field.
-                //
-                // So the section start actually is an offset from the payload:
-                //
-                // uint8_t* section_start = payload + *payload + 1;
-                // ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
-                ts_pkt_raw = try!(do_parse!(
-                    ts_pkt_raw,
-                    raw: take!(ts_pkt_raw[0] + 1) >> (raw)
-                ))
-                .0;
-            }
-
-            match ts_header.pid {
-                TSPID::Known(TSPIDKnown::PAT) if self.ts.pat.is_none() => {
-                    let (_, psi) = try!(TSPSI::parse_pat(ts_pkt_raw));
-                    self.ts.pat = Some(psi);
-
-                    println!("[+] (:PAT (:pid {:?} :cc {}))", ts_header.pid, ts_header.cc);
-                }
-
-                TSPID::Known(TSPIDKnown::SDT) if self.ts.sdt.is_none() => {
-                    let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
-                    println!("[+] (:SDT {:?})", psi);
-                    self.ts.sdt = Some(psi);
-                }
-
-                TSPID::Known(TSPIDKnown::EIT) => {
-                    let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
-                    println!("[+] (:EIT {:?})", psi);
-                }
-
-                _ => {}
-            }
-
-            if self.ts.pmt.is_none() && !self.ts.pat.is_none() {
-                let pid_pmt = self
-                    .ts
-                    .pat
-                    .as_ref()
-                    .and_then(|pat| pat.first_program_map_pid());
-
-                if pid_pmt == Some(ts_header.pid) {
-                    let (_, psi) = try!(TSPSI::parse_pmt(ts_pkt_raw));
-                    self.ts.pmt = Some(psi);
-
-                    println!(
-                        "[+] (:PMT (:pid {:?}/0x{:02X} :cc {}))",
-                        ts_header.pid,
-                        ts_header.pid.to_u16().unwrap_or(0),
-                        ts_header.cc
-                    );
-                }
+            if let Err(e) = self.demux(&ts_pkt_raw) {
+                eprintln!("error demux ts-packet: ({:?})", e);
             }
         }
 

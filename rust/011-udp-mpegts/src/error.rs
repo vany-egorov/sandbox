@@ -13,7 +13,7 @@ macro_rules! from {
     ($src:path, $dst:path) => {
         impl From<$src> for Error {
             fn from(err: $src) -> Error {
-                Error::new($dst(err), "")
+                Error::new($dst(err))
             }
         }
     };
@@ -30,22 +30,34 @@ pub enum Kind {
     Nom,        // TODO: rewrite
     SyncPoison, // TODO: rewrite
 
+    TSPaketLenMismatch(usize),
+    TSHeaderTooShort(usize),
+    TSSyncByteMismatch(u8),
+
     Unknown(Box<StdError + Send + Sync>),
 }
 
 pub struct Error {
     pub kind: Kind,
-    pub details: Cow<'static, str>,
+    pub details: Option<Cow<'static, str>>,
 }
 
 impl Error {
-    pub fn new<I>(kind: Kind, details: I) -> Error
+    pub fn new(kind: Kind) -> Error
+    {
+        Error {
+            kind: kind,
+            details: None,
+        }
+    }
+
+    pub fn new_with_details<I>(kind: Kind, details: I) -> Error
     where
         I: Into<Cow<'static, str>>,
     {
         Error {
             kind: kind,
-            details: details.into(),
+            details: Some(details.into()),
         }
     }
 
@@ -65,16 +77,24 @@ impl fmt::Display for Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.details.len() > 0 {
-            write!(
-                f,
-                "Error <{:?}>: \"{}\" / \"{}\"",
-                self.kind,
-                self.description(),
-                self.details
-            )
-        } else {
-            write!(f, "Error <{:?}>: \"{}\"", self.kind, self.description())
+        match self.details.as_ref() {
+            Some(details) => {
+                write!(
+                    f,
+                    "Error <{:?}>: \"{}\" / \"{}\"",
+                    self.kind,
+                    self.description(),
+                    details,
+                )
+            },
+            None => {
+                write!(
+                    f,
+                    "Error <{:?}>: \"{}\"",
+                    self.kind,
+                    self.description(),
+                )
+            },
         }
     }
 }
@@ -90,6 +110,10 @@ impl StdError for Error {
             Kind::Io(ref err) => err.description(),
             Kind::Nom => "nom parser error",
             Kind::SyncPoison => "sync lock/condvar poison error",
+
+            Kind::TSPaketLenMismatch(_) => "ts-packet lenght missmatch",
+            Kind::TSSyncByteMismatch(_) => "ts-header expected sync byte as first element",
+            Kind::TSHeaderTooShort(_) => "ts-header is too short",
 
             Kind::Unknown(ref err) => err.description(),
         }
@@ -107,6 +131,8 @@ impl StdError for Error {
             Kind::SyncPoison => None,
 
             Kind::Unknown(ref err) => Some(err.as_ref()),
+
+            _ => None,
         }
     }
 }
@@ -117,7 +143,7 @@ from!(IoError, Kind::Io);
 impl From<nom::Err<&[u8]>> for Error {
     fn from(err: nom::Err<&[u8]>) -> Error {
         match err {
-            _ => Error::new(Kind::Nom, ""),
+            _ => Error::new(Kind::Nom),
         }
     }
 }
@@ -127,6 +153,6 @@ where
     B: StdError + Send + Sync + 'static,
 {
     fn from(err: Box<B>) -> Error {
-        Error::new(Kind::Unknown(err), "")
+        Error::new(Kind::Unknown(err))
     }
 }
