@@ -1836,6 +1836,8 @@ named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
     (ts_header)));
 
 mod ts {
+    use std::fmt;
+    use std::time::Duration;
     use {TSPID, Error, ErrorKind, Result};
     use num_derive::{FromPrimitive};
     use num_traits::{FromPrimitive};
@@ -1856,20 +1858,76 @@ mod ts {
         }
     }
 
-    #[derive(Debug)]
+    const TB_27MHZ: Rational = Rational{num: 1, den: 27_000_000};
+    const TB_90KHZ: Rational = Rational{num: 1, den: 90_000};
+    const TB_1MS: Rational = Rational{num: 1, den: 1_000_000};
+    const TB_1NS: Rational = Rational{num: 1, den: 1_000_000_000};
+
+    pub struct Rational {
+        num: u64,
+        den: u64,
+    }
+
+    impl Rational {
+        fn rescale(v: u64, src: Rational, dst: Rational) -> u64 {
+            let num = src.num * dst.den;
+            let den = src.den * dst.num;
+
+            v * (num/den)
+        }
+    }
+
+    // Program clock reference,
+    // stored as 33 bits base, 6 bits reserved, 9 bits extension.
+    // The value is calculated as base * 300 + extension.\
     pub struct PCR {
-        // :33
+        // 90kHz
         base: u64,
 
-        // :9
+        // 27MHz
         ext: u16,
     }
 
     impl PCR {
         const SZ: usize = 6;
+        const TB: Rational = TB_27MHZ;
 
         pub fn from_bytes(buf: &[u8]) -> PCR {
-            PCR{base: 0, ext: 0}
+            let base =
+                ((buf[0] as u64) << 25) |
+                ((buf[1] as u64) << 17) |
+                ((buf[2] as u64) << 9) |
+                ((buf[3] as u64) << 1) |
+                (((buf[4] & 0b1000_0000) >> 7) as u64);
+
+            let ext =
+                (((buf[4] & 0b0000_00001) as u16) << 8) |
+                (buf[5] as u16);
+
+            PCR{base, ext}
+        }
+
+        // 27MHz
+        pub fn value(&self) -> u64 {
+            self.base * 300 + u64::from(self.ext)
+        }
+
+        // nanoseconds
+        pub fn ns(&self) -> u64 {
+            Rational::rescale(self.value(), Self::TB, TB_1NS)
+        }
+    }
+
+    impl From<&PCR> for Duration {
+        fn from(pcr: &PCR) -> Self {
+            Duration::from_nanos(pcr.ns())
+        }
+    }
+
+    impl fmt::Debug for PCR {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {}s))",
+                self.base, self.ext, self.value(), Duration::from(self).as_secs())
         }
     }
 
@@ -1878,17 +1936,37 @@ mod ts {
     }
 
     impl<'buf> Adaptation<'buf> {
-        const HEADER_SZ: usize = 2;
+        const HEADER_SZ: usize = 1;
+        const HEADER_FULL_SZ: usize = 2;
 
         #[inline(always)]
-        fn new(buf: &'buf [u8]) -> Result<Adaptation<'buf>> {
-            Ok(Adaptation{buf})
+        fn new(buf: &'buf [u8]) -> Adaptation<'buf> {
+            Adaptation{buf}
         }
+
+        fn try_new(buf: &'buf [u8]) -> Result<Adaptation<'buf>> {
+            let a = Self::new(buf);
+            a.validate()?;
+            Ok(a)
+        }
+
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() < Self::HEADER_SZ {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::HEADER_SZ)))
+            } else if self.buf.len() < self.sz() {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), self.sz())))
+            } else {
+                Ok(())
+            }
+        }
+
+        #[inline(always)]
+        fn sz(&self) -> usize { Self::HEADER_SZ + self.field_length() }
 
         // number of bytes in the adaptation field
         // immediately following this byte
         #[inline(always)]
-        fn field_length(&self) -> u8 { self.buf[0] }
+        fn field_length(&self) -> usize { self.buf[0] as usize }
 
         // set if current TS packet is in a discontinuity
         // state with respect to either the continuity
@@ -1944,7 +2022,7 @@ mod ts {
         // seek to PCR start position
         #[inline(always)]
         fn buf_seek_pcr(&self) -> &'buf [u8] {
-            &self.buf[Self::HEADER_SZ..]
+            &self.buf[Self::HEADER_FULL_SZ..]
         }
 
         // seek to OPCR start position
@@ -1965,10 +2043,22 @@ mod ts {
             }
         }
 
+        // Original Program clock reference.
+        // Helps when one TS is copied into another.
         #[inline(always)]
         pub fn opcr(&self) -> Option<PCR> {
             if self.opcr_flag() {
                 Some(PCR::from_bytes(self.buf_seek_opcr()))
+            } else {
+                None
+            }
+        }
+
+        #[inline(always)]
+        pub fn splice_countdown(&self) -> Option<u8> {
+            if self.splicing_point_flag() {
+                // TODO: implement
+                unimplemented!()
             } else {
                 None
             }
@@ -1985,15 +2075,6 @@ mod ts {
         #[inline(always)]
         fn new(buf: &'buf [u8]) -> Header<'buf> {
             Header{buf}
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() < Self::SZ {
-                Err(Error::new(ErrorKind::TSHeaderTooShort(self.buf.len())))
-            } else {
-                Ok(())
-            }
         }
 
         // Set when a demodulator can't correct errors from FEC data;
@@ -2065,9 +2146,9 @@ mod ts {
         #[inline(always)]
         fn validate(&self) -> Result<()> {
             if self.buf.len() != Self::SZ {
-                Err(Error::new(ErrorKind::TSPaketLenMismatch(self.buf.len())))
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
             } else if self.buf[0] != Self::SYNC_BYTE {
-                Err(Error::new(ErrorKind::TSSyncByteMismatch(self.buf[0])))
+                Err(Error::new(ErrorKind::TSSyncByte(self.buf[0])))
             } else {
                 Ok(())
             }
@@ -2076,13 +2157,27 @@ mod ts {
         #[inline(always)]
         pub fn header(&self) -> Header<'buf> { Header::new(self.buf) }
 
+        #[inline(always)]
         pub fn adaptation(&self) -> Option<Result<Adaptation<'buf>>> {
             let header = self.header();
 
             if header.got_adaptation() {
-                Some(Adaptation::new(&self.buf[Header::SZ..]))
+                Some(Adaptation::try_new(&self.buf[Header::SZ..]))
             } else {
                 None
+            }
+        }
+
+        pub fn pcr(&self) -> Option<Result<PCR>> {
+            match self.adaptation() {
+                Some(res) => match res {
+                    Ok(adapt) => match adapt.pcr() {
+                        Some(pcr) => Some(Ok(pcr)),
+                        None => None,
+                    },
+                    Err(e) => Some(Err(e)),
+                },
+                None => None,
             }
         }
     }
@@ -2144,6 +2239,10 @@ impl InputUDP {
         let ts_header = ts_pkt.header();
 
         println!("(:pid {:?} :cc {})", ts_pkt.header().pid(), ts_pkt.header().cc());
+
+        if let Some(Ok(pcr)) = ts_pkt.pcr() {
+            println!("(:pcr {:?})", pcr);
+        }
 
         // parse header
         let (mut ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));

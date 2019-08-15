@@ -30,9 +30,8 @@ pub enum Kind {
     Nom,        // TODO: rewrite
     SyncPoison, // TODO: rewrite
 
-    TSPaketLenMismatch(usize),
-    TSHeaderTooShort(usize),
-    TSSyncByteMismatch(u8),
+    TSSyncByte(u8),
+    TSBuf(usize, usize),
 
     Unknown(Box<StdError + Send + Sync>),
 }
@@ -111,9 +110,8 @@ impl StdError for Error {
             Kind::Nom => "nom parser error",
             Kind::SyncPoison => "sync lock/condvar poison error",
 
-            Kind::TSPaketLenMismatch(_) => "ts-packet lenght missmatch",
-            Kind::TSSyncByteMismatch(_) => "ts-header expected sync byte as first element",
-            Kind::TSHeaderTooShort(_) => "ts-header is too short",
+            Kind::TSSyncByte(..) => "ts: expected sync byte as first element",
+            Kind::TSBuf(..) => "ts: buffer is too small, more data required",
 
             Kind::Unknown(ref err) => err.description(),
         }
