@@ -1842,6 +1842,88 @@ mod ts {
     use num_derive::{FromPrimitive};
     use num_traits::{FromPrimitive};
 
+    struct DurationFmt(Duration);
+
+    impl DurationFmt {
+        #[inline(always)]
+        fn duration(&self) -> Duration { self.0 }
+
+        #[inline(always)]
+        fn pure_nanos(&self) -> u128 {
+            self.0.as_nanos() % Duration::from_micros(1).as_nanos()
+        }
+
+        #[inline(always)]
+        fn pure_micros(&self) -> u128 {
+            (self.0.as_nanos() % Duration::from_millis(1).as_nanos()) / Duration::from_micros(1).as_nanos()
+        }
+
+        #[inline(always)]
+        fn pure_millis(&self) -> u128 {
+            (self.0.as_nanos() % Duration::from_secs(1).as_nanos()) / Duration::from_millis(1).as_nanos()
+        }
+
+        #[inline(always)]
+        fn pure_secs_as_f64(&self) -> f64 {
+            ((self.0.as_nanos() % Duration::from_secs(60).as_nanos()) as f64) / (Duration::from_secs(1).as_nanos() as f64)
+        }
+
+        #[inline(always)]
+        fn pure_mins(&self) -> u128 {
+            (self.0.as_nanos() % Duration::from_secs(60*60).as_nanos()) / Duration::from_secs(60).as_nanos()
+        }
+
+        #[inline(always)]
+        fn pure_hours(&self) -> u128 {
+            self.0.as_nanos() / Duration::from_secs(60*60).as_nanos()
+        }
+    }
+
+    impl fmt::Debug for DurationFmt {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self.duration() {
+                d if d <= Duration::from_micros(1) => write!(f, "{}ns", self.pure_nanos()),
+                d if d <= Duration::from_millis(1) => {
+                    let ns = self.pure_nanos();
+                    let mcs = self.pure_micros();
+
+                    match ns {
+                        0 => write!(f, "{}µs", mcs),
+                        _ => write!(f, "{}µs{}ns", mcs, ns),
+                    }
+                },
+                d if d <= (Duration::from_secs(1) / 10) => {
+                    let mcs = self.pure_micros();
+                    let ms = self.pure_millis();
+
+                    match mcs {
+                        0 => write!(f, "{}ms", ms),
+                        _ => write!(f, "{}ms{}µs", ms, mcs),
+                    }
+                },
+                _ => {
+                    let h = self.pure_hours();
+                    let m = self.pure_mins();
+                    let s = self.pure_secs_as_f64();
+
+                    if h != 0 {
+                        write!(f, "{}h", h)?;
+                    }
+
+                    if m != 0 {
+                        write!(f, "{}m", m)?;
+                    }
+
+                    if s != 0.0 {
+                        write!(f, "{:.2}s", s)
+                    } else {
+                        Ok(())
+                    }
+                },
+            }
+        }
+    }
+
     #[derive(Clone, Copy, Debug, FromPrimitive, PartialEq)]
     pub enum TransportScramblingControl {
         NotScrambled = 0b0000_0000,
@@ -1868,18 +1950,16 @@ mod ts {
         den: u64,
     }
 
-    impl Rational {
-        fn rescale(v: u64, src: Rational, dst: Rational) -> u64 {
-            let num = src.num * dst.den;
-            let den = src.den * dst.num;
+    pub fn rescale(v: u64, src: Rational, dst: Rational) -> u64 {
+        let num = (src.num as u128) * (dst.den as u128);
+        let den = (src.den as u128) * (dst.num as u128);
 
-            v * (num/den)
-        }
+        v * ((num/den) as u64)
     }
 
     // Program clock reference,
     // stored as 33 bits base, 6 bits reserved, 9 bits extension.
-    // The value is calculated as base * 300 + extension.\
+    // The value is calculated as base * 300 + extension.
     pub struct PCR {
         // 90kHz
         base: u64,
@@ -1914,7 +1994,7 @@ mod ts {
 
         // nanoseconds
         pub fn ns(&self) -> u64 {
-            Rational::rescale(self.value(), Self::TB, TB_1NS)
+            rescale(self.value(), Self::TB, TB_1NS)
         }
     }
 
@@ -1926,9 +2006,31 @@ mod ts {
 
     impl fmt::Debug for PCR {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {}s))",
-                self.base, self.ext, self.value(), Duration::from(self).as_secs())
+            write!(f, "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {:?}))",
+                self.base, self.ext, self.value(), DurationFmt(Duration::from(self)))
         }
+    }
+
+    pub struct TableHeader<'buf> {
+        buf: &'buf [u8],
+    }
+
+    pub struct TableSyntaxSection<'buf> {
+        buf: &'buf [u8],
+    }
+
+    pub struct TablePAT<'buf> {
+        buf: &'buf [u8],
+    }
+
+    impl<'buf> TablePAT<'buf> {
+        fn new(buf: &'buf [u8]) -> TablePAT<'buf> {
+            TablePAT{buf}
+        }
+    }
+
+    pub struct TablePMT<'buf> {
+        buf: &'buf [u8],
     }
 
     pub struct Adaptation<'buf> {
@@ -1944,12 +2046,14 @@ mod ts {
             Adaptation{buf}
         }
 
+        #[inline(always)]
         fn try_new(buf: &'buf [u8]) -> Result<Adaptation<'buf>> {
             let a = Self::new(buf);
             a.validate()?;
             Ok(a)
         }
 
+        #[inline(always)]
         fn validate(&self) -> Result<()> {
             if self.buf.len() < Self::HEADER_SZ {
                 Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::HEADER_SZ)))
@@ -2026,6 +2130,7 @@ mod ts {
         }
 
         // seek to OPCR start position
+        #[inline(always)]
         fn buf_seek_opcr(&self) -> &'buf [u8] {
             let mut buf = self.buf_seek_pcr();
             if self.pcr_flag() {
@@ -2168,16 +2273,30 @@ mod ts {
             }
         }
 
-        pub fn pcr(&self) -> Option<Result<PCR>> {
-            match self.adaptation() {
-                Some(res) => match res {
-                    Ok(adapt) => match adapt.pcr() {
-                        Some(pcr) => Some(Ok(pcr)),
-                        None => None,
-                    },
+        #[inline(always)]
+        pub fn pid(&self) -> TSPID { self.header().pid() }
+
+        #[inline(always)]
+        pub fn cc(&self) -> u8 { self.header().cc() }
+
+        #[inline(always)]
+        pub fn pcr(&self) -> Result<Option<PCR>> {
+            self.adaptation()
+                .and_then(|res| match res {
+                    Ok(adapt) => adapt.pcr()
+                        .and_then(|pcr| Some(Ok(pcr))),
                     Err(e) => Some(Err(e)),
-                },
-                None => None,
+                })
+                .transpose()
+        }
+
+        #[inline(always)]
+        pub fn pat(&self) -> Result<Option<TablePAT>> {
+            match self.pid() {
+                TSPID::Known(TSPIDKnown::PAT) => {
+                    TablePAT::try_new(self)
+                }
+                _ => Ok(None),
             }
         }
     }
@@ -2235,12 +2354,11 @@ impl InputUDP {
     }
 
     fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
-        let ts_pkt = ts::Packet::new(&ts_pkt_raw)?;
-        let ts_header = ts_pkt.header();
+        let pkt = ts::Packet::new(&ts_pkt_raw)?;
 
-        println!("(:pid {:?} :cc {})", ts_pkt.header().pid(), ts_pkt.header().cc());
+        println!("(:pid {:?} :cc {})", pkt.pid(), pkt.cc());
 
-        if let Some(Ok(pcr)) = ts_pkt.pcr() {
+        if let Some(pcr) = pkt.pcr()? {
             println!("(:pcr {:?})", pcr);
         }
 
