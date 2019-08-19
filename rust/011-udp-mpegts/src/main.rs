@@ -1838,7 +1838,7 @@ named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
 mod ts {
     use std::fmt;
     use std::time::Duration;
-    use {TSPID, Error, ErrorKind, Result};
+    use {TSPID, TSPIDKnown, Error, ErrorKind, Result};
     use num_derive::{FromPrimitive};
     use num_traits::{FromPrimitive};
 
@@ -1960,36 +1960,53 @@ mod ts {
     // Program clock reference,
     // stored as 33 bits base, 6 bits reserved, 9 bits extension.
     // The value is calculated as base * 300 + extension.
-    pub struct PCR {
-        // 90kHz
-        base: u64,
-
-        // 27MHz
-        ext: u16,
+    pub struct PCR<'buf> {
+        buf: &'buf [u8],
     }
 
-    impl PCR {
+    impl<'buf> PCR<'buf> {
         const SZ: usize = 6;
         const TB: Rational = TB_27MHZ;
 
-        pub fn from_bytes(buf: &[u8]) -> PCR {
-            let base =
-                ((buf[0] as u64) << 25) |
-                ((buf[1] as u64) << 17) |
-                ((buf[2] as u64) << 9) |
-                ((buf[3] as u64) << 1) |
-                (((buf[4] & 0b1000_0000) >> 7) as u64);
+        #[inline(always)]
+        fn new(buf: &'buf [u8]) -> PCR<'buf> {
+            PCR{buf}
+        }
 
-            let ext =
-                (((buf[4] & 0b0000_00001) as u16) << 8) |
-                (buf[5] as u16);
+        #[inline(always)]
+        fn try_new(buf: &'buf [u8]) -> Result<PCR<'buf>> {
+            let a = Self::new(buf);
+            a.validate()?;
+            Ok(a)
+        }
 
-            PCR{base, ext}
+        #[inline(always)]
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() < Self::SZ {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
+            } else {
+                Ok(())
+            }
+        }
+
+        #[inline(always)]
+        fn base(&self) -> u64 {
+            ((self.buf[0] as u64) << 25) |
+            ((self.buf[1] as u64) << 17) |
+            ((self.buf[2] as u64) << 9) |
+            ((self.buf[3] as u64) << 1) |
+            (((self.buf[4] & 0b1000_0000) >> 7) as u64)
+        }
+
+        #[inline(always)]
+        fn ext(&self) -> u16 {
+            (((self.buf[4] & 0b0000_00001) as u16) << 8) |
+             (self.buf[5] as u16)
         }
 
         // 27MHz
         pub fn value(&self) -> u64 {
-            self.base * 300 + u64::from(self.ext)
+            self.base() * 300 + (self.ext() as u64)
         }
 
         // nanoseconds
@@ -1998,16 +2015,16 @@ mod ts {
         }
     }
 
-    impl From<&PCR> for Duration {
+    impl<'buf> From<&PCR<'buf>> for Duration {
         fn from(pcr: &PCR) -> Self {
             Duration::from_nanos(pcr.ns())
         }
     }
 
-    impl fmt::Debug for PCR {
+    impl<'buf> fmt::Debug for PCR<'buf> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {:?}))",
-                self.base, self.ext, self.value(), DurationFmt(Duration::from(self)))
+                self.base(), self.ext(), self.value(), DurationFmt(Duration::from(self)))
         }
     }
 
@@ -2015,7 +2032,61 @@ mod ts {
         buf: &'buf [u8],
     }
 
+    impl<'buf> TableHeader<'buf> {
+        const SZ: usize = 3;
+
+        #[inline(always)]
+        fn new(buf: &'buf [u8]) -> TableHeader<'buf> {
+            TableHeader{buf}
+        }
+
+        #[inline(always)]
+        fn try_new(buf: &'buf [u8]) -> Result<TableHeader<'buf>> {
+            let p = Self::new(buf);
+            p.validate()?;
+            Ok(p)
+        }
+
+        #[inline(always)]
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() < Self::SZ {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
     pub struct TableSyntaxSection<'buf> {
+        buf: &'buf [u8],
+    }
+
+    impl<'buf> TableSyntaxSection<'buf> {
+        const SZ: usize = 5;
+
+        #[inline(always)]
+        fn new(buf: &'buf [u8]) -> TableSyntaxSection<'buf> {
+            TableSyntaxSection{buf}
+        }
+
+        #[inline(always)]
+        fn try_new(buf: &'buf [u8]) -> Result<TableSyntaxSection<'buf>> {
+            let p = Self::new(buf);
+            p.validate()?;
+            Ok(p)
+        }
+
+        #[inline(always)]
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() < Self::SZ {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    pub struct TableCRC32<'buf> {
         buf: &'buf [u8],
     }
 
@@ -2024,8 +2095,44 @@ mod ts {
     }
 
     impl<'buf> TablePAT<'buf> {
+        const SZ: usize = 4;
+
+        #[inline(always)]
         fn new(buf: &'buf [u8]) -> TablePAT<'buf> {
             TablePAT{buf}
+        }
+
+        #[inline(always)]
+        fn try_new(buf: &'buf [u8]) -> Result<TablePAT<'buf>> {
+            let p = Self::new(buf);
+            p.validate()?;
+            Ok(p)
+        }
+
+        #[inline(always)]
+        fn validate(&self) -> Result<()> {
+            if self.buf.len() < Self::SZ {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
+            } else {
+                Ok(())
+            }
+        }
+
+        #[inline(always)]
+        fn program_number(&self) -> u16 {
+            ((self.buf[0] as u16) << 8) | self.buf[1] as u16
+        }
+
+        #[inline(always)]
+        fn program_map_pid(&self) -> u16 {
+            (((self.buf[2] & 0b0001_1111) as u16) << 8) | self.buf[3] as u16
+        }
+    }
+
+    impl<'buf> fmt::Debug for TablePAT<'buf> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "(:PAT (:program-number {} :program-map-pid {}))",
+                self.program_number(), self.program_map_pid())
         }
     }
 
@@ -2140,9 +2247,9 @@ mod ts {
         }
 
         #[inline(always)]
-        pub fn pcr(&self) -> Option<PCR> {
+        pub fn pcr(&self) -> Option<PCR<'buf>> {
             if self.pcr_flag() {
-                Some(PCR::from_bytes(self.buf_seek_pcr()))
+                Some(PCR::new(self.buf_seek_pcr()))
             } else {
                 None
             }
@@ -2153,7 +2260,7 @@ mod ts {
         #[inline(always)]
         pub fn opcr(&self) -> Option<PCR> {
             if self.opcr_flag() {
-                Some(PCR::from_bytes(self.buf_seek_opcr()))
+                Some(PCR::new(self.buf_seek_opcr()))
             } else {
                 None
             }
@@ -2205,7 +2312,7 @@ mod ts {
 
         // Packet Identifier, describing the payload data.
         #[inline(always)]
-        pub fn pid(&self) -> TSPID {
+        fn pid(&self) -> TSPID {
             TSPID::must_from_u16(
                 (((self.buf[1] & 0b0001_1111) as u16) << 8) | self.buf[2] as u16)
         }
@@ -2259,15 +2366,72 @@ mod ts {
             }
         }
 
+        // adaptation start position
         #[inline(always)]
-        pub fn header(&self) -> Header<'buf> { Header::new(self.buf) }
+        fn buf_pos_adaptation() -> usize { Header::SZ }
 
+        // TODO: try_seek?
+        //       or pos_<name> + seek?
+        // position payload start
         #[inline(always)]
-        pub fn adaptation(&self) -> Option<Result<Adaptation<'buf>>> {
+        fn buf_pos_payload(&self) -> usize {
+            let mut pos = Self::buf_pos_adaptation();
             let header = self.header();
 
             if header.got_adaptation() {
-                Some(Adaptation::try_new(&self.buf[Header::SZ..]))
+                // TODO: Adaptation::sz(self.buf)
+                //       self.adaptation() + self.try_adaptation()
+                let adapt = Adaptation::new(self.buf_seek(pos));
+                pos += adapt.sz();
+            }
+
+            if header.pusi() {
+                // payload data start
+                //
+                // https://stackoverflow.com/a/27525217
+                // From the en300 468 spec:
+                //
+                // Sections may start at the beginning of the payload of a TS packet,
+                // but this is not a requirement, because the start of the first
+                // section in the payload of a TS packet is pointed to by the pointer_field.
+                //
+                // So the section start actually is an offset from the payload:
+                //
+                // uint8_t* section_start = payload + *payload + 1;
+                pos += (self.buf[pos] as usize) + 1;
+            }
+
+            pos
+        }
+
+        #[inline(always)]
+        fn buf_seek(&self, offset: usize) -> &'buf [u8] {
+            &self.buf[offset..]
+        }
+
+        #[inline(always)]
+        fn buf_try_seek(&self, offset: usize) -> Result<&'buf [u8]> {
+            if self.buf.len() <= offset {
+                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
+            } else {
+                Ok(self.buf_seek(offset))
+            }
+        }
+
+        // TODO: merge Header and Packet?
+        #[inline(always)]
+        fn header(&self) -> Header<'buf> { Header::new(self.buf) }
+
+        #[inline(always)]
+        fn adaptation(&self) -> Option<Result<Adaptation<'buf>>> {
+            let header = self.header();
+
+            if header.got_adaptation() {
+                // TODO: move to macro? or optional-result crate
+                match self.buf_try_seek(Self::buf_pos_adaptation()) {
+                    Ok(buf) => Some(Adaptation::try_new(buf)),
+                    Err(e) => Some(Err(e)),
+                }
             } else {
                 None
             }
@@ -2280,7 +2444,7 @@ mod ts {
         pub fn cc(&self) -> u8 { self.header().cc() }
 
         #[inline(always)]
-        pub fn pcr(&self) -> Result<Option<PCR>> {
+        pub fn pcr(&self) -> Result<Option<PCR<'buf>>> {
             self.adaptation()
                 .and_then(|res| match res {
                     Ok(adapt) => adapt.pcr()
@@ -2292,12 +2456,30 @@ mod ts {
 
         #[inline(always)]
         pub fn pat(&self) -> Result<Option<TablePAT>> {
-            match self.pid() {
-                TSPID::Known(TSPIDKnown::PAT) => {
-                    TablePAT::try_new(self)
-                }
-                _ => Ok(None),
+            let header = self.header();
+
+            if !header.got_payload() {
+                return Ok(None)
             }
+
+            let res = match self.pid() {
+                TSPID::Known(TSPIDKnown::PAT) => {
+                    let mut pos = self.buf_pos_payload();
+
+                    // TODO: remove
+                    pos += 3; // table-header;
+                    pos += 5; // syntax-section;
+
+                    // TODO: move to macro? or optional-result crate
+                    match self.buf_try_seek(pos) {
+                        Ok(buf) => Some(TablePAT::try_new(buf)),
+                        Err(e) => Some(Err(e)),
+                    }
+                },
+                _ => None,
+            };
+
+            res.transpose()
         }
     }
 }
@@ -2360,6 +2542,10 @@ impl InputUDP {
 
         if let Some(pcr) = pkt.pcr()? {
             println!("(:pcr {:?})", pcr);
+        }
+
+        if let Some(pat) = pkt.pat()? {
+            println!("(:pat {:?})", pat);
         }
 
         // parse header
