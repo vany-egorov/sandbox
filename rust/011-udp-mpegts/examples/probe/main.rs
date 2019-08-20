@@ -22,80 +22,8 @@ use url::{Host /*, ParseError*/, Url};
 
 use error::{Error, Kind as ErrorKind, Result};
 
-const TSSyncByte: u8 = 0x47;
-const TSPktSz: usize = 188;
-
-#[derive(Clone, Copy, Debug, FromPrimitive, ToPrimitive, PartialEq)]
-pub enum TSPIDKnown {
-    PAT = 0x0000,
-    CAT = 0x0001,
-    TSDT = 0x0002,
-
-    // NIT, ST
-    NIT = 0x0010,
-    // SDT, BAT, ST
-    SDT = 0x0011,
-    // EIT, ST CIT (TS 102 323 [13])
-    EIT = 0x0012,
-    // RST, ST
-    RST = 0x0013,
-    // TDT, TOT, ST
-    TDT = 0x0014,
-    // network synchronization
-    NetworkSynchronization = 0x0015,
-    // RNT (TS 102 323 [13])
-    RNT = 0x0016,
-
-    // The PID value 0x001C allocated to link-local
-    // inband signalling shall not be used on any broadcast signals.
-    // It shall only be used between devices in a controlled environment.
-    //
-    // NOTE: The PID 0x001C can for example be used within a broadcast centre,
-    //       between a receiver device and a
-    //       CAM, or on private satellite links
-    InbandSignalling = 0x001C,
-    Measurement = 0x001D,
-    DIT = 0x001E,
-    SIT = 0x001F,
-
-    NULL = 0x1FFF,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TSPID {
-    Known(TSPIDKnown),
-
-    // 0x0003...0x000F
-    // 0x0017...0x001B
-    Reserved(u16),
-
-    Other(u16),
-}
-
-impl TSPID {
-    fn from_u16(d: u16) -> Option<TSPID> {
-        match TSPIDKnown::from_u16(d) {
-            Some(pid) => Some(TSPID::Known(pid)),
-            None => match d {
-                0x0003..=0x000F | 0x0017..=0x001B => Some(TSPID::Reserved(d)),
-                _ => Some(TSPID::Other(d)),
-            },
-        }
-    }
-
-    #[inline(always)]
-    fn must_from_u16(d: u16) -> TSPID {
-        TSPID::from_u16(d).unwrap_or(TSPID::Other(d))
-    }
-
-    fn to_u16(&self) -> Option<u16> {
-        match self {
-            TSPID::Known(k) => k.to_u16(),
-            TSPID::Reserved(d) => Some(*d),
-            TSPID::Other(d) => Some(*d),
-        }
-    }
-}
+const TSSYNCBYTE: u8 = 0x47;
+const TSPKTSZ: usize = 188;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -115,7 +43,7 @@ pub struct TSHeader {
     tp: u8,
 
     // :13
-    pid: TSPID,
+    pid: ts::PID,
 
     // transport-scrambling-control
     // :2
@@ -643,11 +571,11 @@ impl TSPSI<TSPSIPAT> {
     }
 
     #[inline(always)]
-    fn first_program_map_pid(&self) -> Option<TSPID> {
+    fn first_program_map_pid(&self) -> Option<ts::PID> {
         self.data
             .as_ref()
             .and_then(|ref data| data.first())
-            .and_then(|ref pat| TSPID::from_u16(pat.program_map_pid))
+            .and_then(|ref pat| Some(ts::PID::from(pat.program_map_pid)))
     }
 }
 
@@ -1273,13 +1201,13 @@ impl TSPSIPMTStream {
 
         // limit-reader
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let (input, mut raw) = try!(do_parse!(input,
+        let (input, raw) = try!(do_parse!(input,
             raw: take!(dsc_len)
             >> (raw)
         ));
 
         if dsc_len > 0 {
-            let mut descriptors = TSDescriptors{b: raw};
+            let descriptors = TSDescriptors{b: raw};
             for desc in descriptors {
                 println!("[dsc] {:?}", desc);
             }
@@ -1751,7 +1679,7 @@ pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
             tei: b1.0,
             pusi: b1.1 != 0,
             tp: b1.2,
-            pid: TSPID::must_from_u16(
+            pid: ts::PID::from(
                 ((b1.3 as u16) << 8) | b2 as u16),
             tsc: b3.0,
             afc: b3.1,
@@ -1830,659 +1758,10 @@ pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {;
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
-    tag!(&[TSSyncByte])      >> // 1
+    tag!(&[TSSYNCBYTE])      >> // 1
     ts_header: parse_ts_header >> // 3
 
     (ts_header)));
-
-mod ts {
-    use std::fmt;
-    use std::time::Duration;
-    use {TSPID, TSPIDKnown, Error, ErrorKind, Result};
-    use num_derive::{FromPrimitive};
-    use num_traits::{FromPrimitive};
-
-    struct DurationFmt(Duration);
-
-    impl DurationFmt {
-        #[inline(always)]
-        fn duration(&self) -> Duration { self.0 }
-
-        #[inline(always)]
-        fn pure_nanos(&self) -> u128 {
-            self.0.as_nanos() % Duration::from_micros(1).as_nanos()
-        }
-
-        #[inline(always)]
-        fn pure_micros(&self) -> u128 {
-            (self.0.as_nanos() % Duration::from_millis(1).as_nanos()) / Duration::from_micros(1).as_nanos()
-        }
-
-        #[inline(always)]
-        fn pure_millis(&self) -> u128 {
-            (self.0.as_nanos() % Duration::from_secs(1).as_nanos()) / Duration::from_millis(1).as_nanos()
-        }
-
-        #[inline(always)]
-        fn pure_secs_as_f64(&self) -> f64 {
-            ((self.0.as_nanos() % Duration::from_secs(60).as_nanos()) as f64) / (Duration::from_secs(1).as_nanos() as f64)
-        }
-
-        #[inline(always)]
-        fn pure_mins(&self) -> u128 {
-            (self.0.as_nanos() % Duration::from_secs(60*60).as_nanos()) / Duration::from_secs(60).as_nanos()
-        }
-
-        #[inline(always)]
-        fn pure_hours(&self) -> u128 {
-            self.0.as_nanos() / Duration::from_secs(60*60).as_nanos()
-        }
-    }
-
-    impl fmt::Debug for DurationFmt {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self.duration() {
-                d if d <= Duration::from_micros(1) => write!(f, "{}ns", self.pure_nanos()),
-                d if d <= Duration::from_millis(1) => {
-                    let ns = self.pure_nanos();
-                    let mcs = self.pure_micros();
-
-                    match ns {
-                        0 => write!(f, "{}µs", mcs),
-                        _ => write!(f, "{}µs{}ns", mcs, ns),
-                    }
-                },
-                d if d <= (Duration::from_secs(1) / 10) => {
-                    let mcs = self.pure_micros();
-                    let ms = self.pure_millis();
-
-                    match mcs {
-                        0 => write!(f, "{}ms", ms),
-                        _ => write!(f, "{}ms{}µs", ms, mcs),
-                    }
-                },
-                _ => {
-                    let h = self.pure_hours();
-                    let m = self.pure_mins();
-                    let s = self.pure_secs_as_f64();
-
-                    if h != 0 {
-                        write!(f, "{}h", h)?;
-                    }
-
-                    if m != 0 {
-                        write!(f, "{}m", m)?;
-                    }
-
-                    if s != 0.0 {
-                        write!(f, "{:.2}s", s)
-                    } else {
-                        Ok(())
-                    }
-                },
-            }
-        }
-    }
-
-    #[derive(Clone, Copy, Debug, FromPrimitive, PartialEq)]
-    pub enum TransportScramblingControl {
-        NotScrambled = 0b0000_0000,
-        ScrambledReserved = 0b0000_0001,
-        ScrambledEven = 0b0000_0010,
-        ScrambledOdd = 0b0000_0011,
-    }
-
-    impl TransportScramblingControl {
-        #[inline(always)]
-        fn must_from_u8(d: u8) -> TransportScramblingControl {
-            TransportScramblingControl::from_u8(d)
-                .unwrap_or(TransportScramblingControl::NotScrambled)
-        }
-    }
-
-    const TB_27MHZ: Rational = Rational{num: 1, den: 27_000_000};
-    const TB_90KHZ: Rational = Rational{num: 1, den: 90_000};
-    const TB_1MS: Rational = Rational{num: 1, den: 1_000_000};
-    const TB_1NS: Rational = Rational{num: 1, den: 1_000_000_000};
-
-    pub struct Rational {
-        num: u64,
-        den: u64,
-    }
-
-    pub fn rescale(v: u64, src: Rational, dst: Rational) -> u64 {
-        let num = (src.num as u128) * (dst.den as u128);
-        let den = (src.den as u128) * (dst.num as u128);
-
-        v * ((num/den) as u64)
-    }
-
-    // Program clock reference,
-    // stored as 33 bits base, 6 bits reserved, 9 bits extension.
-    // The value is calculated as base * 300 + extension.
-    pub struct PCR<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> PCR<'buf> {
-        const SZ: usize = 6;
-        const TB: Rational = TB_27MHZ;
-
-        #[inline(always)]
-        fn new(buf: &'buf [u8]) -> PCR<'buf> {
-            PCR{buf}
-        }
-
-        #[inline(always)]
-        fn try_new(buf: &'buf [u8]) -> Result<PCR<'buf>> {
-            let a = Self::new(buf);
-            a.validate()?;
-            Ok(a)
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() < Self::SZ {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
-            } else {
-                Ok(())
-            }
-        }
-
-        #[inline(always)]
-        fn base(&self) -> u64 {
-            ((self.buf[0] as u64) << 25) |
-            ((self.buf[1] as u64) << 17) |
-            ((self.buf[2] as u64) << 9) |
-            ((self.buf[3] as u64) << 1) |
-            (((self.buf[4] & 0b1000_0000) >> 7) as u64)
-        }
-
-        #[inline(always)]
-        fn ext(&self) -> u16 {
-            (((self.buf[4] & 0b0000_00001) as u16) << 8) |
-             (self.buf[5] as u16)
-        }
-
-        // 27MHz
-        pub fn value(&self) -> u64 {
-            self.base() * 300 + (self.ext() as u64)
-        }
-
-        // nanoseconds
-        pub fn ns(&self) -> u64 {
-            rescale(self.value(), Self::TB, TB_1NS)
-        }
-    }
-
-    impl<'buf> From<&PCR<'buf>> for Duration {
-        fn from(pcr: &PCR) -> Self {
-            Duration::from_nanos(pcr.ns())
-        }
-    }
-
-    impl<'buf> fmt::Debug for PCR<'buf> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {:?}))",
-                self.base(), self.ext(), self.value(), DurationFmt(Duration::from(self)))
-        }
-    }
-
-    pub struct TableHeader<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> TableHeader<'buf> {
-        const SZ: usize = 3;
-
-        #[inline(always)]
-        fn new(buf: &'buf [u8]) -> TableHeader<'buf> {
-            TableHeader{buf}
-        }
-
-        #[inline(always)]
-        fn try_new(buf: &'buf [u8]) -> Result<TableHeader<'buf>> {
-            let p = Self::new(buf);
-            p.validate()?;
-            Ok(p)
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() < Self::SZ {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    pub struct TableSyntaxSection<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> TableSyntaxSection<'buf> {
-        const SZ: usize = 5;
-
-        #[inline(always)]
-        fn new(buf: &'buf [u8]) -> TableSyntaxSection<'buf> {
-            TableSyntaxSection{buf}
-        }
-
-        #[inline(always)]
-        fn try_new(buf: &'buf [u8]) -> Result<TableSyntaxSection<'buf>> {
-            let p = Self::new(buf);
-            p.validate()?;
-            Ok(p)
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() < Self::SZ {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    pub struct TableCRC32<'buf> {
-        buf: &'buf [u8],
-    }
-
-    pub struct TablePAT<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> TablePAT<'buf> {
-        const SZ: usize = 4;
-
-        #[inline(always)]
-        fn new(buf: &'buf [u8]) -> TablePAT<'buf> {
-            TablePAT{buf}
-        }
-
-        #[inline(always)]
-        fn try_new(buf: &'buf [u8]) -> Result<TablePAT<'buf>> {
-            let p = Self::new(buf);
-            p.validate()?;
-            Ok(p)
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() < Self::SZ {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
-            } else {
-                Ok(())
-            }
-        }
-
-        #[inline(always)]
-        fn program_number(&self) -> u16 {
-            ((self.buf[0] as u16) << 8) | self.buf[1] as u16
-        }
-
-        #[inline(always)]
-        fn program_map_pid(&self) -> u16 {
-            (((self.buf[2] & 0b0001_1111) as u16) << 8) | self.buf[3] as u16
-        }
-    }
-
-    impl<'buf> fmt::Debug for TablePAT<'buf> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "(:PAT (:program-number {} :program-map-pid {}))",
-                self.program_number(), self.program_map_pid())
-        }
-    }
-
-    pub struct TablePMT<'buf> {
-        buf: &'buf [u8],
-    }
-
-    pub struct Adaptation<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> Adaptation<'buf> {
-        const HEADER_SZ: usize = 1;
-        const HEADER_FULL_SZ: usize = 2;
-
-        #[inline(always)]
-        fn new(buf: &'buf [u8]) -> Adaptation<'buf> {
-            Adaptation{buf}
-        }
-
-        #[inline(always)]
-        fn try_new(buf: &'buf [u8]) -> Result<Adaptation<'buf>> {
-            let a = Self::new(buf);
-            a.validate()?;
-            Ok(a)
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() < Self::HEADER_SZ {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::HEADER_SZ)))
-            } else if self.buf.len() < self.sz() {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), self.sz())))
-            } else {
-                Ok(())
-            }
-        }
-
-        #[inline(always)]
-        fn sz(&self) -> usize { Self::HEADER_SZ + self.field_length() }
-
-        // number of bytes in the adaptation field
-        // immediately following this byte
-        #[inline(always)]
-        fn field_length(&self) -> usize { self.buf[0] as usize }
-
-        // set if current TS packet is in a discontinuity
-        // state with respect to either the continuity
-        // counter or the program clock reference
-        #[inline(always)]
-        fn discontinuity_indicator(&self) -> bool {
-            (self.buf[1] & 0b1000_0000) != 0
-        }
-
-        // set when the stream may be decoded without
-        // errors from this point
-        #[inline(always)]
-        fn random_access_indicator(&self) -> bool {
-            (self.buf[1] & 0b0100_0000) != 0
-        }
-
-        // set when this stream should be considered "high priority"
-        #[inline(always)]
-        pub fn elementary_stream_priority_indicator(&self) -> bool {
-            (self.buf[1] & 0b0010_0000) != 0
-        }
-
-        // set when PCR field is present
-        #[inline(always)]
-        fn pcr_flag(&self) -> bool {
-            (self.buf[1] & 0b0001_0000) != 0
-        }
-
-        // set when OPCR field is present
-        #[inline(always)]
-        pub fn opcr_flag(&self) -> bool {
-            (self.buf[1] & 0b0000_1000) != 0
-        }
-
-        // set when splice countdown field is present
-        #[inline(always)]
-        pub fn splicing_point_flag(&self) -> bool {
-            (self.buf[1] & 0b0000_0100) != 0
-        }
-
-        // set when transport private data is present
-        #[inline(always)]
-        pub fn transport_private_data_flag(&self) -> bool {
-            (self.buf[1] & 0b0000_0010) != 0
-        }
-
-        // set when transport private data is present
-        #[inline(always)]
-        pub fn adaptation_field_extension_flag(&self) -> bool {
-            (self.buf[1] & 0b0000_0001) != 0
-        }
-
-        // seek to PCR start position
-        #[inline(always)]
-        fn buf_seek_pcr(&self) -> &'buf [u8] {
-            &self.buf[Self::HEADER_FULL_SZ..]
-        }
-
-        // seek to OPCR start position
-        #[inline(always)]
-        fn buf_seek_opcr(&self) -> &'buf [u8] {
-            let mut buf = self.buf_seek_pcr();
-            if self.pcr_flag() {
-                buf = &buf[PCR::SZ..];
-            }
-            buf
-        }
-
-        #[inline(always)]
-        pub fn pcr(&self) -> Option<PCR<'buf>> {
-            if self.pcr_flag() {
-                Some(PCR::new(self.buf_seek_pcr()))
-            } else {
-                None
-            }
-        }
-
-        // Original Program clock reference.
-        // Helps when one TS is copied into another.
-        #[inline(always)]
-        pub fn opcr(&self) -> Option<PCR> {
-            if self.opcr_flag() {
-                Some(PCR::new(self.buf_seek_opcr()))
-            } else {
-                None
-            }
-        }
-
-        #[inline(always)]
-        pub fn splice_countdown(&self) -> Option<u8> {
-            if self.splicing_point_flag() {
-                // TODO: implement
-                unimplemented!()
-            } else {
-                None
-            }
-        }
-    }
-
-    pub struct Header<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> Header<'buf> {
-        const SZ: usize = 4;
-
-        #[inline(always)]
-        fn new(buf: &'buf [u8]) -> Header<'buf> {
-            Header{buf}
-        }
-
-        // Set when a demodulator can't correct errors from FEC data;
-        // indicating the packet is corrupt.
-        #[inline(always)]
-        fn tei(&self) -> bool {
-            (self.buf[1] & 0b1000_0000) != 0
-        }
-
-        // Set when a PES, PSI, or DVB-MIP
-        // packet begins immediately following the header.
-        #[inline(always)]
-        fn pusi(&self) -> bool {
-            (self.buf[1] & 0b0100_0000) != 0
-        }
-
-        // Set when the current packet has a higher
-        // priority than other packets with the same PID.
-        #[inline(always)]
-        fn transport_priority(&self) -> bool {
-            (self.buf[1] & 0b0010_0000) != 0
-        }
-
-        // Packet Identifier, describing the payload data.
-        #[inline(always)]
-        fn pid(&self) -> TSPID {
-            TSPID::must_from_u16(
-                (((self.buf[1] & 0b0001_1111) as u16) << 8) | self.buf[2] as u16)
-        }
-
-        // transport-scrambling-control
-        #[inline(always)]
-        fn tsc(&self) -> TransportScramblingControl {
-            TransportScramblingControl::must_from_u8(
-                (self.buf[3] & 0b1100_0000) >> 6)
-        }
-
-        #[inline(always)]
-        fn got_adaptation(&self) -> bool {
-            (self.buf[3] & 0b0010_0000) != 0
-        }
-
-        #[inline(always)]
-        fn got_payload(&self) -> bool {
-            (self.buf[3] & 0b0001_0000) != 0
-        }
-
-        #[inline(always)]
-        pub fn cc(&self) -> u8 { self.buf[3] & 0b0000_1111 }
-    }
-
-    pub struct Packet<'buf> {
-        buf: &'buf [u8],
-    }
-
-    impl<'buf> Packet<'buf> {
-        const SZ: usize = 188;
-        const SYNC_BYTE: u8 = 0x47;
-
-        #[inline(always)]
-        pub fn new(buf: &'buf [u8]) -> Result<Packet<'buf>> {
-            let pkt = Packet{buf};
-
-            pkt.validate()?;
-
-            Ok(pkt)
-        }
-
-        #[inline(always)]
-        fn validate(&self) -> Result<()> {
-            if self.buf.len() != Self::SZ {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
-            } else if self.buf[0] != Self::SYNC_BYTE {
-                Err(Error::new(ErrorKind::TSSyncByte(self.buf[0])))
-            } else {
-                Ok(())
-            }
-        }
-
-        // adaptation start position
-        #[inline(always)]
-        fn buf_pos_adaptation() -> usize { Header::SZ }
-
-        // TODO: try_seek?
-        //       or pos_<name> + seek?
-        // position payload start
-        #[inline(always)]
-        fn buf_pos_payload(&self) -> usize {
-            let mut pos = Self::buf_pos_adaptation();
-            let header = self.header();
-
-            if header.got_adaptation() {
-                // TODO: Adaptation::sz(self.buf)
-                //       self.adaptation() + self.try_adaptation()
-                let adapt = Adaptation::new(self.buf_seek(pos));
-                pos += adapt.sz();
-            }
-
-            if header.pusi() {
-                // payload data start
-                //
-                // https://stackoverflow.com/a/27525217
-                // From the en300 468 spec:
-                //
-                // Sections may start at the beginning of the payload of a TS packet,
-                // but this is not a requirement, because the start of the first
-                // section in the payload of a TS packet is pointed to by the pointer_field.
-                //
-                // So the section start actually is an offset from the payload:
-                //
-                // uint8_t* section_start = payload + *payload + 1;
-                pos += (self.buf[pos] as usize) + 1;
-            }
-
-            pos
-        }
-
-        #[inline(always)]
-        fn buf_seek(&self, offset: usize) -> &'buf [u8] {
-            &self.buf[offset..]
-        }
-
-        #[inline(always)]
-        fn buf_try_seek(&self, offset: usize) -> Result<&'buf [u8]> {
-            if self.buf.len() <= offset {
-                Err(Error::new(ErrorKind::TSBuf(self.buf.len(), Self::SZ)))
-            } else {
-                Ok(self.buf_seek(offset))
-            }
-        }
-
-        // TODO: merge Header and Packet?
-        #[inline(always)]
-        fn header(&self) -> Header<'buf> { Header::new(self.buf) }
-
-        #[inline(always)]
-        fn adaptation(&self) -> Option<Result<Adaptation<'buf>>> {
-            let header = self.header();
-
-            if header.got_adaptation() {
-                // TODO: move to macro? or optional-result crate
-                match self.buf_try_seek(Self::buf_pos_adaptation()) {
-                    Ok(buf) => Some(Adaptation::try_new(buf)),
-                    Err(e) => Some(Err(e)),
-                }
-            } else {
-                None
-            }
-        }
-
-        #[inline(always)]
-        pub fn pid(&self) -> TSPID { self.header().pid() }
-
-        #[inline(always)]
-        pub fn cc(&self) -> u8 { self.header().cc() }
-
-        #[inline(always)]
-        pub fn pcr(&self) -> Result<Option<PCR<'buf>>> {
-            self.adaptation()
-                .and_then(|res| match res {
-                    Ok(adapt) => adapt.pcr()
-                        .and_then(|pcr| Some(Ok(pcr))),
-                    Err(e) => Some(Err(e)),
-                })
-                .transpose()
-        }
-
-        #[inline(always)]
-        pub fn pat(&self) -> Result<Option<TablePAT>> {
-            let header = self.header();
-
-            if !header.got_payload() {
-                return Ok(None)
-            }
-
-            let res = match self.pid() {
-                TSPID::Known(TSPIDKnown::PAT) => {
-                    let mut pos = self.buf_pos_payload();
-
-                    // TODO: remove
-                    pos += 3; // table-header;
-                    pos += 5; // syntax-section;
-
-                    // TODO: move to macro? or optional-result crate
-                    match self.buf_try_seek(pos) {
-                        Ok(buf) => Some(TablePAT::try_new(buf)),
-                        Err(e) => Some(Err(e)),
-                    }
-                },
-                _ => None,
-            };
-
-            res.transpose()
-        }
-    }
-}
 
 struct DemuxerTS {}
 
@@ -2516,7 +1795,7 @@ struct InputUDP {
     url: Url,
 
     // circullar-buffer / fifo
-    buf: Arc<(Mutex<VecDeque<[u8; TSPktSz]>>, Condvar)>,
+    buf: Arc<(Mutex<VecDeque<[u8; TSPKTSZ]>>, Condvar)>,
 
     ts: TS,
 
@@ -2582,20 +1861,20 @@ impl InputUDP {
         }
 
         match ts_header.pid {
-            TSPID::Known(TSPIDKnown::PAT) if self.ts.pat.is_none() => {
+           ts::PID::PAT if self.ts.pat.is_none() => {
                 let (_, psi) = try!(TSPSI::parse_pat(ts_pkt_raw));
                 self.ts.pat = Some(psi);
 
                 println!("[+] (:PAT (:pid {:?} :cc {}))", ts_header.pid, ts_header.cc);
             }
 
-            TSPID::Known(TSPIDKnown::SDT) if self.ts.sdt.is_none() => {
+           ts::PID::SDT if self.ts.sdt.is_none() => {
                 let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
                 println!("[+] (:SDT {:?})", psi);
                 self.ts.sdt = Some(psi);
             }
 
-            TSPID::Known(TSPIDKnown::EIT) => {
+           ts::PID::EIT => {
                 let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
                 println!("[+] (:EIT {:?})", psi);
             }
@@ -2617,7 +1896,7 @@ impl InputUDP {
                 println!(
                     "[+] (:PMT (:pid {:?}/0x{:02X} :cc {}))",
                     ts_header.pid,
-                    ts_header.pid.to_u16().unwrap_or(0),
+                    u16::from(ts_header.pid),
                     ts_header.cc
                 );
             }
@@ -2660,22 +1939,22 @@ impl Input for InputUDP {
 
         let pair = self.buf.clone();
         thread::spawn(move || {
-            let mut ts_pkt_raw: [u8; TSPktSz] = [0; TSPktSz];
+            let mut ts_pkt_raw: [u8; TSPKTSZ] = [0; TSPKTSZ];
 
             loop {
                 // MTU (maximum transmission unit) == 1500 for Ethertnet
-                // 7*TSPktSz = 7*188 = 1316 < 1500 => OK
-                let mut pkts_raw = [0; 7 * TSPktSz];
+                // 7*TSPKTSZ = 7*188 = 1316 < 1500 => OK
+                let mut pkts_raw = [0; 7 * TSPKTSZ];
                 let (_, _) = socket.recv_from(&mut pkts_raw).unwrap();
 
                 let &(ref lock, ref cvar) = &*pair;
                 let mut buf = lock.lock().unwrap();
 
-                for pkt_index in 0..7 * TSPktSz / TSPktSz {
-                    let ts_pkt_raw_src = &pkts_raw[pkt_index * TSPktSz..(pkt_index + 1) * TSPktSz];
+                for pkt_index in 0..7 * TSPKTSZ / TSPKTSZ {
+                    let ts_pkt_raw_src = &pkts_raw[pkt_index * TSPKTSZ..(pkt_index + 1) * TSPKTSZ];
 
                     // println!("#{:?} -> [{:?} .. {:?}]; src-len: {:?}, dst-len: {:?}",
-                    //     pkt_index, pkt_index*TSPktSz, (pkt_index+1)*TSPktSz,
+                    //     pkt_index, pkt_index*TSPKTSZ, (pkt_index+1)*TSPKTSZ,
                     //     ts_pkt_raw_src.len(), ts_pkt_raw.len(),
                     // );
 
