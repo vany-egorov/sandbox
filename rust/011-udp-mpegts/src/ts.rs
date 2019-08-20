@@ -1,12 +1,12 @@
 use std::fmt;
 use std::time::Duration;
 
-use error::{Error, Kind as ErrorKind};
-use result::Result;
-use pid::PID;
 use duration_fmt::DurationFmt;
+use error::{Error, Kind as ErrorKind};
+use pid::PID;
 use rational;
 use rational::Rational;
+use result::Result;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportScramblingControl {
@@ -30,9 +30,9 @@ impl From<u8> for TransportScramblingControl {
     }
 }
 
-// Program clock reference,
-// stored as 33 bits base, 6 bits reserved, 9 bits extension.
-// The value is calculated as base * 300 + extension.
+/// Program clock reference,
+/// stored as 33 bits base, 6 bits reserved, 9 bits extension.
+/// The value is calculated as base * 300 + extension.
 pub struct PCR<'buf> {
     buf: &'buf [u8],
 }
@@ -43,10 +43,11 @@ impl<'buf> PCR<'buf> {
 
     #[inline(always)]
     fn new(buf: &'buf [u8]) -> PCR<'buf> {
-        PCR{buf}
+        PCR { buf }
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn try_new(buf: &'buf [u8]) -> Result<PCR<'buf>> {
         let a = Self::new(buf);
         a.validate()?;
@@ -64,25 +65,24 @@ impl<'buf> PCR<'buf> {
 
     #[inline(always)]
     fn base(&self) -> u64 {
-        ((self.buf[0] as u64) << 25) |
-        ((self.buf[1] as u64) << 17) |
-        ((self.buf[2] as u64) << 9) |
-        ((self.buf[3] as u64) << 1) |
-        (((self.buf[4] & 0b1000_0000) >> 7) as u64)
+        ((self.buf[0] as u64) << 25)
+            | ((self.buf[1] as u64) << 17)
+            | ((self.buf[2] as u64) << 9)
+            | ((self.buf[3] as u64) << 1)
+            | (((self.buf[4] & 0b1000_0000) >> 7) as u64)
     }
 
     #[inline(always)]
     fn ext(&self) -> u16 {
-        (((self.buf[4] & 0b0000_00001) as u16) << 8) |
-         (self.buf[5] as u16)
+        (((self.buf[4] & 0b0000_00001) as u16) << 8) | (self.buf[5] as u16)
     }
 
-    // 27MHz
+    /// 27MHz
     pub fn value(&self) -> u64 {
         self.base() * 300 + (self.ext() as u64)
     }
 
-    // nanoseconds
+    /// nanoseconds
     pub fn ns(&self) -> u64 {
         rational::rescale(self.value(), Self::TB, rational::TB_1NS)
     }
@@ -96,8 +96,14 @@ impl<'buf> From<&PCR<'buf>> for Duration {
 
 impl<'buf> fmt::Debug for PCR<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {:?}))",
-            self.base(), self.ext(), self.value(), DurationFmt(Duration::from(self)))
+        write!(
+            f,
+            "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {:?}))",
+            self.base(),
+            self.ext(),
+            self.value(),
+            DurationFmt(Duration::from(self))
+        )
     }
 }
 
@@ -109,11 +115,13 @@ impl<'buf> TableHeader<'buf> {
     const SZ: usize = 3;
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn new(buf: &'buf [u8]) -> TableHeader<'buf> {
-        TableHeader{buf}
+        TableHeader { buf }
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn try_new(buf: &'buf [u8]) -> Result<TableHeader<'buf>> {
         let p = Self::new(buf);
         p.validate()?;
@@ -121,6 +129,7 @@ impl<'buf> TableHeader<'buf> {
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn validate(&self) -> Result<()> {
         if self.buf.len() < Self::SZ {
             Err(Error::new(ErrorKind::Buf(self.buf.len(), Self::SZ)))
@@ -138,11 +147,13 @@ impl<'buf> TableSyntaxSection<'buf> {
     const SZ: usize = 5;
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn new(buf: &'buf [u8]) -> TableSyntaxSection<'buf> {
-        TableSyntaxSection{buf}
+        TableSyntaxSection { buf }
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn try_new(buf: &'buf [u8]) -> Result<TableSyntaxSection<'buf>> {
         let p = Self::new(buf);
         p.validate()?;
@@ -150,6 +161,7 @@ impl<'buf> TableSyntaxSection<'buf> {
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     fn validate(&self) -> Result<()> {
         if self.buf.len() < Self::SZ {
             Err(Error::new(ErrorKind::Buf(self.buf.len(), Self::SZ)))
@@ -172,7 +184,7 @@ impl<'buf> TablePAT<'buf> {
 
     #[inline(always)]
     fn new(buf: &'buf [u8]) -> TablePAT<'buf> {
-        TablePAT{buf}
+        TablePAT { buf }
     }
 
     #[inline(always)]
@@ -204,8 +216,12 @@ impl<'buf> TablePAT<'buf> {
 
 impl<'buf> fmt::Debug for TablePAT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(:PAT (:program-number {} :program-map-pid {}))",
-            self.program_number(), self.program_map_pid())
+        write!(
+            f,
+            "(:PAT (:program-number {} :program-map-pid {}))",
+            self.program_number(),
+            self.program_map_pid()
+        )
     }
 }
 
@@ -223,7 +239,7 @@ impl<'buf> Adaptation<'buf> {
 
     #[inline(always)]
     fn new(buf: &'buf [u8]) -> Adaptation<'buf> {
-        Adaptation{buf}
+        Adaptation { buf }
     }
 
     #[inline(always)]
@@ -245,71 +261,77 @@ impl<'buf> Adaptation<'buf> {
     }
 
     #[inline(always)]
-    fn sz(&self) -> usize { Self::HEADER_SZ + self.field_length() }
+    fn sz(&self) -> usize {
+        Self::HEADER_SZ + self.field_length()
+    }
 
-    // number of bytes in the adaptation field
-    // immediately following this byte
+    /// number of bytes in the adaptation field
+    /// immediately following this byte
     #[inline(always)]
-    fn field_length(&self) -> usize { self.buf[0] as usize }
+    fn field_length(&self) -> usize {
+        self.buf[0] as usize
+    }
 
-    // set if current TS packet is in a discontinuity
-    // state with respect to either the continuity
-    // counter or the program clock reference
+    /// set if current TS packet is in a discontinuity
+    /// state with respect to either the continuity
+    /// counter or the program clock reference
     #[inline(always)]
+    #[allow(dead_code)]
     fn discontinuity_indicator(&self) -> bool {
         (self.buf[1] & 0b1000_0000) != 0
     }
 
-    // set when the stream may be decoded without
-    // errors from this point
+    /// set when the stream may be decoded without
+    /// errors from this point
     #[inline(always)]
+    #[allow(dead_code)]
     fn random_access_indicator(&self) -> bool {
         (self.buf[1] & 0b0100_0000) != 0
     }
 
-    // set when this stream should be considered "high priority"
+    /// set when this stream should be considered "high priority"
     #[inline(always)]
     pub fn elementary_stream_priority_indicator(&self) -> bool {
         (self.buf[1] & 0b0010_0000) != 0
     }
 
-    // set when PCR field is present
+    /// set when PCR field is present
     #[inline(always)]
     fn pcr_flag(&self) -> bool {
         (self.buf[1] & 0b0001_0000) != 0
     }
 
-    // set when OPCR field is present
+    /// set when OPCR field is present
     #[inline(always)]
     pub fn opcr_flag(&self) -> bool {
         (self.buf[1] & 0b0000_1000) != 0
     }
 
-    // set when splice countdown field is present
+    /// set when splice countdown field is present
     #[inline(always)]
     pub fn splicing_point_flag(&self) -> bool {
         (self.buf[1] & 0b0000_0100) != 0
     }
 
-    // set when transport private data is present
+    /// set when transport private data is present
     #[inline(always)]
     pub fn transport_private_data_flag(&self) -> bool {
         (self.buf[1] & 0b0000_0010) != 0
     }
 
-    // set when transport private data is present
+    /// set when transport private data is present
     #[inline(always)]
     pub fn adaptation_field_extension_flag(&self) -> bool {
         (self.buf[1] & 0b0000_0001) != 0
     }
 
-    // seek to PCR start position
+    /// seek to PCR start position
     #[inline(always)]
     fn buf_seek_pcr(&self) -> &'buf [u8] {
         &self.buf[Self::HEADER_FULL_SZ..]
     }
 
-    // seek to OPCR start position
+    /// seek to OPCR start position
     #[inline(always)]
     fn buf_seek_opcr(&self) -> &'buf [u8] {
         let mut buf = self.buf_seek_pcr();
@@ -328,8 +350,8 @@ impl<'buf> Adaptation<'buf> {
         }
     }
 
-    // Original Program clock reference.
-    // Helps when one TS is copied into another.
+    /// Original Program clock reference.
+    /// Helps when one TS is copied into another.
     #[inline(always)]
     pub fn opcr(&self) -> Option<PCR> {
         if self.opcr_flag() {
@@ -359,42 +381,43 @@ impl<'buf> Header<'buf> {
 
     #[inline(always)]
     fn new(buf: &'buf [u8]) -> Header<'buf> {
-        Header{buf}
+        Header { buf }
     }
 
-    // Set when a demodulator can't correct errors from FEC data;
-    // indicating the packet is corrupt.
+    /// Set when a demodulator can't correct errors from FEC data;
+    /// indicating the packet is corrupt.
     #[inline(always)]
+    #[allow(dead_code)]
     fn tei(&self) -> bool {
         (self.buf[1] & 0b1000_0000) != 0
     }
 
-    // Set when a PES, PSI, or DVB-MIP
-    // packet begins immediately following the header.
+    /// Set when a PES, PSI, or DVB-MIP
+    /// packet begins immediately following the header.
     #[inline(always)]
     fn pusi(&self) -> bool {
         (self.buf[1] & 0b0100_0000) != 0
     }
 
-    // Set when the current packet has a higher
-    // priority than other packets with the same PID.
+    /// Set when the current packet has a higher
+    /// priority than other packets with the same PID.
     #[inline(always)]
+    #[allow(dead_code)]
     fn transport_priority(&self) -> bool {
         (self.buf[1] & 0b0010_0000) != 0
     }
 
-    // Packet Identifier, describing the payload data.
+    /// Packet Identifier, describing the payload data.
     #[inline(always)]
     fn pid(&self) -> PID {
-        PID::from(
-            (((self.buf[1] & 0b0001_1111) as u16) << 8) | self.buf[2] as u16)
+        PID::from((((self.buf[1] & 0b0001_1111) as u16) << 8) | self.buf[2] as u16)
     }
 
-    // transport-scrambling-control
+    /// transport-scrambling-control
     #[inline(always)]
+    #[allow(dead_code)]
     fn tsc(&self) -> TransportScramblingControl {
-        TransportScramblingControl::from(
-            (self.buf[3] & 0b1100_0000) >> 6)
+        TransportScramblingControl::from((self.buf[3] & 0b1100_0000) >> 6)
     }
 
     #[inline(always)]
@@ -408,7 +431,9 @@ impl<'buf> Header<'buf> {
     }
 
     #[inline(always)]
-    pub fn cc(&self) -> u8 { self.buf[3] & 0b0000_1111 }
+    pub fn cc(&self) -> u8 {
+        self.buf[3] & 0b0000_1111
+    }
 }
 
 pub struct Packet<'buf> {
@@ -421,7 +446,7 @@ impl<'buf> Packet<'buf> {
 
     #[inline(always)]
     pub fn new(buf: &'buf [u8]) -> Result<Packet<'buf>> {
-        let pkt = Packet{buf};
+        let pkt = Packet { buf };
 
         pkt.validate()?;
 
@@ -439,13 +464,15 @@ impl<'buf> Packet<'buf> {
         }
     }
 
-    // adaptation start position
+    /// adaptation start position
     #[inline(always)]
-    fn buf_pos_adaptation() -> usize { Header::SZ }
+    fn buf_pos_adaptation() -> usize {
+        Header::SZ
+    }
 
     // TODO: try_seek?
     //       or pos_<name> + seek?
-    // position payload start
+    /// position payload start
     #[inline(always)]
     fn buf_pos_payload(&self) -> usize {
         let mut pos = Self::buf_pos_adaptation();
@@ -493,7 +520,9 @@ impl<'buf> Packet<'buf> {
 
     // TODO: merge Header and Packet?
     #[inline(always)]
-    fn header(&self) -> Header<'buf> { Header::new(self.buf) }
+    fn header(&self) -> Header<'buf> {
+        Header::new(self.buf)
+    }
 
     #[inline(always)]
     fn adaptation(&self) -> Option<Result<Adaptation<'buf>>> {
@@ -511,17 +540,20 @@ impl<'buf> Packet<'buf> {
     }
 
     #[inline(always)]
-    pub fn pid(&self) -> PID { self.header().pid() }
+    pub fn pid(&self) -> PID {
+        self.header().pid()
+    }
 
     #[inline(always)]
-    pub fn cc(&self) -> u8 { self.header().cc() }
+    pub fn cc(&self) -> u8 {
+        self.header().cc()
+    }
 
     #[inline(always)]
     pub fn pcr(&self) -> Result<Option<PCR<'buf>>> {
         self.adaptation()
             .and_then(|res| match res {
-                Ok(adapt) => adapt.pcr()
-                    .and_then(|pcr| Some(Ok(pcr))),
+                Ok(adapt) => adapt.pcr().and_then(|pcr| Some(Ok(pcr))),
                 Err(e) => Some(Err(e)),
             })
             .transpose()
@@ -532,7 +564,7 @@ impl<'buf> Packet<'buf> {
         let header = self.header();
 
         if !header.got_payload() {
-            return Ok(None)
+            return Ok(None);
         }
 
         let res = match self.pid() {
@@ -548,7 +580,7 @@ impl<'buf> Packet<'buf> {
                     Ok(buf) => Some(TablePAT::try_new(buf)),
                     Err(e) => Some(Err(e)),
                 }
-            },
+            }
             _ => None,
         };
 

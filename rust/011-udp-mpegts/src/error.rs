@@ -1,6 +1,5 @@
-use std::fmt;
 use std::error::Error as StdError;
-
+use std::fmt;
 
 #[derive(Debug)]
 pub enum Kind {
@@ -24,12 +23,18 @@ impl fmt::Display for Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, r#"(:error ({:?}) (:txt "{}""#,
-            self.0, self.description())?;
+        write!(
+            f,
+            r#"(:error ({:?}) (:txt "{}""#,
+            self.0,
+            self.description()
+        )?;
 
         match self.0 {
             Kind::SyncByte(b) => write!(f, " (:got 0x{:02X})", b)?,
-            Kind::Buf(actual, expected) => write!(f, " (:sz-actual {} :sz-expected {})", actual, expected)?,
+            Kind::Buf(actual, expected) => {
+                write!(f, " (:sz-actual {} :sz-expected {})", actual, expected)?
+            }
         }
 
         write!(f, "))")

@@ -4,28 +4,28 @@ pub enum PID {
     CAT,
     TSDT,
 
-    // NIT, ST
+    /// NIT, ST
     NIT,
-    // SDT, BAT, ST
+    /// SDT, BAT, ST
     SDT,
-    // EIT, ST CIT (TS 102 323 [13])
+    /// EIT, ST CIT (TS 102 323 [13])
     EIT,
-    // RST, ST
+    /// RST, ST
     RST,
-    // TDT, TOT, ST
+    /// TDT, TOT, ST
     TDT,
-    // network synchronization
+    /// network synchronization
     NetworkSynchronization,
-    // RNT (TS 102 323 [13])
+    /// RNT (TS 102 323 [13])
     RNT,
 
-    // The PID value 0x001C allocated to link-local
-    // inband signalling shall not be used on any broadcast signals.
-    // It shall only be used between devices in a controlled environment.
+    /// The PID value 0x001C allocated to link-local
+    /// inband signalling shall not be used on any broadcast signals.
+    /// It shall only be used between devices in a controlled environment.
     //
-    // NOTE: The PID 0x001C can for example be used within a broadcast centre,
-    //       between a receiver device and a
-    //       CAM, or on private satellite links
+    /// NOTE: The PID 0x001C can for example be used within a broadcast centre,
+    ///       between a receiver device and a
+    ///       CAM, or on private satellite links
     InbandSignalling,
     Measurement,
     DIT,
@@ -33,8 +33,8 @@ pub enum PID {
 
     NULL,
 
-    // 0x0003...0x000F
-    // 0x0017...0x001B
+    /// 0x0003...0x000F
+    /// 0x0017...0x001B
     Reserved(u16),
 
     Other(u16),
@@ -73,7 +73,6 @@ impl From<PID> for u16 {
             PID::PAT => 0x0000,
             PID::CAT => 0x0001,
             PID::TSDT => 0x0002,
-            PID::Reserved(d) => d,
             PID::NIT => 0x0010,
             PID::SDT => 0x0011,
             PID::EIT => 0x0012,
@@ -81,13 +80,14 @@ impl From<PID> for u16 {
             PID::TDT => 0x0014,
             PID::NetworkSynchronization => 0x0015,
             PID::RNT => 0x0016,
-            PID::Reserved(d) => d,
             PID::InbandSignalling => 0x001C,
             PID::Measurement => 0x001D,
             PID::DIT => 0x001E,
             PID::SIT => 0x001F,
 
             PID::NULL => 0x1FFF,
+
+            PID::Reserved(d) => d,
 
             PID::Other(d) => d,
         }

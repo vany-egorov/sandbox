@@ -5,7 +5,9 @@ pub struct DurationFmt(pub Duration);
 
 impl DurationFmt {
     #[inline(always)]
-    fn duration(&self) -> Duration { self.0 }
+    fn duration(&self) -> Duration {
+        self.0
+    }
 
     #[inline(always)]
     fn pure_nanos(&self) -> u128 {
@@ -14,27 +16,31 @@ impl DurationFmt {
 
     #[inline(always)]
     fn pure_micros(&self) -> u128 {
-        (self.0.as_nanos() % Duration::from_millis(1).as_nanos()) / Duration::from_micros(1).as_nanos()
+        (self.0.as_nanos() % Duration::from_millis(1).as_nanos())
+            / Duration::from_micros(1).as_nanos()
     }
 
     #[inline(always)]
     fn pure_millis(&self) -> u128 {
-        (self.0.as_nanos() % Duration::from_secs(1).as_nanos()) / Duration::from_millis(1).as_nanos()
+        (self.0.as_nanos() % Duration::from_secs(1).as_nanos())
+            / Duration::from_millis(1).as_nanos()
     }
 
     #[inline(always)]
     fn pure_secs_as_f64(&self) -> f64 {
-        ((self.0.as_nanos() % Duration::from_secs(60).as_nanos()) as f64) / (Duration::from_secs(1).as_nanos() as f64)
+        ((self.0.as_nanos() % Duration::from_secs(60).as_nanos()) as f64)
+            / (Duration::from_secs(1).as_nanos() as f64)
     }
 
     #[inline(always)]
     fn pure_mins(&self) -> u128 {
-        (self.0.as_nanos() % Duration::from_secs(60*60).as_nanos()) / Duration::from_secs(60).as_nanos()
+        (self.0.as_nanos() % Duration::from_secs(60 * 60).as_nanos())
+            / Duration::from_secs(60).as_nanos()
     }
 
     #[inline(always)]
     fn pure_hours(&self) -> u128 {
-        self.0.as_nanos() / Duration::from_secs(60*60).as_nanos()
+        self.0.as_nanos() / Duration::from_secs(60 * 60).as_nanos()
     }
 }
 
@@ -50,7 +56,7 @@ impl fmt::Debug for DurationFmt {
                     0 => write!(f, "{}µs", mcs),
                     _ => write!(f, "{}µs{}ns", mcs, ns),
                 }
-            },
+            }
             d if d <= (Duration::from_secs(1) / 10) => {
                 let mcs = self.pure_micros();
                 let ms = self.pure_millis();
@@ -59,7 +65,7 @@ impl fmt::Debug for DurationFmt {
                     0 => write!(f, "{}ms", ms),
                     _ => write!(f, "{}ms{}µs", ms, mcs),
                 }
-            },
+            }
             _ => {
                 let h = self.pure_hours();
                 let m = self.pure_mins();
@@ -78,7 +84,7 @@ impl fmt::Debug for DurationFmt {
                 } else {
                     Ok(())
                 }
-            },
+            }
         }
     }
 }

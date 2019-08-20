@@ -376,10 +376,9 @@ impl TSPSISyntaxSection {
         let mut tss = TSPSISyntaxSection::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let (input, raw) = try!(do_parse!(input,
+        let (input, raw) = do_parse!(input,
             raw: take!(TSPSISyntaxSection::SZ)
-            >> (raw)
-        ));
+            >> (raw))?;
 
         tss.service_id = (raw[0] as u16) << 8 | raw[1] as u16;
         tss.b1 = raw[2];
@@ -1413,11 +1412,9 @@ impl TSPSITableTrait for TSPSISDT {
         let mut sdt = TSPSISDT::new();
 
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let(input, raw) = try!(
-            do_parse!(input,
-                raw: take!(5)
-                >> (raw))
-        );
+        let(input, raw) = do_parse!(input,
+            raw: take!(5)
+            >> (raw))?;
 
         sdt.service_id = ((raw[0] as u16) << 8) | raw[1] as u16;
         sdt.b1 = raw[2];
@@ -1427,13 +1424,13 @@ impl TSPSITableTrait for TSPSISDT {
         // limit-reader
         let dsc_len = sdt.descriptors_length();
         #[cfg_attr(rustfmt, rustfmt_skip)]
-        let (input, mut raw) = try!(do_parse!(input,
+        let (input, raw) = do_parse!(input,
             raw: take!(dsc_len)
             >> (raw)
-        ));
+        )?;
 
         if dsc_len > 0 {
-            let mut descriptors = TSDescriptors{b: raw};
+            let descriptors = TSDescriptors{b: raw};
             for desc in descriptors {
                 println!("[dsc] {:?}", desc);
             }
@@ -1555,13 +1552,12 @@ impl TSPSITableTrait for TSPSIEIT {
 
         // limit-reader
         let dsc_len = eit.descriptors_length();
-        let (input, mut raw) = try!(do_parse!(input,
+        let (input, raw) = do_parse!(input,
             raw: take!(dsc_len)
-            >> (raw)
-        ));
+            >> (raw))?;
 
         if dsc_len > 0 {
-            let mut descriptors = TSDescriptors{b: raw};
+            let descriptors = TSDescriptors{b: raw};
             for desc in descriptors {
                 println!("[dsc] {:?}", desc);
             }
@@ -1763,13 +1759,13 @@ named!(parse_ts_single<&[u8], TSHeader>, do_parse!(
 
     (ts_header)));
 
-struct DemuxerTS {}
+// struct DemuxerTS {}
 
-impl DemuxerTS {
-    pub fn new() -> DemuxerTS {
-        DemuxerTS {}
-    }
-}
+// impl DemuxerTS {
+//     pub fn new() -> DemuxerTS {
+//         DemuxerTS {}
+//     }
+// }
 
 trait Input {
     fn open(&mut self) -> Result<()>;
