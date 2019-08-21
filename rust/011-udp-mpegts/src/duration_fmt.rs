@@ -1,9 +1,16 @@
+//! golang style duration format wrapper
+
 use std::fmt;
+use std::cmp;
 use std::time::Duration;
 
 pub struct DurationFmt(pub Duration);
 
 impl DurationFmt {
+    pub fn from_nanos(nanos: u64) -> DurationFmt {
+        DurationFmt(Duration::from_nanos(nanos))
+    }
+
     #[inline(always)]
     fn duration(&self) -> Duration {
         self.0
@@ -44,7 +51,19 @@ impl DurationFmt {
     }
 }
 
-impl fmt::Debug for DurationFmt {
+impl cmp::PartialEq for DurationFmt {
+    fn eq(&self, other: &Self) -> bool {
+        self.duration() == other.duration()
+    }
+}
+
+impl From<Duration> for DurationFmt {
+    fn from(d: Duration) -> Self {
+        DurationFmt(d)
+    }
+}
+
+impl fmt::Display for DurationFmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.duration() {
             d if d <= Duration::from_micros(1) => write!(f, "{}ns", self.pure_nanos()),
@@ -53,8 +72,8 @@ impl fmt::Debug for DurationFmt {
                 let mcs = self.pure_micros();
 
                 match ns {
-                    0 => write!(f, "{}µs", mcs),
-                    _ => write!(f, "{}µs{}ns", mcs, ns),
+                    0 => write!(f, "{}us", mcs),
+                    _ => write!(f, "{}us{}ns", mcs, ns),
                 }
             }
             d if d <= (Duration::from_secs(1) / 10) => {
@@ -63,7 +82,7 @@ impl fmt::Debug for DurationFmt {
 
                 match mcs {
                     0 => write!(f, "{}ms", ms),
-                    _ => write!(f, "{}ms{}µs", ms, mcs),
+                    _ => write!(f, "{}ms{}us", ms, mcs),
                 }
             }
             _ => {
@@ -86,5 +105,36 @@ impl fmt::Debug for DurationFmt {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DurationFmt;
+
+    use std::time::Duration;
+
+    #[test]
+    fn fmt_ns() {
+        assert_eq!(format!("{}", DurationFmt::from_nanos(1)), "1ns");
+    }
+
+    #[test]
+    fn fmt_h_m_s() {
+        assert_eq!(format!("{}", DurationFmt::from(
+            Duration::from_secs(10*3600) + // 10h
+            Duration::from_secs(30*60) + // 30m
+            Duration::from_secs(15) + // 15s
+            Duration::from_millis(100) // 0.1s
+        )), "10h30m15.10s");
+    }
+
+    #[test]
+    fn fmt_ms_us() {
+        assert_eq!(format!("{}", DurationFmt::from(
+            Duration::from_millis(23) + // 23ms
+            Duration::from_micros(17) + // 17us
+            Duration::from_nanos(40) // 40ns
+        )), "23ms17us");
     }
 }

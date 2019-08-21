@@ -113,67 +113,6 @@ pub struct TSAdaptation {
     pcr: Option<TSPCR>,
 }
 
-// ETSI EN 300 468 V1.15.1 (2016-03)
-// ISO/IEC 13818-1
-#[derive(Clone, Debug, FromPrimitive)]
-pub enum TSTableIDSingle {
-    ProgramAssociationSection = 0x00,
-    ConditionalAccessSection = 0x01,
-    ProgramMapSection = 0x02,
-    TransportStreamDescriptionSection = 0x03,
-
-    NetworkInformationSectionActualNetwork = 0x40,
-    NetworkInformationSectionOtherNetwork = 0x41,
-    ServiceDescriptionSectionActualTransportStream = 0x42,
-
-    ServiceDescriptionSectionOtherTransportStream = 0x46,
-    BouquetAssociationSection = 0x4A,
-    EISActualTransportStream = 0x4E,
-    EISOtherTransportStream = 0x4F,
-
-    TimeDateSection = 0x70,
-    RunningStatusSection = 0x71,
-    StuffingSection = 0x72,
-    TimeOffsetSection = 0x73,
-    ApplicationInformationSection = 0x74,
-    ContainerSection = 0x75,
-    RelatedContentSection = 0x76,
-    ContentIdentifierSection = 0x77,
-    MPEFECSection = 0x78,
-    ResolutionNotificationSection = 0x79,
-    MPEIFECSection = 0x7A,
-    DiscontinuityInformationSection = 0x7E,
-    SelectionInformationSection = 0x7F,
-}
-
-#[derive(Clone, Debug)]
-pub enum TSTableID {
-    Single(TSTableIDSingle),
-
-    // 0x50...0x5F
-    EISActualTransportStreamSchedule(u8),
-    // 0x60...0x6F
-    EISOtherTransportStreamSchedule(u8),
-
-    // 0x04...0x3F
-    // 0x43...0x45
-    Reserved(u8),
-}
-
-impl TSTableID {
-    fn from_u8(d: u8) -> Option<TSTableID> {
-        match TSTableIDSingle::from_u8(d) {
-            Some(tidk) => Some(TSTableID::Single(tidk)),
-            None => match d {
-                0x04..=0x3F | 0x43..=0x45 => Some(TSTableID::Reserved(d)),
-                0x50..=0x5F => Some(TSTableID::EISActualTransportStreamSchedule(d)),
-                0x60..=0x6F => Some(TSTableID::EISOtherTransportStreamSchedule(d)),
-                _ => None,
-            },
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct TSPSIHeader {
     // table_id
@@ -1773,19 +1712,19 @@ trait Input {
     fn close(&mut self) -> Result<()>;
 }
 
-trait Filter {
-    fn consume_strm(&self);
-    fn consume_trk(&self);
-    fn consume_pkt_raw(&self);
-    fn consume_pkt(&self);
-    fn consume_frm(&self);
+// trait Filter {
+//     fn consume_strm(&self);
+//     fn consume_trk(&self);
+//     fn consume_pkt_raw(&self);
+//     fn consume_pkt(&self);
+//     fn consume_frm(&self);
 
-    fn produce_strm(&self);
-    fn produce_trk(&self);
-    fn produce_pkt_raw(&self);
-    fn produce_pkt(&self);
-    fn produce_frm(&self);
-}
+//     fn produce_strm(&self);
+//     fn produce_trk(&self);
+//     fn produce_pkt_raw(&self);
+//     fn produce_pkt(&self);
+//     fn produce_frm(&self);
+// }
 
 struct InputUDP {
     url: Url,
@@ -1794,8 +1733,6 @@ struct InputUDP {
     buf: Arc<(Mutex<VecDeque<[u8; TSPKTSZ]>>, Condvar)>,
 
     ts: TS,
-
-    socket: Option<UdpSocket>,
 }
 
 impl InputUDP {
@@ -1805,15 +1742,13 @@ impl InputUDP {
             buf: Arc::new((Mutex::new(VecDeque::with_capacity(buf_cap)), Condvar::new())),
 
             ts: TS::new(),
-
-            socket: None,
         }
     }
 
     fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
         let pkt = ts::Packet::new(&ts_pkt_raw)?;
 
-        println!("(:pid {:?} :cc {})", pkt.pid(), pkt.cc());
+        // println!("(:pid {:?} :cc {})", pkt.pid(), pkt.cc());
 
         if let Some(pcr) = pkt.pcr()? {
             println!("(:pcr {:?})", pcr);
@@ -1824,10 +1759,10 @@ impl InputUDP {
         }
 
         // parse header
-        let (mut ts_pkt_raw, ts_header) = try!(parse_ts_single(&ts_pkt_raw));
+        let (mut ts_pkt_raw, ts_header) = parse_ts_single(&ts_pkt_raw)?;
 
         if ts_header.afc == 1 {
-            let (tail, _) = try!(parse_ts_adaptation(&ts_pkt_raw));
+            let (tail, _) = parse_ts_adaptation(&ts_pkt_raw)?;
             ts_pkt_raw = tail;
         }
 
@@ -1849,29 +1784,28 @@ impl InputUDP {
             //
             // uint8_t* section_start = payload + *payload + 1;
             // ts_pkt_raw = &ts_pkt_raw[((ts_pkt_raw[0] as usize) + 1)..];
-            ts_pkt_raw = try!(do_parse!(
+            ts_pkt_raw = do_parse!(
                 ts_pkt_raw,
                 raw: take!(ts_pkt_raw[0] + 1) >> (raw)
-            ))
-            .0;
+            )?.0;
         }
 
         match ts_header.pid {
            ts::PID::PAT if self.ts.pat.is_none() => {
-                let (_, psi) = try!(TSPSI::parse_pat(ts_pkt_raw));
+                let (_, psi) = TSPSI::parse_pat(ts_pkt_raw)?;
                 self.ts.pat = Some(psi);
 
                 println!("[+] (:PAT (:pid {:?} :cc {}))", ts_header.pid, ts_header.cc);
             }
 
            ts::PID::SDT if self.ts.sdt.is_none() => {
-                let (_, psi) = try!(TSPSI::parse_sdt(ts_pkt_raw));
+                let (_, psi) = TSPSI::parse_sdt(ts_pkt_raw)?;
                 println!("[+] (:SDT {:?})", psi);
                 self.ts.sdt = Some(psi);
             }
 
            ts::PID::EIT => {
-                let (_, psi) = try!(TSPSI::parse_eit(ts_pkt_raw));
+                let (_, psi) = TSPSI::parse_eit(ts_pkt_raw)?;
                 println!("[+] (:EIT {:?})", psi);
             }
 
@@ -1886,7 +1820,7 @@ impl InputUDP {
                 .and_then(|pat| pat.first_program_map_pid());
 
             if pid_pmt == Some(ts_header.pid) {
-                let (_, psi) = try!(TSPSI::parse_pmt(ts_pkt_raw));
+                let (_, psi) = TSPSI::parse_pmt(ts_pkt_raw)?;
                 self.ts.pmt = Some(psi);
 
                 println!(
@@ -1904,17 +1838,17 @@ impl InputUDP {
 
 impl Input for InputUDP {
     fn open(&mut self) -> Result<()> {
-        let input_host = try!(self
+        let input_host = self
             .url
             .host()
-            .ok_or(Error::new(ErrorKind::InputUrlMissingHost)));
+            .ok_or(Error::new(ErrorKind::InputUrlMissingHost))?;
 
         let input_port = self.url.port().unwrap_or(5500);
 
-        let input_host_domain = try!(match input_host {
+        let input_host_domain = match input_host {
             Host::Domain(v) => Ok(v),
             _ => Err(Error::new(ErrorKind::InputUrlHostMustBeDomain)),
-        });
+        }?;
 
         let iface = Ipv4Addr::new(0, 0, 0, 0);
         // let socket = try!(UdpSocket::bind((input_host_domain, input_port)));;
@@ -1968,15 +1902,15 @@ impl Input for InputUDP {
     fn read(&mut self) -> Result<()> {
         let pair = self.buf.clone();
         let &(ref lock, ref cvar) = &*pair;
-        let mut buf = try!(lock
+        let mut buf = lock
             .lock()
             .ok()
-            .ok_or(Error::new_with_details(ErrorKind::SyncPoison, "udp read lock error")));
+            .ok_or(Error::new_with_details(ErrorKind::SyncPoison, "udp read lock error"))?;
 
-        buf = try!(cvar.wait(buf).ok().ok_or(Error::new_with_details(
+        buf = cvar.wait(buf).ok().ok_or(Error::new_with_details(
             ErrorKind::SyncPoison,
             "udp read cwar wait erorr"
-        )));
+        ))?;
 
         while !buf.is_empty() {
             let ts_pkt_raw = buf.pop_front().unwrap();
@@ -2043,7 +1977,7 @@ where
     pub fn run(&self) -> Result<()> {
         let input = self.input.clone();
         {
-            try!(input.lock().unwrap().open());
+            input.lock().unwrap().open()?;
         }
 
         thread::spawn(move || loop {
