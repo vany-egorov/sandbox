@@ -1,13 +1,13 @@
 use std::fmt;
 use std::time::Duration;
 
-use duration_fmt::DurationFmt;
-use error::{Error, Kind as ErrorKind};
-use pid::PID;
-use rational;
-use rational::Rational;
-use result::Result;
-use table_id::TableID;
+use crate::duration_fmt::DurationFmt;
+use crate::error::{Error, Kind as ErrorKind};
+use crate::pid::PID;
+use crate::rational;
+use crate::rational::Rational;
+use crate::result::Result;
+use crate::section::{PAT, PMT};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportScramblingControl {
@@ -112,169 +112,6 @@ impl<'buf> fmt::Debug for PCR<'buf> {
             DurationFmt::from(self)
         )
     }
-}
-
-trait WithBuf<'buf> {
-    #[inline(always)]
-    fn buf(&self) -> &'buf [u8];
-}
-
-const TABLE_HEADER_SZ: usize = 3;
-#[allow(dead_code)]
-const TABLE_HEADER_MAX_SECTION_LENGTH: usize = 0x3FD; // 1021
-
-trait WithTableHeader<'buf>: WithBuf<'buf> {
-    /// buffer seeked
-    #[inline(always)]
-    fn b(&self) -> &'buf [u8] {
-        self.buf()
-    }
-
-    /// table_id
-    /// - The table_id identifies to which table the section belongs.
-    /// - Some table_ids have been defined by ISO and others by ETSI.
-    ///   Other values of the table_id can be allocated by the user
-    ///   for private purposes.
-    #[inline(always)]
-    fn table_id(&self) -> TableID {
-        TableID::from(self.b()[0])
-    }
-
-    /// This is a 12-bit field, the first two bits of which shall be '00'.
-    /// The remaining 10 bits specify the number of bytes of the section,
-    /// starting immediately following the section_length field,
-    /// and including the CRC. The value in this
-    /// field shall not exceed 1021 (0x3FD)
-    #[inline(always)]
-    fn section_length(&self) -> u16 {
-        (((self.b()[1] & 0b0000_1111) as u16) << 8) | self.b()[2] as u16
-    }
-}
-
-const TABLE_SYNTAX_SECTION_SZ: usize = 5;
-
-trait WithTableSyntaxSection<'buf>: WithBuf<'buf> {
-    /// buffer seeked
-    #[inline(always)]
-    fn b(&self) -> &'buf [u8] {
-        &self.buf()[TABLE_HEADER_SZ..]
-    }
-
-    /// This is a 16-bit field which serves as a label to identify
-    /// this Transport Stream from any other multiplex within a network.
-    /// Its value is defined by the user.
-    #[inline(always)]
-    #[allow(dead_code)]
-    fn transport_stream_id(&self) -> u16 {
-        ((self.b()[0] as u16) << 8) | (self.b()[1] as u16)
-    }
-
-    /// This 5-bit field is the version number of the whole
-    /// Program Association Table. The version number
-    /// shall be incremented by 1 modulo 32 whenever the definition
-    /// of the Program Association Table changes. When the
-    /// current_next_indicator is set to '1', then the version_number
-    /// shall be that of the currently applicable Program Association
-    /// Table. When the current_next_indicator is set to '0',
-    /// then the version_number shall be that of the next applicable Program
-    /// Association Table.
-    #[inline(always)]
-    #[allow(dead_code)]
-    fn version_number(&self) -> u8 {
-        (self.b()[2] & 0b0011_1110) >> 1
-    }
-
-    /// A 1-bit indicator, which when set to '1' indicates
-    /// that the Program Association Table sent is currently applicable.
-    /// When the bit is set to '0', it indicates that the table
-    // sent is not yet applicable and shall be the next table to become valid.
-    #[inline(always)]
-    fn current_next_indicator(&self) -> bool {
-        (self.b()[2] & 0b0000_0001) != 0
-    }
-
-    /// This 8-bit field gives the number of this section.
-    /// The section_number of the first section in the Program Association
-    /// Table shall be 0x00. It shall be incremented by 1
-    /// with each additional section in the Program Association Table.
-    #[inline(always)]
-    fn section_number(&self) -> u8 {
-        self.b()[3]
-    }
-
-    /// This 8-bit field specifies the number of the last section
-    /// (that is, the section with the highest section_number)
-    /// of the complete Program Association Table.
-    #[inline(always)]
-    fn last_section_number(&self) -> u8 {
-        self.b()[4]
-    }
-}
-
-const TABLE_CRC32_SZ: usize = 4;
-
-trait WithTableCRC32<'buf>: WithBuf<'buf> {
-}
-
-/// ISO/IEC 13818-1
-///
-/// Program association Table
-/// Associates Program Number and Program Map Table PID
-///
-/// The Program Association Table provides the correspondence
-/// between a program_number and the PID value of the
-/// Transport Stream packets which carry the program definition.
-/// The program_number is the numeric label associated with
-/// a program.
-pub struct TablePAT<'buf> {
-    buf: &'buf [u8],
-}
-
-impl<'buf> TablePAT<'buf> {
-    #[allow(dead_code)]
-    const SZ: usize = TABLE_HEADER_SZ + TABLE_SYNTAX_SECTION_SZ;
-
-    #[inline(always)]
-    fn new(buf: &'buf [u8]) -> TablePAT<'buf> {
-        TablePAT { buf }
-    }
-
-    // #[inline(always)]
-    // fn program_number(&self) -> u16 {
-    //     ((self.buf[0] as u16) << 8) | self.buf[1] as u16
-    // }
-
-    // #[inline(always)]
-    // fn program_map_pid(&self) -> u16 {
-    //     (((self.buf[2] & 0b0001_1111) as u16) << 8) | self.buf[3] as u16
-    // }
-}
-
-impl<'buf> WithBuf<'buf> for TablePAT<'buf> {
-    fn buf(&self) -> &'buf [u8] {
-        self.buf
-    }
-}
-
-impl<'buf> WithTableHeader<'buf> for TablePAT<'buf> {}
-impl<'buf> WithTableSyntaxSection<'buf> for TablePAT<'buf> {}
-impl<'buf> WithTableCRC32<'buf> for TablePAT<'buf> {}
-
-impl<'buf> fmt::Debug for TablePAT<'buf> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "(:PAT (:program-number {} :program-map-pid {}))",
-            // self.program_number(),
-            1,
-            // self.program_map_pid()
-            1,
-        )
-    }
-}
-
-pub struct TablePMT<'buf> {
-    buf: &'buf [u8],
 }
 
 pub struct Adaptation<'buf> {
@@ -607,29 +444,44 @@ impl<'buf> Packet<'buf> {
             .transpose()
     }
 
+    // TODO: generic pmt, pat method
     #[inline(always)]
-    pub fn pat(&self) -> Result<Option<TablePAT>> {
+    pub fn pat(&self) -> Result<Option<PAT>> {
         let header = self.header();
 
         if !header.got_payload() {
             return Ok(None);
         }
 
-        let res = match self.pid() {
-            PID::PAT => {
-                let mut pos = self.buf_pos_payload();
-
-                // TODO: remove
-                pos += 3; // table-header;
-                pos += 5; // syntax-section;
-
-                // TODO: move to macro? or optional-result crate
-                match self.buf_try_seek(pos) {
-                    Ok(buf) => Some(Ok(TablePAT::new(buf))),
-                    Err(e) => Some(Err(e)),
-                }
+        let res = if self.pid() == PID::PAT {
+            // TODO: move to macro? or optional-result crate
+            match self.buf_try_seek(self.buf_pos_payload()) {
+                Ok(buf) => Some(Ok(PAT::new(buf))),
+                Err(e) => Some(Err(e)),
             }
-            _ => None,
+        } else {
+            None
+        };
+
+        res.transpose()
+    }
+
+    #[inline(always)]
+    pub fn pmt(&self, pid: u16) -> Result<Option<PMT>> {
+        let header = self.header();
+
+        if !header.got_payload() {
+            return Ok(None);
+        }
+
+        let res = if u16::from(self.pid()) == pid {
+            // TODO: move to macro? or optional-result crate
+            match self.buf_try_seek(self.buf_pos_payload()) {
+                Ok(buf) => Some(Ok(PMT::new(buf))),
+                Err(e) => Some(Err(e)),
+            }
+        } else {
+            None
         };
 
         res.transpose()

@@ -27,8 +27,8 @@ RUN rm -rvf ./target/x86_64-unknown-linux-musl/release/udp-mpegts*
 RUN rm -rvf ./src/*
 RUN rm -rvf ./examples/*
 
-COPY ./src/* ./src/
-COPY ./examples/probe/* ./examples/probe/
+COPY ./src/ ./src/
+COPY ./examples/ ./examples/
 RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   build \
   --verbose \
@@ -36,11 +36,14 @@ RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   --example probe \
   --target=x86_64-unknown-linux-musl
 
+
 # RUN cargo test
 
 # -------------------------------------
 FROM alpine:latest
 
 COPY --from=build-rs /usr/local/src/udp-mpegts/target/x86_64-unknown-linux-musl/release/examples/probe /usr/local/bin/probe
+
+RUN ls -lah /usr/local/bin/probe
 
 CMD ["probe", "--input", "udp://239.255.1.1:5500"]

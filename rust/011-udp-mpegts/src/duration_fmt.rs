@@ -1,7 +1,7 @@
 //! golang style duration format wrapper
 
-use std::fmt;
 use std::cmp;
+use std::fmt;
 use std::time::Duration;
 
 pub struct DurationFmt(pub Duration);
@@ -121,20 +121,32 @@ mod tests {
 
     #[test]
     fn fmt_h_m_s() {
-        assert_eq!(format!("{}", DurationFmt::from(
-            Duration::from_secs(10*3600) + // 10h
+        assert_eq!(
+            format!(
+                "{}",
+                DurationFmt::from(
+                    Duration::from_secs(10*3600) + // 10h
             Duration::from_secs(30*60) + // 30m
             Duration::from_secs(15) + // 15s
             Duration::from_millis(100) // 0.1s
-        )), "10h30m15.10s");
+                )
+            ),
+            "10h30m15.10s"
+        );
     }
 
     #[test]
     fn fmt_ms_us() {
-        assert_eq!(format!("{}", DurationFmt::from(
-            Duration::from_millis(23) + // 23ms
+        assert_eq!(
+            format!(
+                "{}",
+                DurationFmt::from(
+                    Duration::from_millis(23) + // 23ms
             Duration::from_micros(17) + // 17us
             Duration::from_nanos(40) // 40ns
-        )), "23ms17us");
+                )
+            ),
+            "23ms17us"
+        );
     }
 }

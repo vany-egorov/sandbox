@@ -122,7 +122,7 @@ pub struct TSPSIHeader {
     //   for private purposes. The list of values of table_id is
     //   contained in table 2.
     // :8
-    table_id: Option<TSTableID>,
+    table_id: Option<ts::TableID>,
 
     // section_syntax_indicator
     // The section_syntax_indicator is a 1-bit
@@ -165,9 +165,9 @@ impl TSPSIHeader {
     fn parse(input: &[u8]) -> IResult<&[u8], TSPSIHeader> {
         let mut header = TSPSIHeader::new();
 
-        let (input, raw) = try!(do_parse!(input, raw: take!(3) >> (raw)));
+        let (input, raw) = do_parse!(input, raw: take!(3) >> (raw))?;
 
-        header.table_id = TSTableID::from_u8(raw[0]);
+        header.table_id = Some(ts::TableID::from(raw[0]));
         header.b1 = raw[1];
         header.b2 = raw[2];
 
@@ -1581,6 +1581,8 @@ pub struct TS {
     pat: Option<TSPSI<TSPSIPAT>>,
     pmt: Option<TSPSI<TSPSIPMT>>,
     sdt: Option<TSPSI<TSPSISDT>>,
+
+    pmt_pid: Option<u16>,
 }
 
 impl TS {
@@ -1589,6 +1591,8 @@ impl TS {
             pat: None,
             pmt: None,
             sdt: None,
+
+            pmt_pid: None,
         }
     }
 }
@@ -1625,8 +1629,8 @@ pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
-pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {;
-    let (input, mut ts_adaptation) = try!(do_parse!(input,
+pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {
+    let (input, mut ts_adaptation) = do_parse!(input,
            b1: bits!(take_bits!(u8, 8))
         >> b2: bits!(tuple!(
             take_bits!(u8, 1),
@@ -1653,7 +1657,7 @@ pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {;
 
             pcr: None,
         })
-    ));
+    )?;
 
     if ts_adaptation.pcr_flag == 0 {
         return Ok((input, ts_adaptation))
@@ -1755,7 +1759,17 @@ impl InputUDP {
         }
 
         if let Some(pat) = pkt.pat()? {
-            println!("(:pat {:?})", pat);
+            println!("{:?}", pat);
+
+            if let Some(pid) = pat.first_program_map_pid() {
+                self.ts.pmt_pid = Some(pid);
+            }
+        }
+
+        if let Some(pid) = self.ts.pmt_pid {
+            if let Some(pmt) = pkt.pmt(pid)? {
+                println!("{:?}", pmt);
+            }
         }
 
         // parse header
