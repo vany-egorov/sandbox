@@ -1,5 +1,7 @@
-use super::traits::*;
 use std::fmt;
+use super::traits::*;
+use crate::result::Result;
+use crate::stream_type::StreamType;
 
 /// ISO/IEC 13818-1
 ///
@@ -26,22 +28,40 @@ pub struct PMT<'buf> {
 }
 
 impl<'buf> PMT<'buf> {
-    #[allow(dead_code)]
     const HEADER_SPECIFIC_SZ: usize = 4;
-    #[allow(dead_code)]
     const HEADER_FULL_SZ: usize = HEADER_SZ + SYNTAX_SECTION_SZ + Self::HEADER_SPECIFIC_SZ;
 
     #[inline(always)]
     pub fn new(buf: &'buf [u8]) -> PMT<'buf> {
         PMT { buf }
     }
+
+    /// seek
+    #[inline(always)]
+    fn buf_streams(&self) -> &'buf [u8] {
+        let lft = Self::HEADER_FULL_SZ + (self.program_info_length() as usize);
+        let mut rght = HEADER_SZ + (self.section_length() as usize);
+
+        if rght >= self.buf.len() {
+            rght = self.buf.len();
+        }
+
+        rght -= CRC32_SZ;
+
+        &self.buf[lft..rght]
+    }
+
+    #[inline(always)]
+    pub fn streams(&self) -> Rows<'buf, Stream> {
+        Rows::new(self.buf_streams())
+    }
 }
 
-trait WithPMTHeaderSpecific<'buf>: WithBuf<'buf> {
+trait WithPMTHeaderSpecific<'buf>: Bufer<'buf> {
     /// buffer seeked
     #[inline(always)]
     fn b(&self) -> &'buf [u8] {
-        &self.buf()[HEADER_SZ+SYNTAX_SECTION_SZ..]
+        &self.buf()[HEADER_SZ + SYNTAX_SECTION_SZ..]
     }
 
     /// This is a 13-bit field indicating the PID of
@@ -65,8 +85,7 @@ trait WithPMTHeaderSpecific<'buf>: WithBuf<'buf> {
     }
 }
 
-impl<'buf> WithBuf<'buf> for PMT<'buf> {
-    /// borrow a reference to the underlying buffer
+impl<'buf> Bufer<'buf> for PMT<'buf> {
     fn buf(&self) -> &'buf [u8] {
         self.buf
     }
@@ -82,22 +101,85 @@ impl<'buf> fmt::Debug for PMT<'buf> {
         write!(
             f,
             "(:PMT (:table-id {:?} :section-length {} :pcr-pid {} :program-info-length {}",
-            self.table_id(), self.section_length(), self.pcr_pid(), self.program_info_length(),
+            self.table_id(),
+            self.section_length(),
+            self.pcr_pid(),
+            self.program_info_length(),
         )?;
+
+        write!(f, "\n  :streams")?;
+        for p in self.streams().filter_map(Result::ok) {
+            write!(f, "\n    ")?;
+            p.fmt(f)?;
+        }
 
         write!(f, "))")
     }
 }
 
-#[allow(dead_code)]
 pub struct Stream<'buf> {
     buf: &'buf [u8],
 }
 
-impl <'buf> Stream<'buf> {
+impl<'buf> Stream<'buf> {
+    const HEADER_SZ: usize = 5;
+
     #[inline(always)]
-    #[allow(dead_code)]
     pub fn new(buf: &'buf [u8]) -> Stream<'buf> {
         Stream { buf }
+    }
+
+    /// This is an 8-bit field specifying the type of program
+    /// element carried within the packets with the PID whose value
+    /// is specified by the elementary_PID. The values of stream_type
+    /// are specified in Table 2-29.
+    ///
+    /// NOTE – An ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary stream
+    /// is available for data types defined by this Specification, other than audio,
+    /// video, and DSM CC, such as Program Stream Directory and Program Stream Map.
+    #[inline(always)]
+    fn stream_type(&self) -> StreamType {
+        StreamType::from(self.buf[0])
+    }
+
+    /// This is a 13-bit field specifying the PID of the Transport Stream
+    /// packets which carry the associated program element.
+    #[inline(always)]
+    fn pid(&self) -> u16 {
+        (((self.buf[1] & 0b0001_1111) as u16) << 8) | (self.buf[2] as u16)
+    }
+
+    /// This is a 12-bit field, the first two bits of which shall be '00'.
+    /// The remaining 10 bits specify the number of bytes of the descriptors
+    /// of the associated program element immediately following
+    /// the ES_info_length field.
+    #[inline(always)]
+    fn es_info_length(&self) -> u16 {
+        (((self.buf[3] & 0b0000_1111) as u16) << 8) | (self.buf[4] as u16)
+    }
+}
+
+impl<'buf> Szer for Stream<'buf> {
+    #[inline(always)]
+    fn sz(&self) -> usize {
+        Self::HEADER_SZ + (self.es_info_length() as usize)
+    }
+}
+
+impl<'buf> TryNewer<'buf> for Stream<'buf> {
+    #[inline(always)]
+    fn try_new(buf: &'buf [u8]) -> Result<Stream<'buf>> {
+        let p = Stream::new(buf);
+        Ok(p)
+    }
+}
+
+impl<'buf> fmt::Debug for Stream<'buf> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(:stream (:pid {:?} :stream-type {:?}))",
+            self.pid(), self.stream_type()
+        )
     }
 }

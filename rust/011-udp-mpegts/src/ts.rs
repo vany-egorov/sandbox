@@ -326,7 +326,7 @@ pub struct Packet<'buf> {
 }
 
 impl<'buf> Packet<'buf> {
-    const SZ: usize = 188;
+    pub const SZ: usize = 188;
     const SYNC_BYTE: u8 = 0x47;
 
     #[inline(always)]

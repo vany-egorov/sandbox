@@ -1,4 +1,3 @@
-use nom;
 use std::borrow::Cow;
 use std::convert::Into;
 use std::error::Error as StdError;
@@ -28,7 +27,6 @@ pub enum Kind {
     InputUrlHostMustBeDomain,
     Io(IoError),
     Encoding(Utf8Error),
-    Nom,        // TODO: rewrite
     SyncPoison, // TODO: rewrite
     Ts(TsError),
 
@@ -86,7 +84,6 @@ impl StdError for Error {
             Kind::InputUrlHostMustBeDomain => "provided host must be valid domain",
             Kind::Encoding(ref err) => err.description(),
             Kind::Io(ref err) => err.description(),
-            Kind::Nom => "nom parser error",
             Kind::SyncPoison => "sync lock/condvar poison error",
             Kind::Ts(ref err) => err.description(),
 
@@ -100,7 +97,6 @@ impl StdError for Error {
             Kind::InputUrlHostMustBeDomain => None,
             Kind::Encoding(ref err) => Some(err),
             Kind::Io(ref err) => Some(err),
-            Kind::Nom => None,
             Kind::SyncPoison => None,
             Kind::Ts(ref err) => Some(err),
 
@@ -112,14 +108,6 @@ impl StdError for Error {
 from!(Utf8Error, Kind::Encoding);
 from!(IoError, Kind::Io);
 from!(TsError, Kind::Ts);
-
-impl From<nom::Err<&[u8]>> for Error {
-    fn from(err: nom::Err<&[u8]>) -> Error {
-        match err {
-            _ => Error::new(Kind::Nom),
-        }
-    }
-}
 
 impl<B> From<Box<B>> for Error
 where

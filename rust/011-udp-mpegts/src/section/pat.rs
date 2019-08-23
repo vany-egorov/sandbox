@@ -1,5 +1,6 @@
-use super::traits::*;
 use std::fmt;
+use super::traits::*;
+use crate::result::Result;
 
 /// ISO/IEC 13818-1
 ///
@@ -26,6 +27,7 @@ impl<'buf> PAT<'buf> {
         PAT { buf }
     }
 
+    /// slice buf
     #[inline(always)]
     fn buf_programs(&self) -> &'buf [u8] {
         let lft = Self::HEADER_FULL_SZ;
@@ -41,23 +43,25 @@ impl<'buf> PAT<'buf> {
     }
 
     #[inline(always)]
-    pub fn programs(&self) -> Programs {
-        Programs::new(self.buf_programs())
+    pub fn programs(&self) -> Rows<'buf, Program> {
+        Rows::new(self.buf_programs())
     }
 
     pub fn first_program_map_pid(&self) -> Option<u16> {
         self
             .programs()
             .next()
-            .and_then(|p| match p.pid() {
-                PID::ProgramMap(v) => Some(v),
+            .and_then(|res| match res {
+                Ok(p) => match p.pid() {
+                    PID::ProgramMap(v) => Some(v),
+                    _ => None,
+                },
                 _ => None,
             })
     }
 }
 
-impl<'buf> WithBuf<'buf> for PAT<'buf> {
-    /// borrow a reference to the underlying buffer
+impl<'buf> Bufer<'buf> for PAT<'buf> {
     fn buf(&self) -> &'buf [u8] {
         self.buf
     }
@@ -71,44 +75,17 @@ impl<'buf> fmt::Debug for PAT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:PAT (:table-id {:?} :section-length {} :programs",
+            "(:PAT (:table-id {:?} :section-length {}",
             self.table_id(), self.section_length(),
         )?;
 
-        for p in self.programs() {
-            write!(f, "\n  ")?;
+        write!(f, "\n  :programs")?;
+        for p in self.programs().filter_map(Result::ok) {
+            write!(f, "\n    ")?;
             p.fmt(f)?;
         }
 
         write!(f, "))")
-    }
-}
-
-pub struct Programs<'buf> {
-    buf: &'buf [u8],
-}
-
-impl<'buf> Programs<'buf> {
-    #[inline(always)]
-    pub fn new(buf: &'buf [u8]) -> Programs<'buf> {
-        Programs { buf }
-    }
-}
-
-impl<'buf> Iterator for Programs<'buf> {
-    type Item = Program<'buf>;
-
-    // TODO: iter with errors
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.buf.len() >= Program::SZ {
-            let p = Program::new(self.buf);
-
-            self.buf = &self.buf[Program::SZ..];
-
-            Some(p)
-        } else {
-            None
-        }
     }
 }
 
@@ -137,7 +114,7 @@ pub struct Program<'buf> {
     buf: &'buf [u8],
 }
 
-impl <'buf> Program<'buf> {
+impl<'buf> Program<'buf> {
     const SZ: usize = 4;
 
     #[inline(always)]
@@ -158,7 +135,6 @@ impl <'buf> Program<'buf> {
     }
 
     #[inline(always)]
-    #[allow(dead_code)]
     pub fn pid_raw(&self) -> u16 {
         (((self.buf[2] & 0b0001_1111) as u16) << 8) | self.buf[3] as u16
     }
@@ -169,6 +145,21 @@ impl <'buf> Program<'buf> {
             0 => PID::Network(self.pid_raw()),
             _ => PID::ProgramMap(self.pid_raw()),
         }
+    }
+}
+
+impl<'buf> Szer for Program<'buf> {
+    #[inline(always)]
+    fn sz(&self) -> usize {
+        Program::SZ
+    }
+}
+
+impl<'buf> TryNewer<'buf> for Program<'buf> {
+    #[inline(always)]
+    fn try_new(buf: &'buf [u8]) -> Result<Program<'buf>> {
+        let p = Program::new(buf);
+        Ok(p)
     }
 }
 

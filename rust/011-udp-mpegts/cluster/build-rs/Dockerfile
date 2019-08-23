@@ -17,7 +17,6 @@ RUN echo "fn main() {println!(\"---\")}" > ./src/main.rs
 COPY ./Cargo.toml ./
 RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   build \
-  --release \
   --target=x86_64-unknown-linux-musl
 
 RUN rm -rvf ./target/x86_64-unknown-linux-musl/debug/deps/udp-mpegts*
@@ -32,7 +31,6 @@ COPY ./examples/ ./examples/
 RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   build \
   --verbose \
-  --release \
   --example probe \
   --target=x86_64-unknown-linux-musl
 
@@ -42,8 +40,10 @@ RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
 # -------------------------------------
 FROM alpine:latest
 
-COPY --from=build-rs /usr/local/src/udp-mpegts/target/x86_64-unknown-linux-musl/release/examples/probe /usr/local/bin/probe
+COPY --from=build-rs /usr/local/src/udp-mpegts/target/x86_64-unknown-linux-musl/debug/examples/probe /usr/local/bin/probe
 
 RUN ls -lah /usr/local/bin/probe
+
+ENV RUST_BACKTRACE=full
 
 CMD ["probe", "--input", "udp://239.255.1.1:5500"]

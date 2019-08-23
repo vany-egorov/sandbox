@@ -1,6 +1,9 @@
-use super::table_id::TableID;
+use crate::table_id::TableID;
+use crate::result::Result;
+use std::marker::PhantomData;
 
-pub(crate) trait WithBuf<'buf> {
+pub(crate) trait Bufer<'buf> {
+    /// borrow a reference to the underlying buffer
     #[inline(always)]
     fn buf(&self) -> &'buf [u8];
 }
@@ -9,7 +12,7 @@ pub const HEADER_SZ: usize = 3;
 #[allow(dead_code)]
 pub const HEADER_MAX_SECTION_LENGTH: usize = 0x3FD; // 1021
 
-pub(crate) trait WithHeader<'buf>: WithBuf<'buf> {
+pub(crate) trait WithHeader<'buf>: Bufer<'buf> {
     /// buffer seeked
     #[inline(always)]
     fn b(&self) -> &'buf [u8] {
@@ -39,7 +42,7 @@ pub(crate) trait WithHeader<'buf>: WithBuf<'buf> {
 
 pub const SYNTAX_SECTION_SZ: usize = 5;
 
-pub(crate) trait WithSyntaxSection<'buf>: WithBuf<'buf> {
+pub(crate) trait WithSyntaxSection<'buf>: Bufer<'buf> {
     /// buffer seeked
     #[inline(always)]
     fn b(&self) -> &'buf [u8] {
@@ -97,6 +100,61 @@ pub(crate) trait WithSyntaxSection<'buf>: WithBuf<'buf> {
     }
 }
 
+pub trait Szer {
+    fn sz(&self) -> usize;
+}
+
+pub trait TryNewer<'buf> {
+    fn try_new(buf: &'buf [u8]) -> Result<Self>
+        where Self: Sized;
+}
+
+pub struct Rows<'buf, T> {
+    buf: &'buf [u8],
+    phantom: PhantomData<T>,
+}
+
+impl<'buf, T> Rows<'buf, T> {
+    #[inline(always)]
+    pub fn new(buf: &'buf [u8]) -> Rows<'buf, T> {
+        Rows { buf, phantom: PhantomData }
+    }
+
+    #[inline(always)]
+    fn buf_drain(&mut self) {
+        self.buf = &self.buf[self.buf.len()..];
+    }
+}
+
+impl<'buf, T> Iterator for Rows<'buf, T>
+    where T: TryNewer<'buf> + Szer
+{
+    type Item = Result<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.buf.len() == 0 {
+            return None
+        }
+
+        let row = match T::try_new(self.buf) {
+            Ok(row) => row,
+            Err(e) => {
+                self.buf_drain();
+                return Some(Err(e));
+            },
+        };
+
+        // seek buf
+        if self.buf.len() > row.sz() {
+            self.buf = &self.buf[row.sz()..];
+        } else {
+            self.buf_drain();
+        }
+
+        Some(Ok(row))
+    }
+}
+
 pub const CRC32_SZ: usize = 4;
 
-pub(crate) trait WithCRC32<'buf>: WithBuf<'buf> {}
+pub(crate) trait WithCRC32<'buf>: Bufer<'buf> {}
