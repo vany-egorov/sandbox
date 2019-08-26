@@ -1,9 +1,11 @@
+extern crate ts;
+
 mod error;
 
 extern crate clap;
 extern crate url;
 
-use clap::{App, Arg};
+use std::io::{Cursor, Write};
 use std::collections::VecDeque;
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
@@ -13,6 +15,10 @@ use std::time::Duration;
 use url::{Host, Url};
 
 use error::{Error, Kind as ErrorKind, Result};
+
+use ts::Bufer;
+
+use clap::{App, Arg};
 
 // const TSSYNCBYTE: u8 = 0x47;
 // const ts::Packet::SZ: usize = 188;
@@ -707,283 +713,6 @@ use error::{Error, Kind as ErrorKind, Result};
 //     }
 // }
 
-// #[derive(Debug)]
-// enum IterResult<T, E> {
-//     Value(T),
-//     Err(E),
-// }
-
-// struct TSDescriptors<'buf> {
-//     b: &'buf [u8],
-// }
-
-// impl<'buf> Iterator for TSDescriptors<'buf> {
-//     type Item = IterResult<TSDescriptor<'buf>, Error>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.b.len() > 0 {
-//             let d = match TSDescriptor::from_bytes(self.b) {
-//                 Err(e) => return Some(IterResult::Err(e)),
-//                 Ok(d) => d,
-//             };
-
-//             self.b = self.b.split_at(d.sz()).1;
-
-//             Some(IterResult::Value(d))
-//         } else {
-//             None
-//         }
-//     }
-// }
-
-// #[derive(Clone)]
-// pub struct TSDescriptor<'buf> {
-//     // the descriptor tag is an 8-bit field which identifies each descriptor.
-//     // Those values with MPEG-2
-//     // normative meaning are described in ISO/IEC 13818-1 [18].
-//     // (descriptor_tag :8 uimsbf)
-//     //
-//     // the descriptor length is an 8-bit field specifying the total
-//     // number of bytes of the data portion of the descriptor
-//     // following the byte defining the value of this field.
-//     // (descriptor_length :8 uimsbf)
-//     //
-//     // (...)
-//     b: &'buf [u8],
-// }
-
-// impl<'buf> TSDescriptor<'buf> {
-//     const HEADER_SZ: usize = 2;
-
-//     fn from_bytes(b: &'buf [u8]) -> Result<TSDescriptor<'buf>> {
-//         let d = TSDescriptor{b};
-
-//         Ok(d)
-//     }
-
-//     #[inline(always)]
-//     fn tag(&self) -> Option<ts::DescriptorTag> { Some(ts::DescriptorTag::from(self.b[0])) }
-
-//     #[inline(always)]
-//     fn len(&self) -> usize { self.b[1] as usize }
-
-//     #[inline(always)]
-//     fn sz(&self) -> usize { Self::HEADER_SZ + self.len() }
-// }
-
-// impl<'buf> fmt::Debug for TSDescriptor<'buf> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "(:ts-descriptor (:tag {:?} :len {:?}))",
-//             self.tag(), self.len())
-//     }
-// }
-
-// #[derive(Clone, Debug)]
-// pub struct TSPSIPMTStream {
-//     // This defines the structure of the data
-//     // contained within the elementary packet identifier.
-//     // :8
-//     stream_type: Option<ts::StreamType>,
-
-//     // reserved bits (set to 0x07 (all bits on))
-//     // :3
-//     //
-//     // The packet identifier that contains the stream type data.
-//     // :13
-//     pid: u16,
-
-//     // reserved bits (set to 0x0F (all bits on))
-//     // :4
-//     //
-//     // ES Info length unused bits (set to 0 (all bits off))
-//     // :2
-//     //
-//     // The number of bytes that follow for the elementary stream descriptors.
-//     // :10
-//     descriptors_length: u16,
-
-//     // // When the ES info length is non-zero,
-//     // // this is the ES info length number of elementary stream descriptor bytes.
-//     // descriptors: Option<Vec<TSDescriptor>>,
-// }
-
-// impl TSPSIPMTStream {
-//     fn new() -> TSPSIPMTStream {
-//         TSPSIPMTStream {
-//             stream_type: None,
-//             pid: 0,
-
-//             descriptors_length: 0,
-//             // descriptors: None,
-//         }
-//     }
-
-//     fn parse(input: &[u8]) -> IResult<&[u8], TSPSIPMTStream> {
-//         let mut s = TSPSIPMTStream::new();
-
-//         #[cfg_attr(rustfmt, rustfmt_skip)]
-//         let(input, (st, pid, dsc_len)) = try!(do_parse!(input,
-//                b1: bits!(take_bits!(u8, 8))
-//             >> b2: bits!(tuple!(
-//                 take_bits!(u8, 3),
-//                 take_bits!(u8, 5)
-//             ))
-//             >> b3: bits!(take_bits!(u8, 8))
-//             >> b4: bits!(tuple!(
-//                 take_bits!(u8, 4),
-//                 take_bits!(u8, 2),
-//                 take_bits!(u8, 2)
-//             ))
-//             >> b5: bits!(take_bits!(u8, 8))
-
-//             >> (
-//                 b1,  // stream_type
-//                 ((b2.1 as u16) << 8) | b3 as u16,  // pid
-//                 ((b4.2 as u16) << 8) | b5 as u16  // descriptors_length
-//             )
-//         ));
-
-//         s.stream_type = Some(ts::StreamType::from(st));
-//         s.pid = pid;
-//         s.descriptors_length = dsc_len;
-
-//         println!(
-//             "[t] [pmt]   (:type ({:?}) :pid {} :len {})",
-//             s.stream_type, pid, dsc_len
-//         );
-
-//         // limit-reader
-//         #[cfg_attr(rustfmt, rustfmt_skip)]
-//         let (input, raw) = try!(do_parse!(input,
-//             raw: take!(dsc_len)
-//             >> (raw)
-//         ));
-
-//         if dsc_len > 0 {
-//             let descriptors = TSDescriptors{b: raw};
-//             for desc in descriptors {
-//                 println!("[dsc] {:?}", desc);
-//             }
-//         }
-
-//         Ok((input, s))
-//     }
-// }
-
-// #[allow(dead_code)]
-// #[derive(Clone, Debug)]
-// pub struct TSPSIPMT {
-//     // TODO: handle 0x1FFF
-//     //
-//     // reserved_bits
-//     // :3
-//     //
-//     // pcr_pid
-//     // The packet identifier that contains the program clock reference used to
-//     // improve the random access accuracy of the stream's timing that is
-//     // derived from the program timestamp. If this is unused.
-//     // then it is set to 0x1FFF (all bits on).
-//     // :13
-//     b1: u8,
-//     b2: u8,
-
-//     // reserved bits (set to 0x0F (all bits on))
-//     // :4
-//     //
-//     // program info length unused bits (set to 0 (all bits off))
-//     // :2
-//     //
-//     // program_info_length
-//     // The number of bytes that follow for the program descriptors.
-//     // :10
-//     b3: u8,
-//     b4: u8,
-
-//     // // program descriptors
-//     // descriptors: Option<Vec<TSDescriptor>>,
-
-//     // elementary stream info data
-//     streams: Option<Vec<TSPSIPMTStream>>,
-// }
-
-// impl TSPSIPMT {
-//     fn new() -> TSPSIPMT {
-//         TSPSIPMT {
-//             b1: 0,
-//             b2: 0,
-
-//             b3: 0,
-//             b4: 0,
-
-//             // descriptors: None,
-
-//             streams: None,
-//         }
-//     }
-
-//     #[inline(always)]
-//     fn sz() -> u8 {
-//         4
-//     }
-
-//     #[inline(always)]
-//     fn pcr_pid(&self) -> u16 {
-//         ((self.b1 & 0b0001_1111) as u16) << 8 | self.b2 as u16
-//     }
-
-//     // #[inline]
-//     // fn set_pcr_pid(&mut self, v: u16) {}
-
-//     #[inline(always)]
-//     fn program_info_length(&self) -> u16 {
-//         ((self.b3 & 0b0000_0011) as u16) << 8 | self.b4 as u16
-//     }
-// }
-
-// impl TSPSITableTrait for TSPSIPMT {
-//     const KIND: TSPSITableKind = TSPSITableKind::PMT;
-
-//     fn parse<'buf>(input: &'buf [u8]) -> IResult<&'buf [u8], Self> {
-//         let mut pmt = TSPSIPMT::new();
-
-//         #[cfg_attr(rustfmt, rustfmt_skip)]
-//         let(mut input, head) = try!(do_parse!(input,
-//                 raw: take!(TSPSIPMT::sz() as usize)
-//                 >> (raw))
-//         );
-
-//         pmt.b1 = head[0];
-//         pmt.b2 = head[1];
-
-//         pmt.b3 = head[2];
-//         pmt.b3 = head[3];
-
-//         {
-//             let len = pmt.program_info_length();
-//             if len > 0 {
-//                 // <parse data>
-//                 input = try!(do_parse!(input,
-//                     raw: take!(len)
-//                     >> (raw)
-//                 )).0;
-//             }
-//         }
-
-//         let mut streams: Vec<TSPSIPMTStream> = Vec::new();
-
-//         while input.len() > 0 {
-//             let (tail, stream) = try!(TSPSIPMTStream::parse(input));
-//             streams.push(stream);
-
-//             input = tail;
-//         }
-
-//         pmt.streams = Some(streams);
-
-//         Ok((input, pmt))
-//     }
-// }
-
 // // Service Description Table
 // //
 // // the SDT contains data describing the services
@@ -1293,21 +1022,17 @@ use error::{Error, Kind as ErrorKind, Result};
 // }
 
 pub struct TS {
-    // pat: Option<TSPSI<TSPSIPAT>>,
-    // pmt: Option<TSPSI<TSPSIPMT>>,
-    // sdt: Option<TSPSI<TSPSISDT>>,
-
     pmt_pid: Option<u16>,
+
+    eit_buf: Cursor<Vec<u8>>,
 }
 
 impl TS {
     fn new() -> TS {
         TS {
-            // pat: None,
-            // pmt: None,
-            // sdt: None,
-
             pmt_pid: None,
+
+            eit_buf: Cursor::new(Vec::with_capacity(2048)),
         }
     }
 }
@@ -1467,10 +1192,8 @@ impl InputUDP {
     fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
         let pkt = ts::Packet::new(&ts_pkt_raw)?;
 
-        // println!("(:pid {:?} :cc {})", pkt.pid(), pkt.cc());
-
         if let Some(pcr) = pkt.pcr()? {
-            println!("(:pcr {:?})", pcr);
+            println!("{:?}", pcr);
         }
 
         if let Some(pat) = pkt.pat()? {
@@ -1485,6 +1208,24 @@ impl InputUDP {
             if let Some(pmt) = pkt.pmt(pid)? {
                 println!("{:?}", pmt);
             }
+        }
+
+        if let Some(sdt) = pkt.sdt()? {
+            println!("{:?}", sdt);
+        }
+
+        if let Some(buf) = pkt.eit()? {
+            if pkt.pusi() {
+                if self.ts.eit_buf.position() != 0 {
+                    let eit = ts::EIT::new(self.ts.eit_buf.get_ref().as_slice());
+                    println!("{:?}", eit);
+                }
+
+                self.ts.eit_buf.set_position(0);
+                self.ts.eit_buf.get_mut().clear();
+            }
+
+            self.ts.eit_buf.write_all(buf)?;
         }
 
         Ok(())

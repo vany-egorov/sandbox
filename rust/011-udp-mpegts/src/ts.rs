@@ -7,7 +7,7 @@ use crate::pid::PID;
 use crate::rational;
 use crate::rational::Rational;
 use crate::result::Result;
-use crate::section::{PAT, PMT};
+use crate::section::{PAT, PMT, SDT};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportScramblingControl {
@@ -280,7 +280,7 @@ impl<'buf> Header<'buf> {
     /// Set when a PES, PSI, or DVB-MIP
     /// packet begins immediately following the header.
     #[inline(always)]
-    fn pusi(&self) -> bool {
+    pub fn pusi(&self) -> bool {
         (self.buf[1] & 0b0100_0000) != 0
     }
 
@@ -435,6 +435,11 @@ impl<'buf> Packet<'buf> {
     }
 
     #[inline(always)]
+    pub fn pusi(&self) -> bool {
+        self.header().pusi()
+    }
+
+    #[inline(always)]
     pub fn pcr(&self) -> Result<Option<PCR<'buf>>> {
         self.adaptation()
             .and_then(|res| match res {
@@ -478,6 +483,48 @@ impl<'buf> Packet<'buf> {
             // TODO: move to macro? or optional-result crate
             match self.buf_try_seek(self.buf_pos_payload()) {
                 Ok(buf) => Some(Ok(PMT::new(buf))),
+                Err(e) => Some(Err(e)),
+            }
+        } else {
+            None
+        };
+
+        res.transpose()
+    }
+
+    #[inline(always)]
+    pub fn sdt(&self) -> Result<Option<SDT>> {
+        let header = self.header();
+
+        if !header.got_payload() {
+            return Ok(None);
+        }
+
+        let res = if self.pid() == PID::SDT {
+            // TODO: move to macro? or optional-result crate
+            match self.buf_try_seek(self.buf_pos_payload()) {
+                Ok(buf) => Some(Ok(SDT::new(buf))),
+                Err(e) => Some(Err(e)),
+            }
+        } else {
+            None
+        };
+
+        res.transpose()
+    }
+
+    #[inline(always)]
+    pub fn eit(&self) -> Result<Option<&'buf [u8]>> {
+        let header = self.header();
+
+        if !header.got_payload() {
+            return Ok(None);
+        }
+
+        let res = if self.pid() == PID::EIT {
+            // TODO: move to macro? or optional-result crate
+            match self.buf_try_seek(self.buf_pos_payload()) {
+                Ok(buf) => Some(Ok(buf)),
                 Err(e) => Some(Err(e)),
             }
         } else {

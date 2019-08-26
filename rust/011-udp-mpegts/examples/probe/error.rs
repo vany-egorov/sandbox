@@ -6,8 +6,7 @@ use std::io::Error as IoError;
 use std::result::Result as StdResult;
 use std::str::Utf8Error;
 
-extern crate ts;
-use self::ts::error::Error as TsError;
+use ts::error::Error as TsError;
 
 pub type Result<T> = StdResult<T, Error>;
 

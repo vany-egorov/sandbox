@@ -43,8 +43,8 @@ impl<'buf> PAT<'buf> {
     }
 
     #[inline(always)]
-    pub fn programs(&self) -> Rows<'buf, Program> {
-        Rows::new(self.buf_programs())
+    pub fn programs(&self) -> Cursor<'buf, Program> {
+        Cursor::new(self.buf_programs())
     }
 
     pub fn first_program_map_pid(&self) -> Option<u16> {

@@ -2,7 +2,7 @@ use crate::table_id::TableID;
 use crate::result::Result;
 use std::marker::PhantomData;
 
-pub(crate) trait Bufer<'buf> {
+pub trait Bufer<'buf> {
     /// borrow a reference to the underlying buffer
     #[inline(always)]
     fn buf(&self) -> &'buf [u8];
@@ -109,15 +109,15 @@ pub trait TryNewer<'buf> {
         where Self: Sized;
 }
 
-pub struct Rows<'buf, T> {
+pub struct Cursor<'buf, T> {
     buf: &'buf [u8],
     phantom: PhantomData<T>,
 }
 
-impl<'buf, T> Rows<'buf, T> {
+impl<'buf, T> Cursor<'buf, T> {
     #[inline(always)]
-    pub fn new(buf: &'buf [u8]) -> Rows<'buf, T> {
-        Rows { buf, phantom: PhantomData }
+    pub fn new(buf: &'buf [u8]) -> Cursor<'buf, T> {
+        Cursor { buf, phantom: PhantomData }
     }
 
     #[inline(always)]
@@ -126,7 +126,7 @@ impl<'buf, T> Rows<'buf, T> {
     }
 }
 
-impl<'buf, T> Iterator for Rows<'buf, T>
+impl<'buf, T> Iterator for Cursor<'buf, T>
     where T: TryNewer<'buf> + Szer
 {
     type Item = Result<T>;

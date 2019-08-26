@@ -8,11 +8,11 @@ mod section;
 mod ts;
 mod table_id;
 mod stream_type;
-mod descriptor_tag;
+mod descriptor;
 
 pub use pid::PID;
-pub use section::PAT;
+pub use section::{PAT, PMT, SDT, EIT};
 pub use table_id::TableID;
 pub use stream_type::StreamType;
-pub use descriptor_tag::DescriptorTag;
 pub use ts::*;
+pub use section::Bufer;

@@ -5,4 +5,5 @@ authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
 
 [dependencies]
 clap = "~2.33"
+encoding_rs = "~0.8"
 url = "~1.7"

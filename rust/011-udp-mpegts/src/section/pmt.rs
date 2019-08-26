@@ -2,6 +2,7 @@ use std::fmt;
 use super::traits::*;
 use crate::result::Result;
 use crate::stream_type::StreamType;
+use crate::descriptor::Descriptor;
 
 /// ISO/IEC 13818-1
 ///
@@ -51,9 +52,27 @@ impl<'buf> PMT<'buf> {
         &self.buf[lft..rght]
     }
 
+    /// seek
     #[inline(always)]
-    pub fn streams(&self) -> Rows<'buf, Stream> {
-        Rows::new(self.buf_streams())
+    fn buf_descriptors(&self) -> &'buf [u8] {
+        let lft = Self::HEADER_FULL_SZ;
+        let rght = Self::HEADER_FULL_SZ + (self.program_info_length() as usize);
+
+        &self.buf[lft..rght]
+    }
+
+    #[inline(always)]
+    pub fn descriptors(&self) -> Option<Cursor<'buf, Descriptor>> {
+        if self.program_info_length() != 0 {
+            Some(Cursor::new(self.buf_descriptors()))
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn streams(&self) -> Cursor<'buf, Stream> {
+        Cursor::new(self.buf_streams())
     }
 }
 
@@ -107,6 +126,17 @@ impl<'buf> fmt::Debug for PMT<'buf> {
             self.program_info_length(),
         )?;
 
+        write!(f, "\n  :descriptors")?;
+        match self.descriptors() {
+          Some(descs)  => {
+            for d in descs.filter_map(Result::ok) {
+                write!(f, "\n    ")?;
+                d.fmt(f)?;
+            }
+          },
+          None => write!(f, " ~")?,
+        }
+
         write!(f, "\n  :streams")?;
         for p in self.streams().filter_map(Result::ok) {
             write!(f, "\n    ")?;
@@ -157,6 +187,28 @@ impl<'buf> Stream<'buf> {
     fn es_info_length(&self) -> u16 {
         (((self.buf[3] & 0b0000_1111) as u16) << 8) | (self.buf[4] as u16)
     }
+
+    /// seek
+    #[inline(always)]
+    fn buf_descriptors(&self) -> &'buf [u8] {
+        let lft = Self::HEADER_SZ;
+        let mut rght = lft + (self.es_info_length() as usize);
+
+        if rght >= self.buf.len() {
+            rght = self.buf.len();
+        }
+
+        &self.buf[lft..rght]
+    }
+
+    #[inline(always)]
+    pub fn descriptors(&self) -> Option<Cursor<'buf, Descriptor>> {
+        if self.es_info_length() != 0 {
+            Some(Cursor::new(self.buf_descriptors()))
+        } else {
+            None
+        }
+    }
 }
 
 impl<'buf> Szer for Stream<'buf> {
@@ -178,8 +230,21 @@ impl<'buf> fmt::Debug for Stream<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:stream (:pid {:?} :stream-type {:?}))",
+            "(:stream (:pid {:?} :stream-type {:?}",
             self.pid(), self.stream_type()
-        )
+        )?;
+
+        write!(f, "\n      :descriptors")?;
+        match self.descriptors() {
+          Some(descs)  => {
+            for d in descs.filter_map(Result::ok) {
+                write!(f, "\n        ")?;
+                d.fmt(f)?;
+            }
+          },
+          None => write!(f, " ~")?,
+        }
+
+        write!(f, "))")
     }
 }
