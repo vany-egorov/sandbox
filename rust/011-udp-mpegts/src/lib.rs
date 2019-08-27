@@ -9,6 +9,7 @@ mod ts;
 mod table_id;
 mod stream_type;
 mod descriptor;
+mod annex_a2;
 
 pub use pid::PID;
 pub use section::{PAT, PMT, SDT, EIT};

@@ -6,37 +6,7 @@ use crate::descriptor::Descriptor;
 
 /// ETSI EN 300 468 V1.15.1
 ///
-/// Event Information Tabl
-///
-/// The EIT (see table 7) provides information in chronological
-/// order regarding the events contained within each service.
-/// Four classifications of EIT have been identified, distinguishable
-/// by the use of different table_ids:
-///
-/// 1)actual TS, present/following event information = table_id = 0x4E;
-/// 2) other TS, present/following event information = table_id = 0x4F;
-/// 3) actual TS, event schedule information = table_id = 0x50 to 0x5F;
-/// 4) other TS, event schedule information = table_id = 0x60 to 0x6F.
-///
-/// All EIT sub-tables for the actual Transport Stream shall have the
-/// same transport_stream_id and original_network_id values.
-///
-/// The present/following table shall contain only information pertaining
-/// to the present event and the chronologically following event carried
-/// by a given service on either the actual TS or another TS, except in
-/// the case of a Near Video On Demand (NVOD) reference service where it may
-/// have more than two event descriptions. The EIT present/following table
-/// is optional. Its presence or absence shall be signalled by setting the
-/// EIT_present_following_flag in the SDT. The event schedule tables for
-/// either the actual TS or other TSs, contain a list of events, in the form
-/// of a schedule including events other than the present and following
-/// events. The EIT schedule tables are optional. Their presence or absence
-/// shall be signalled by setting the EIT_schedule_flag in the SDT. The event
-/// information shall be chronologically ordered.
-///
-/// The EIT shall be segmented into event_information_sections using the
-/// syntax of table 7. Any sections forming part of an EIT shall be
-/// transmitted in TS packets with a PID value of 0x0012.
+/// Event Information Table
 pub struct EIT<'buf> {
     buf: &'buf [u8],
 }
@@ -78,41 +48,21 @@ trait WithEITHeaderSpecific<'buf>: Bufer<'buf> {
         &self.buf()[HEADER_SZ + SYNTAX_SECTION_SZ..]
     }
 
-    /// This is a 16-bit field which serves as a label for
-    /// identification of the TS, about which the EIT
-    /// informs, from any other multiplex within the delivery system.
     #[inline(always)]
     fn transport_stream_id(&self) -> u16 {
         (self.b()[0] as u16) | (self.b()[1] as u16)
     }
 
-    /// This 16-bit field gives the label identifying the
-    /// network_id of the originating delivery system.
     #[inline(always)]
     fn original_network_id(&self) -> u16 {
         (self.b()[2] as u16) | (self.b()[3] as u16)
     }
 
-    /// This 8-bit field specifies the number of the last
-    /// section of this segment of the sub_table. For sub_tables
-    /// which are not segmented, this field shall be set to the
-    /// same value as the last_section_number field.
     #[inline(always)]
     fn segment_last_section_number(&self) -> u8 {
         self.b()[4]
     }
 
-    /// This 8-bit field identifies the last table_id used (see table 2).
-    /// For EIT present/following tables, this field shall be set to the
-    /// same value as the table_id field. For EIT schedule tables with
-    /// table_id in the range 0x50 to 0x5F, this field shall be set to
-    /// the largest table_id transmitted in this range for this service.
-    /// For EIT schedule tables with table_id in the range 0x60 to 0x6F,
-    /// this field shall be set to the largest table_id transmitted in this
-    /// range for this service.
-    ///
-    /// NOTE: This implies that the value of last_table_id may be
-    ///       different for each service.
     #[inline(always)]
     fn last_table_id(&self) -> u8 {
         self.b()[5]
@@ -134,7 +84,7 @@ impl<'buf> fmt::Debug for EIT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:EIT (:table-id {:?} :section-length {} :section {}/{}",
+            ":EIT (:table-id {:?} :section-length {} :section {}/{})",
             self.table_id(),
             self.section_length(),
             self.section_number(), self.last_section_number(),
@@ -153,7 +103,7 @@ impl<'buf> fmt::Debug for EIT<'buf> {
             }
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }
 
@@ -202,8 +152,6 @@ impl<'buf> Event<'buf> {
         }
     }
 
-    /// This 12-bit field gives the total length in bytes
-    /// of the following descriptors.
     #[inline(always)]
     pub fn descriptors_loop_length(&self) -> u16 {
         (((self.buf[10] & 0b0000_1111) as u16) << 8) | (self.buf[11] as u16)
@@ -228,10 +176,7 @@ impl<'buf> TryNewer<'buf> for Event<'buf> {
 
 impl<'buf> fmt::Debug for Event<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "(:event (",
-        )?;
+        write!(f, ":event")?;
 
         write!(f, "\n      :descriptors")?;
         match self.descriptors() {
@@ -251,6 +196,6 @@ impl<'buf> fmt::Debug for Event<'buf> {
           None => write!(f, " ~")?,
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }

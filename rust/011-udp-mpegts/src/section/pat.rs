@@ -5,16 +5,6 @@ use crate::result::Result;
 /// ISO/IEC 13818-1
 ///
 /// Program association Table
-///
-/// Stream Type: ITU-T Rec. H.222.0 | ISO/IEC 13818-1
-///
-/// Associates Program Number and Program Map Table PID
-///
-/// The Program Association Table provides the correspondence
-/// between a program_number and the PID value of the
-/// Transport Stream packets which carry the program definition.
-/// The program_number is the numeric label associated with
-/// a program.
 pub struct PAT<'buf> {
     buf: &'buf [u8],
 }
@@ -75,7 +65,7 @@ impl<'buf> fmt::Debug for PAT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:PAT (:table-id {:?} :section-length {}",
+            ":PAT (:table-id {:?} :section-length {})",
             self.table_id(), self.section_length(),
         )?;
 
@@ -85,28 +75,14 @@ impl<'buf> fmt::Debug for PAT<'buf> {
             p.fmt(f)?;
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }
 
 #[derive(Debug)]
 pub enum PID {
-    /// The network_PID is a 13-bit field, which is used only
-    /// in conjunction with the value of the program_number
-    /// set to 0x0000, specifies the PID of the Transport Stream
-    /// packets which shall contain the Network Information Table.
-    /// The value of the network_PID field is defined by the user,
-    /// but shall only take values as specified in Table 2-3.
-    /// The presence of the network_PID is optional.
     Network(u16),
 
-    /// The program_map_PID is a 13-bit field specifying the PID
-    /// of the Transport Stream packets which shall contain the
-    /// program_map_section applicable for the program as specified by
-    /// the program_number. No program_number shall have more than one
-    /// program_map_PID assignment. The value of the program_map_PID is
-    /// defined by the user, but shall only take values as specified
-    /// in Table 2-3.
     ProgramMap(u16),
 }
 
@@ -122,13 +98,6 @@ impl<'buf> Program<'buf> {
         Program { buf }
     }
 
-    /// Program_number is a 16-bit field. It specifies the program
-    /// to which the program_map_PID is applicable.
-    /// When set to 0x0000, then the following PID reference
-    /// shall be the network PID. For all other cases the value
-    /// of this field is user defined. This field shall not take any
-    /// single value more than once within one version of the
-    /// Program Association Table.
     #[inline(always)]
     pub fn number(&self) -> u16 {
         ((self.buf[0] as u16) << 8) | self.buf[1] as u16
@@ -167,7 +136,7 @@ impl<'buf> fmt::Debug for Program<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:program (:number {:?} :pid {:?}/0x{:02X}))",
+            ":program (:number {:?} :pid {:?}/0x{:02X})",
             self.number(), self.pid(), self.pid_raw(),
         )
     }

@@ -105,7 +105,7 @@ impl<'buf> fmt::Debug for PCR<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {}))",
+            ":PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {})",
             self.base(),
             self.ext(),
             self.value(),
@@ -150,61 +150,53 @@ impl<'buf> Adaptation<'buf> {
         Self::HEADER_SZ + self.field_length()
     }
 
-    /// number of bytes in the adaptation field
-    /// immediately following this byte
     #[inline(always)]
     fn field_length(&self) -> usize {
         self.buf[0] as usize
     }
 
-    /// set if current TS packet is in a discontinuity
-    /// state with respect to either the continuity
-    /// counter or the program clock reference
     #[inline(always)]
     #[allow(dead_code)]
     fn discontinuity_indicator(&self) -> bool {
         (self.buf[1] & 0b1000_0000) != 0
     }
 
-    /// set when the stream may be decoded without
-    /// errors from this point
     #[inline(always)]
     #[allow(dead_code)]
     fn random_access_indicator(&self) -> bool {
         (self.buf[1] & 0b0100_0000) != 0
     }
 
-    /// set when this stream should be considered "high priority"
     #[inline(always)]
     pub fn elementary_stream_priority_indicator(&self) -> bool {
         (self.buf[1] & 0b0010_0000) != 0
     }
 
-    /// set when PCR field is present
+    /// PCR field is present?
     #[inline(always)]
     fn pcr_flag(&self) -> bool {
         (self.buf[1] & 0b0001_0000) != 0
     }
 
-    /// set when OPCR field is present
+    /// OPCR field is present?
     #[inline(always)]
     pub fn opcr_flag(&self) -> bool {
         (self.buf[1] & 0b0000_1000) != 0
     }
 
-    /// set when splice countdown field is present
+    /// splice countdown field is present?
     #[inline(always)]
     pub fn splicing_point_flag(&self) -> bool {
         (self.buf[1] & 0b0000_0100) != 0
     }
 
-    /// set when transport private data is present
+    /// transport private data is present?
     #[inline(always)]
     pub fn transport_private_data_flag(&self) -> bool {
         (self.buf[1] & 0b0000_0010) != 0
     }
 
-    /// set when transport private data is present
+    /// transport private data is present?
     #[inline(always)]
     pub fn adaptation_field_extension_flag(&self) -> bool {
         (self.buf[1] & 0b0000_0001) != 0
@@ -235,8 +227,6 @@ impl<'buf> Adaptation<'buf> {
         }
     }
 
-    /// Original Program clock reference.
-    /// Helps when one TS is copied into another.
     #[inline(always)]
     pub fn opcr(&self) -> Option<PCR> {
         if self.opcr_flag() {
@@ -269,23 +259,17 @@ impl<'buf> Header<'buf> {
         Header { buf }
     }
 
-    /// Set when a demodulator can't correct errors from FEC data;
-    /// indicating the packet is corrupt.
     #[inline(always)]
     #[allow(dead_code)]
     fn tei(&self) -> bool {
         (self.buf[1] & 0b1000_0000) != 0
     }
 
-    /// Set when a PES, PSI, or DVB-MIP
-    /// packet begins immediately following the header.
     #[inline(always)]
     pub fn pusi(&self) -> bool {
         (self.buf[1] & 0b0100_0000) != 0
     }
 
-    /// Set when the current packet has a higher
-    /// priority than other packets with the same PID.
     #[inline(always)]
     #[allow(dead_code)]
     fn transport_priority(&self) -> bool {

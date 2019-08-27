@@ -6,18 +6,6 @@ use crate::descriptor::Descriptor;
 /// ETSI EN 300 468 V1.15.1
 ///
 /// Service Description Table
-///
-/// the SDT contains data describing the services in the system
-/// e.g. names of services, the service provider, etc.
-///
-/// The SDT shall be segmented into service_description_sections
-/// using the syntax of table 5. Any sections forming part of an SDT
-/// shall be transmitted in TS packets with a PID value of 0x0011.
-/// Any sections of the SDT which describe the actual TS (that is,
-/// the TS containing the SDT) shall have the table_id value 0x42
-/// with the same table_id_extension (transport_stream_id) and with
-/// the same original_network_id. Any sections of an SDT which refer
-/// to a TS other than the actual TS shall take a table_id value of 0x46.
 pub struct SDT<'buf> {
     buf: &'buf [u8],
 }
@@ -59,8 +47,6 @@ trait WithSDTHeaderSpecific<'buf>: Bufer<'buf> {
         &self.buf()[HEADER_SZ + SYNTAX_SECTION_SZ..]
     }
 
-    /// This 16-bit field gives the label identifying
-    /// the network_id of the originating delivery system.
     #[inline(always)]
     fn original_network_id(&self) -> u16 {
         (self.b()[0] as u16) | (self.b()[1] as u16)
@@ -110,34 +96,16 @@ impl<'buf> Stream<'buf> {
         Stream { buf }
     }
 
-    /// This is a 16-bit field which serves as a label to identify
-    /// this service from any other service within the TS.
-    /// The service_id is the same as the program_number
-    /// in the corresponding program_map_section.
     #[inline(always)]
     pub fn service_id(&self) -> u16 {
         (self.buf[0] as u16) | (self.buf[1] as u16)
     }
 
-    /// This is a 1-bit field which when set to "1" indicates
-    /// that EIT schedule information for the service
-    /// is present in the current TS, see ETSI TS 101 211 [i.2]
-    /// for information on maximum time interval between occurrences
-    /// of an EIT schedule sub_table). If the flag is set to 0 then
-    /// the EIT schedule information for the service should not be
-    /// present in the TS.
     #[inline(always)]
     pub fn eit_schedule_flag(&self) -> bool {
         ((self.buf[2] & 0b0000_0010) >> 1) != 0
     }
 
-    /// This is a 1-bit field which when set to "1" indicates
-    /// that EIT_present_following information for the service is present
-    /// in the current TS, see ETSI TS 101 211 [i.2] for information
-    /// on maximum time interval between occurrences of an EIT
-    /// present/following sub_table. If the flag is set to 0 then
-    /// the EIT present/following information for the service
-    /// should not be present in the TS.
     #[inline(always)]
     pub fn eit_present_following_flag(&self) -> bool {
         (self.buf[2] & 0b0000_0001) != 0
@@ -149,17 +117,11 @@ impl<'buf> Stream<'buf> {
         (self.buf[3] & 0b1110_0000) >> 5
     }
 
-    /// This 1-bit field, when set to "0" indicates that all
-    /// the component streams of the service are not
-    /// scrambled. When set to "1" it indicates that access
-    /// to one or more streams may be controlled by a CA system.
     #[inline(always)]
     pub fn free_ca_mode(&self) -> bool {
         (self.buf[3] & 0b0001_0000) != 0
     }
 
-    /// This 12-bit field gives the total length in bytes
-    /// of the following descriptors.
     #[inline(always)]
     pub fn descriptors_loop_length(&self) -> u16 {
         (((self.buf[3] & 0b0000_1111) as u16) << 8) | (self.buf[4] as u16)

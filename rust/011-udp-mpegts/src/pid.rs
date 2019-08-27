@@ -19,13 +19,6 @@ pub enum PID {
     /// RNT (TS 102 323 [13])
     RNT,
 
-    /// The PID value 0x001C allocated to link-local
-    /// inband signalling shall not be used on any broadcast signals.
-    /// It shall only be used between devices in a controlled environment.
-    //
-    /// NOTE: The PID 0x001C can for example be used within a broadcast centre,
-    ///       between a receiver device and a
-    ///       CAM, or on private satellite links
     InbandSignalling,
     Measurement,
     DIT,

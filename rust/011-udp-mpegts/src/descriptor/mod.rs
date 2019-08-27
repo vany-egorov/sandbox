@@ -1,5 +1,13 @@
 mod tag;
-mod desc_0x4d;
+
+mod desc_0x0a;
+mod desc_dvb_0x48;
+mod desc_dvb_0x4d;
+mod desc_dvb_0x4e;
+mod desc_dvb_0x53;
+mod desc_dvb_0x54;
+mod desc_dvb_0x56;
+mod desc_dvb_0x6a;
 
 use std::fmt;
 use std::str;
@@ -9,7 +17,14 @@ use crate::error::{Error, Kind as ErrorKind};
 use crate::section::{Szer, TryNewer};
 
 use self::tag::{Tag, TagDVB};
-use self::desc_0x4d::Desc0x4D;
+use self::desc_0x0a::Desc0x0A;
+use self::desc_dvb_0x48::DescDVB0x48;
+use self::desc_dvb_0x4d::DescDVB0x4D;
+use self::desc_dvb_0x4e::DescDVB0x4E;
+use self::desc_dvb_0x53::DescDVB0x53;
+use self::desc_dvb_0x54::DescDVB0x54;
+use self::desc_dvb_0x56::DescDVB0x56;
+use self::desc_dvb_0x6a::DescDVB0x6A;
 
 #[derive(Clone)]
 pub struct Descriptor<'buf> {
@@ -35,17 +50,9 @@ impl<'buf> Descriptor<'buf> {
         }
     }
 
-    /// the descriptor tag is an 8-bit field which identifies each descriptor.
-    /// Those values with MPEG-2
-    /// normative meaning are described in ISO/IEC 13818-1 [18].
-    /// (descriptor_tag :8 uimsbf)
     #[inline(always)]
     fn tag(&self) -> Tag { Tag::from(self.buf[0]) }
 
-    /// the descriptor length is an 8-bit field specifying the total
-    /// number of bytes of the data portion of the descriptor
-    /// following the byte defining the value of this field.
-    /// (descriptor_length :8 uimsbf)
     #[inline(always)]
     fn len(&self) -> u8 { self.buf[1] }
 
@@ -72,25 +79,47 @@ impl<'buf> Szer for Descriptor<'buf> {
 impl<'buf> TryNewer<'buf> for Descriptor<'buf> {
     #[inline(always)]
     fn try_new(buf: &'buf [u8]) -> Result<Descriptor<'buf>> {
-        let d = Descriptor::new(buf);
+        let mut d = Descriptor::new(buf);
         d.validate()?;
+        d.buf = &buf[..d.sz()]; // slice
         Ok(d)
     }
 }
 
 impl<'buf> fmt::Debug for Descriptor<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(:desc (:tag {:?} :length {}",
+        write!(f, ":desc (:tag {:?} :length {})",
             self.tag(), self.len())?;
         write!(f, "\n          ")?;
 
         match self.tag() {
+            Tag::ISO639 => {
+                Desc0x0A::new(self.buf_data()).fmt(f)?;
+            }
+            Tag::DVB(TagDVB::Service) => {
+                DescDVB0x48::new(self.buf_data()).fmt(f)?;
+            },
             Tag::DVB(TagDVB::ShortEvent) => {
-                Desc0x4D::new(self.buf_data()).fmt(f)?;
+                DescDVB0x4D::new(self.buf_data()).fmt(f)?;
+            },
+            Tag::DVB(TagDVB::ExtendedEvent) => {
+                DescDVB0x4E::new(self.buf_data()).fmt(f)?;
+            },
+            Tag::DVB(TagDVB::CAIdentifier) => {
+                DescDVB0x53::new(self.buf_data()).fmt(f)?;
+            },
+            Tag::DVB(TagDVB::Content) => {
+                DescDVB0x54::new(self.buf_data()).fmt(f)?;
+            },
+            Tag::DVB(TagDVB::Teletext) => {
+                DescDVB0x56::new(self.buf_data()).fmt(f)?;
+            },
+            Tag::DVB(TagDVB::AC3) => {
+                DescDVB0x6A::new(self.buf_data()).fmt(f)?;
             },
             _ =>  { write!(f, ":data {}", self.data_as_unicode())?; }
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }

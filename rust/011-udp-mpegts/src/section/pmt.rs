@@ -7,23 +7,6 @@ use crate::descriptor::Descriptor;
 /// ISO/IEC 13818-1
 ///
 /// Program Map Table
-///
-/// Stream Type: ITU-T Rec. H.222.0 | ISO/IEC 13818-1
-///
-/// Specifies PID values for components of one or more programs
-///
-/// The Program Map Table provides the mappings between program
-/// numbers and the program elements that comprise them.
-/// A single instance of such a mapping is referred to as a
-/// "program definition". The program map table is the complete
-/// collection of all program definitions for a Transport Stream.
-/// This table shall be transmitted in packets, the PID values
-/// of which are selected by the encoder. More than one PID value
-/// may be used, if desired. The table is contained in one or
-/// more sections with the following syntax. It may be segmented
-/// to occupy multiple sections. In each section, the section number
-/// field shall be set to zero. Sections are identified by the
-/// program_number field.
 pub struct PMT<'buf> {
     buf: &'buf [u8],
 }
@@ -83,21 +66,11 @@ trait WithPMTHeaderSpecific<'buf>: Bufer<'buf> {
         &self.buf()[HEADER_SZ + SYNTAX_SECTION_SZ..]
     }
 
-    /// This is a 13-bit field indicating the PID of
-    /// the Transport Stream packets which shall contain the PCR fields
-    /// valid for the program specified by program_number.
-    /// If no PCR is associated with a program definition for private
-    /// streams, then this field shall take the value of 0x1FFF.
-    /// Refer to the semantic definition of PCR in 2.4.3.5 and Table 2-3
-    /// for restrictions on the choice of PCR_PID value.
     #[inline(always)]
     fn pcr_pid(&self) -> u16 {
         ((self.b()[0] & 0b0001_1111) as u16) | (self.b()[1] as u16)
     }
 
-    /// This is a 12-bit field, the first two bits of which shall be '00'.
-    /// The remaining 10 bits specify the number of bytes of the descriptors
-    /// immediately following the program_info_length field.
     #[inline(always)]
     fn program_info_length(&self) -> u16 {
         ((self.b()[2] & 0b0000_1111) as u16) | (self.b()[3] as u16)
@@ -119,7 +92,7 @@ impl<'buf> fmt::Debug for PMT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:PMT (:table-id {:?} :section-length {} :pcr-pid {} :program-info-length {}",
+            ":PMT (:table-id {:?} :section-length {} :pcr-pid {} :program-info-length {})",
             self.table_id(),
             self.section_length(),
             self.pcr_pid(),
@@ -143,7 +116,7 @@ impl<'buf> fmt::Debug for PMT<'buf> {
             p.fmt(f)?;
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }
 
@@ -159,30 +132,16 @@ impl<'buf> Stream<'buf> {
         Stream { buf }
     }
 
-    /// This is an 8-bit field specifying the type of program
-    /// element carried within the packets with the PID whose value
-    /// is specified by the elementary_PID. The values of stream_type
-    /// are specified in Table 2-29.
-    ///
-    /// NOTE – An ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary stream
-    /// is available for data types defined by this Specification, other than audio,
-    /// video, and DSM CC, such as Program Stream Directory and Program Stream Map.
     #[inline(always)]
     fn stream_type(&self) -> StreamType {
         StreamType::from(self.buf[0])
     }
 
-    /// This is a 13-bit field specifying the PID of the Transport Stream
-    /// packets which carry the associated program element.
     #[inline(always)]
     fn pid(&self) -> u16 {
         (((self.buf[1] & 0b0001_1111) as u16) << 8) | (self.buf[2] as u16)
     }
 
-    /// This is a 12-bit field, the first two bits of which shall be '00'.
-    /// The remaining 10 bits specify the number of bytes of the descriptors
-    /// of the associated program element immediately following
-    /// the ES_info_length field.
     #[inline(always)]
     fn es_info_length(&self) -> u16 {
         (((self.buf[3] & 0b0000_1111) as u16) << 8) | (self.buf[4] as u16)
@@ -230,7 +189,7 @@ impl<'buf> fmt::Debug for Stream<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:stream (:pid {:?} :stream-type {:?}",
+            ":stream (:pid {:?} :stream-type {:?})",
             self.pid(), self.stream_type()
         )?;
 
@@ -245,6 +204,6 @@ impl<'buf> fmt::Debug for Stream<'buf> {
           None => write!(f, " ~")?,
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }
