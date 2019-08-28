@@ -66,21 +66,21 @@ impl<'buf> PCR<'buf> {
 
     #[inline(always)]
     fn base(&self) -> u64 {
-        ((self.buf[0] as u64) << 25)
-            | ((self.buf[1] as u64) << 17)
-            | ((self.buf[2] as u64) << 9)
-            | ((self.buf[3] as u64) << 1)
-            | (((self.buf[4] & 0b1000_0000) >> 7) as u64)
+        (u64::from(self.buf[0]) << 25)
+            | (u64::from(self.buf[1]) << 17)
+            | (u64::from(self.buf[2]) << 9)
+            | (u64::from(self.buf[3]) << 1)
+            | u64::from((self.buf[4] & 0b1000_0000) >> 7)
     }
 
     #[inline(always)]
     fn ext(&self) -> u16 {
-        (((self.buf[4] & 0b0000_00001) as u16) << 8) | (self.buf[5] as u16)
+        (u16::from(self.buf[4] & 0b0000_00001) << 8) | u16::from(self.buf[5])
     }
 
     /// 27MHz
     pub fn value(&self) -> u64 {
-        self.base() * 300 + (self.ext() as u64)
+        self.base() * 300 + u64::from(self.ext())
     }
 
     /// nanoseconds
@@ -279,7 +279,7 @@ impl<'buf> Header<'buf> {
     /// Packet Identifier, describing the payload data.
     #[inline(always)]
     fn pid(&self) -> PID {
-        PID::from((((self.buf[1] & 0b0001_1111) as u16) << 8) | self.buf[2] as u16)
+        PID::from((u16::from(self.buf[1] & 0b0001_1111) << 8) | u16::from(self.buf[2]))
     }
 
     /// transport-scrambling-control
@@ -427,7 +427,7 @@ impl<'buf> Packet<'buf> {
     pub fn pcr(&self) -> Result<Option<PCR<'buf>>> {
         self.adaptation()
             .and_then(|res| match res {
-                Ok(adapt) => adapt.pcr().and_then(|pcr| Some(Ok(pcr))),
+                Ok(adapt) => adapt.pcr().map(Ok),
                 Err(e) => Some(Err(e)),
             })
             .transpose()

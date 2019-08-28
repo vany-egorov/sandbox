@@ -49,7 +49,7 @@ trait WithSDTHeaderSpecific<'buf>: Bufer<'buf> {
 
     #[inline(always)]
     fn original_network_id(&self) -> u16 {
-        (self.b()[0] as u16) | (self.b()[1] as u16)
+        u16::from(self.b()[0]) | u16::from(self.b()[1])
     }
 }
 
@@ -99,7 +99,7 @@ impl<'buf> Stream<'buf> {
 
     #[inline(always)]
     pub fn service_id(&self) -> u16 {
-        (self.buf[0] as u16) | (self.buf[1] as u16)
+        u16::from(self.buf[0]) | u16::from(self.buf[1])
     }
 
     #[inline(always)]
@@ -125,7 +125,7 @@ impl<'buf> Stream<'buf> {
 
     #[inline(always)]
     pub fn descriptors_loop_length(&self) -> u16 {
-        (((self.buf[3] & 0b0000_1111) as u16) << 8) | (self.buf[4] as u16)
+        (u16::from(self.buf[3] & 0b0000_1111) << 8) | u16::from(self.buf[4])
     }
 
     /// seek

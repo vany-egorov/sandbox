@@ -23,8 +23,8 @@ pub struct Rational {
 }
 
 pub fn rescale(v: u64, src: Rational, dst: Rational) -> u64 {
-    let num = (src.num as u128) * (dst.den as u128);
-    let den = (src.den as u128) * (dst.num as u128);
+    let num = u128::from(src.num) * u128::from(dst.den);
+    let den = u128::from(src.den) * u128::from(dst.num);
 
     v * ((num / den) as u64)
 }

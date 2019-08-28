@@ -4,7 +4,6 @@ use std::marker::PhantomData;
 
 pub trait Bufer<'buf> {
     /// borrow a reference to the underlying buffer
-    #[inline(always)]
     fn buf(&self) -> &'buf [u8];
 }
 
@@ -26,7 +25,7 @@ pub(crate) trait WithHeader<'buf>: Bufer<'buf> {
 
     #[inline(always)]
     fn section_length(&self) -> u16 {
-        (((self.b()[1] & 0b0000_1111) as u16) << 8) | self.b()[2] as u16
+        (u16::from(self.b()[1] & 0b0000_1111) << 8) | u16::from(self.b()[2])
     }
 }
 
@@ -42,7 +41,7 @@ pub(crate) trait WithSyntaxSection<'buf>: Bufer<'buf> {
     #[inline(always)]
     #[allow(dead_code)]
     fn transport_stream_id(&self) -> u16 {
-        ((self.b()[0] as u16) << 8) | (self.b()[1] as u16)
+        (u16::from(self.b()[0]) << 8) | u16::from(self.b()[1])
     }
 
     #[inline(always)]
@@ -104,7 +103,7 @@ where
     type Item = Result<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.buf.len() == 0 {
+        if self.buf.is_empty() {
             return None;
         }
 

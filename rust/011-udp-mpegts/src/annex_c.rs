@@ -14,10 +14,10 @@ fn bcd(hex: u8) -> u8 {
 
 /// Modified Julian Date to YMD
 fn mjb_to_ymd(mjd: u16) -> (i32, u32, u32) {
-    let y_y = (((mjd as f32) - 15_078.2) / 365.25) as i32;
+    let y_y = ((f32::from(mjd) - 15_078.2) / 365.25) as i32;
     let m_m =
-        (((mjd as f32) - 14_956.1 - ((((y_y as f32) * 365.25) as i32) as f32)) / 30.6001) as i32;
-    let d = ((mjd as i32)
+        ((f32::from(mjd) - 14_956.1 - ((((y_y as f32) * 365.25) as i32) as f32)) / 30.6001) as i32;
+    let d = (i32::from(mjd)
         - 14_956
         - (((y_y as f32) * 365.25) as i32)
         - (((m_m as f32) * 30.6001) as i32)) as u32;
@@ -31,13 +31,17 @@ fn mjb_to_ymd(mjd: u16) -> (i32, u32, u32) {
 }
 
 #[allow(dead_code)]
-pub fn from_bytes_into_date_time_utc<'buf>(buf: &'buf [u8]) -> Result<DateTime<Utc>> {
+pub fn from_bytes_into_date_time_utc(buf: &[u8]) -> Result<DateTime<Utc>> {
     if buf.len() < 5 {
         return Err(Error::new(ErrorKind::AnnexCBuf(buf.len(), 5)));
     }
 
-    let mjd = ((buf[0] as u16) << 8) | buf[1] as u16;
-    let (hh, mm, ss) = (bcd(buf[2]) as u32, bcd(buf[3]) as u32, bcd(buf[4]) as u32);
+    let mjd = (u16::from(buf[0]) << 8) | u16::from(buf[1]);
+    let (hh, mm, ss) = (
+        u32::from(bcd(buf[2])),
+        u32::from(bcd(buf[3])),
+        u32::from(bcd(buf[4])),
+    );
 
     let (y, m, d) = mjb_to_ymd(mjd);
 
@@ -45,12 +49,16 @@ pub fn from_bytes_into_date_time_utc<'buf>(buf: &'buf [u8]) -> Result<DateTime<U
 }
 
 #[allow(dead_code)]
-pub fn from_bytes_into_duration<'buf>(buf: &'buf [u8]) -> Result<Duration> {
+pub fn from_bytes_into_duration(buf: &[u8]) -> Result<Duration> {
     if buf.len() < 3 {
         return Err(Error::new(ErrorKind::AnnexCBuf(buf.len(), 3)));
     }
 
-    let (hh, mm, ss) = (bcd(buf[0]) as u64, bcd(buf[1]) as u64, bcd(buf[2]) as u64);
+    let (hh, mm, ss) = (
+        u64::from(bcd(buf[0])),
+        u64::from(bcd(buf[1])),
+        u64::from(bcd(buf[2])),
+    );
 
     Ok(Duration::new(hh * 3600 + mm * 60 + ss, 0))
 }

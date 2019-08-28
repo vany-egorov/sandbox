@@ -126,9 +126,9 @@ mod tests {
                 "{}",
                 DurationFmt::from(
                     Duration::from_secs(10*3600) + // 10h
-            Duration::from_secs(30*60) + // 30m
-            Duration::from_secs(15) + // 15s
-            Duration::from_millis(100) // 0.1s
+                    Duration::from_secs(30*60) + // 30m
+                    Duration::from_secs(15) + // 15s
+                    Duration::from_millis(100) // 0.1s
                 )
             ),
             "10h30m15.10s"
@@ -142,8 +142,8 @@ mod tests {
                 "{}",
                 DurationFmt::from(
                     Duration::from_millis(23) + // 23ms
-            Duration::from_micros(17) + // 17us
-            Duration::from_nanos(40) // 40ns
+                    Duration::from_micros(17) + // 17us
+                    Duration::from_nanos(40) // 40ns
                 )
             ),
             "23ms17us"

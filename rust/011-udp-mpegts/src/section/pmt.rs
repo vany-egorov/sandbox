@@ -68,12 +68,12 @@ trait WithPMTHeaderSpecific<'buf>: Bufer<'buf> {
 
     #[inline(always)]
     fn pcr_pid(&self) -> u16 {
-        ((self.b()[0] & 0b0001_1111) as u16) | (self.b()[1] as u16)
+        u16::from(self.b()[0] & 0b0001_1111) | u16::from(self.b()[1])
     }
 
     #[inline(always)]
     fn program_info_length(&self) -> u16 {
-        ((self.b()[2] & 0b0000_1111) as u16) | (self.b()[3] as u16)
+        u16::from(self.b()[2] & 0b0000_1111) | u16::from(self.b()[3])
     }
 }
 
@@ -139,12 +139,12 @@ impl<'buf> Stream<'buf> {
 
     #[inline(always)]
     fn pid(&self) -> u16 {
-        (((self.buf[1] & 0b0001_1111) as u16) << 8) | (self.buf[2] as u16)
+        (u16::from(self.buf[1] & 0b0001_1111) << 8) | u16::from(self.buf[2])
     }
 
     #[inline(always)]
     fn es_info_length(&self) -> u16 {
-        (((self.buf[3] & 0b0000_1111) as u16) << 8) | (self.buf[4] as u16)
+        (u16::from(self.buf[3] & 0b0000_1111) << 8) | u16::from(self.buf[4])
     }
 
     /// seek

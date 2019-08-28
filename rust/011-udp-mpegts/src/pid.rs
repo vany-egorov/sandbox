@@ -8,7 +8,7 @@ pub enum PID {
     NIT,
     /// SDT, BAT, ST
     SDT,
-    /// EIT, ST CIT (TS 102 323 [13])
+    /// EIT, ST CIT (TS 102 323 \[13\])
     EIT,
     /// RST, ST
     RST,
@@ -16,7 +16,7 @@ pub enum PID {
     TDT,
     /// network synchronization
     NetworkSynchronization,
-    /// RNT (TS 102 323 [13])
+    /// RNT (TS 102 323 \[13\])
     RNT,
 
     InbandSignalling,

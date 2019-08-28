@@ -57,12 +57,12 @@ trait WithEITHeaderSpecific<'buf>: Bufer<'buf> {
 
     #[inline(always)]
     fn transport_stream_id(&self) -> u16 {
-        (self.b()[0] as u16) | (self.b()[1] as u16)
+        u16::from(self.b()[0]) | u16::from(self.b()[1])
     }
 
     #[inline(always)]
     fn original_network_id(&self) -> u16 {
-        (self.b()[2] as u16) | (self.b()[3] as u16)
+        u16::from(self.b()[2]) | u16::from(self.b()[3])
     }
 
     #[inline(always)]
@@ -140,7 +140,7 @@ impl<'buf> Event<'buf> {
 
     #[inline(always)]
     pub fn event_id(&self) -> u16 {
-        ((self.buf[0] as u16) << 8) | self.buf[1] as u16
+        (u16::from(self.buf[0]) << 8) | u16::from(self.buf[1])
     }
 
     #[inline(always)]
@@ -179,7 +179,7 @@ impl<'buf> Event<'buf> {
 
     #[inline(always)]
     pub fn descriptors_loop_length(&self) -> u16 {
-        (((self.buf[10] & 0b0000_1111) as u16) << 8) | (self.buf[11] as u16)
+        (u16::from(self.buf[10] & 0b0000_1111) << 8) | u16::from(self.buf[11])
     }
 }
 

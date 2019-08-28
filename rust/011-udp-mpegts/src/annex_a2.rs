@@ -231,7 +231,7 @@ impl<'buf> TryFrom<&'buf [u8]> for AnnexA2 {
     type Error = Error;
 
     fn try_from(buf: &'buf [u8]) -> Result<Self, self::Error> {
-        if buf.len() == 0 {
+        if buf.is_empty() {
             return Err(Error::new(ErrorKind::AnnexA2EmptyBuf));
         }
 

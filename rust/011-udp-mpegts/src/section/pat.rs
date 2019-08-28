@@ -98,12 +98,12 @@ impl<'buf> Program<'buf> {
 
     #[inline(always)]
     pub fn number(&self) -> u16 {
-        ((self.buf[0] as u16) << 8) | self.buf[1] as u16
+        (u16::from(self.buf[0]) << 8) | u16::from(self.buf[1])
     }
 
     #[inline(always)]
     pub fn pid_raw(&self) -> u16 {
-        (((self.buf[2] & 0b0001_1111) as u16) << 8) | self.buf[3] as u16
+        (u16::from(self.buf[2] & 0b0001_1111) << 8) | u16::from(self.buf[3])
     }
 
     #[inline(always)]
