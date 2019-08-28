@@ -1,8 +1,15 @@
 use std::fmt;
-use super::traits::*;
-use crate::result::Result;
-use crate::error::{Error, Kind as ErrorKind};
+use std::time::Duration;
+
+use chrono::prelude::*;
+
+use crate::annex_c;
 use crate::descriptor::Descriptor;
+use crate::duration_fmt::DurationFmt;
+use crate::error::{Error, Kind as ErrorKind};
+use crate::result::Result;
+
+use super::traits::*;
 
 /// ETSI EN 300 468 V1.15.1
 ///
@@ -87,16 +94,17 @@ impl<'buf> fmt::Debug for EIT<'buf> {
             ":EIT (:table-id {:?} :section-length {} :section {}/{})",
             self.table_id(),
             self.section_length(),
-            self.section_number(), self.last_section_number(),
+            self.section_number(),
+            self.last_section_number(),
         )?;
 
         write!(f, "\n  :events")?;
         for rese in self.events() {
             write!(f, "\n    ")?;
-            match rese  {
+            match rese {
                 Ok(e) => {
                     e.fmt(f)?;
-                },
+                }
                 Err(err) => {
                     write!(f, "error parse EIT event: {}", err)?;
                 }
@@ -128,6 +136,23 @@ impl<'buf> Event<'buf> {
         } else {
             Ok(())
         }
+    }
+
+    #[inline(always)]
+    pub fn event_id(&self) -> u16 {
+        ((self.buf[0] as u16) << 8) | self.buf[1] as u16
+    }
+
+    #[inline(always)]
+    pub fn start_time(&self) -> DateTime<Utc> {
+        // must
+        annex_c::from_bytes_into_date_time_utc(&self.buf[2..7]).unwrap()
+    }
+
+    #[inline(always)]
+    pub fn duration(&self) -> Duration {
+        // must
+        annex_c::from_bytes_into_duration(&self.buf[7..10]).unwrap()
     }
 
     /// seek
@@ -176,24 +201,29 @@ impl<'buf> TryNewer<'buf> for Event<'buf> {
 
 impl<'buf> fmt::Debug for Event<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, ":event")?;
+        write!(
+            f,
+            ":event (:start-time {} :duration {})",
+            self.start_time(),
+            DurationFmt::from(self.duration()),
+        )?;
 
         write!(f, "\n      :descriptors")?;
         match self.descriptors() {
-          Some(descs)  => {
-            for resd in descs {
-                write!(f, "\n        ")?;
-                match resd {
-                    Ok(d) => {
-                        d.fmt(f)?;
-                    },
-                    Err(err) => {
-                        write!(f, "error parse descriptor: {}", err)?;
+            Some(descs) => {
+                for resd in descs {
+                    write!(f, "\n        ")?;
+                    match resd {
+                        Ok(d) => {
+                            d.fmt(f)?;
+                        }
+                        Err(err) => {
+                            write!(f, "error parse descriptor: {}", err)?;
+                        }
                     }
                 }
             }
-          },
-          None => write!(f, " ~")?,
+            None => write!(f, " ~")?,
         }
 
         Ok(())

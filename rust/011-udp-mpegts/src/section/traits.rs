@@ -1,5 +1,5 @@
-use crate::table_id::TableID;
 use crate::result::Result;
+use crate::table_id::TableID;
 use std::marker::PhantomData;
 
 pub trait Bufer<'buf> {
@@ -73,7 +73,8 @@ pub trait Szer {
 
 pub trait TryNewer<'buf> {
     fn try_new(buf: &'buf [u8]) -> Result<Self>
-        where Self: Sized;
+    where
+        Self: Sized;
 }
 
 pub struct Cursor<'buf, T> {
@@ -84,7 +85,10 @@ pub struct Cursor<'buf, T> {
 impl<'buf, T> Cursor<'buf, T> {
     #[inline(always)]
     pub fn new(buf: &'buf [u8]) -> Cursor<'buf, T> {
-        Cursor { buf, phantom: PhantomData }
+        Cursor {
+            buf,
+            phantom: PhantomData,
+        }
     }
 
     #[inline(always)]
@@ -94,13 +98,14 @@ impl<'buf, T> Cursor<'buf, T> {
 }
 
 impl<'buf, T> Iterator for Cursor<'buf, T>
-    where T: TryNewer<'buf> + Szer
+where
+    T: TryNewer<'buf> + Szer,
 {
     type Item = Result<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.buf.len() == 0 {
-            return None
+            return None;
         }
 
         let row = match T::try_new(self.buf) {
@@ -108,7 +113,7 @@ impl<'buf, T> Iterator for Cursor<'buf, T>
             Err(e) => {
                 self.buf_drain();
                 return Some(Err(e));
-            },
+            }
         };
 
         // seek buf

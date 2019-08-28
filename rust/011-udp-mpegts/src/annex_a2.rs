@@ -1,7 +1,5 @@
-extern crate encoding_rs;
-
-use std::convert::TryFrom;
 use crate::error::{Error, Kind as ErrorKind};
+use std::convert::TryFrom;
 
 #[derive(Clone, Copy, Debug)]
 pub enum TableA3 {
@@ -101,14 +99,14 @@ pub enum TableA4 {
     IsoIec8859_14,
     IsoIec8859_15,
 
-    Reserved(u8, u8)
+    Reserved(u8, u8),
 }
 
 impl TableA4 {
     const SYNC_BYTE: u8 = 0x10;
 }
 
-impl TableA4{
+impl TableA4 {
     pub fn encoding(self) -> Option<&'static encoding_rs::Encoding> {
         match self {
             TableA4::IsoIec8859_1 => Some(encoding_rs::UTF_8),
@@ -207,8 +205,8 @@ impl AnnexA2 {
         match result {
             encoding_rs::CoderResult::InputEmpty => {
                 // We have consumed the current input buffer
-            },
-            encoding_rs::CoderResult::OutputFull => {},
+            }
+            encoding_rs::CoderResult::OutputFull => {}
         }
 
         if had_errors {
@@ -234,7 +232,7 @@ impl<'buf> TryFrom<&'buf [u8]> for AnnexA2 {
 
     fn try_from(buf: &'buf [u8]) -> Result<Self, self::Error> {
         if buf.len() == 0 {
-            return Err(Error::new(ErrorKind::AnnexA2EmptyBuf))
+            return Err(Error::new(ErrorKind::AnnexA2EmptyBuf));
         }
 
         let v = match buf[0] {
@@ -242,7 +240,9 @@ impl<'buf> TryFrom<&'buf [u8]> for AnnexA2 {
 
             0x20..=0xFF => AnnexA2::Default,
 
-            0x01..=0x07 | 0x09..=0x0B | 0x11..=0x15 | 0x1F => AnnexA2::A3(TableA3::try_from(buf[0])?),
+            0x01..=0x07 | 0x09..=0x0B | 0x11..=0x15 | 0x1F => {
+                AnnexA2::A3(TableA3::try_from(buf[0])?)
+            }
 
             0x10 => AnnexA2::A4(TableA4::try_from(buf)?),
 
@@ -251,4 +251,10 @@ impl<'buf> TryFrom<&'buf [u8]> for AnnexA2 {
 
         Ok(v)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn decode() {}
 }

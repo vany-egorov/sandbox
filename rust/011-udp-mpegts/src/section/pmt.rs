@@ -1,8 +1,8 @@
-use std::fmt;
 use super::traits::*;
+use crate::descriptor::Descriptor;
 use crate::result::Result;
 use crate::stream_type::StreamType;
-use crate::descriptor::Descriptor;
+use std::fmt;
 
 /// ISO/IEC 13818-1
 ///
@@ -101,13 +101,13 @@ impl<'buf> fmt::Debug for PMT<'buf> {
 
         write!(f, "\n  :descriptors")?;
         match self.descriptors() {
-          Some(descs)  => {
-            for d in descs.filter_map(Result::ok) {
-                write!(f, "\n    ")?;
-                d.fmt(f)?;
+            Some(descs) => {
+                for d in descs.filter_map(Result::ok) {
+                    write!(f, "\n    ")?;
+                    d.fmt(f)?;
+                }
             }
-          },
-          None => write!(f, " ~")?,
+            None => write!(f, " ~")?,
         }
 
         write!(f, "\n  :streams")?;
@@ -190,18 +190,19 @@ impl<'buf> fmt::Debug for Stream<'buf> {
         write!(
             f,
             ":stream (:pid {:?} :stream-type {:?})",
-            self.pid(), self.stream_type()
+            self.pid(),
+            self.stream_type()
         )?;
 
         write!(f, "\n      :descriptors")?;
         match self.descriptors() {
-          Some(descs)  => {
-            for d in descs.filter_map(Result::ok) {
-                write!(f, "\n        ")?;
-                d.fmt(f)?;
+            Some(descs) => {
+                for d in descs.filter_map(Result::ok) {
+                    write!(f, "\n        ")?;
+                    d.fmt(f)?;
+                }
             }
-          },
-          None => write!(f, " ~")?,
+            None => write!(f, " ~")?,
         }
 
         Ok(())

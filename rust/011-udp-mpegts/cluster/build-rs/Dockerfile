@@ -36,8 +36,7 @@ RUN RUSTFLAGS=-Clinker=musl-gcc cargo \
   --example probe \
   --target=x86_64-unknown-linux-musl
 
-
-# RUN cargo test
+# RUN cargo test -- --nocapture
 
 # -------------------------------------
 FROM alpine:latest

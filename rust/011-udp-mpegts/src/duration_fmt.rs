@@ -1,5 +1,4 @@
 //! golang style duration format wrapper
-
 use std::cmp;
 use std::fmt;
 use std::time::Duration;
@@ -58,6 +57,7 @@ impl cmp::PartialEq for DurationFmt {
 }
 
 impl From<Duration> for DurationFmt {
+    #[inline(always)]
     fn from(d: Duration) -> Self {
         DurationFmt(d)
     }

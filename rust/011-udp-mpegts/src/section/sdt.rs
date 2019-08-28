@@ -1,7 +1,7 @@
-use std::fmt;
 use super::traits::*;
-use crate::result::Result;
 use crate::descriptor::Descriptor;
+use crate::result::Result;
+use std::fmt;
 
 /// ETSI EN 300 468 V1.15.1
 ///
@@ -71,7 +71,8 @@ impl<'buf> fmt::Debug for SDT<'buf> {
             "(:SDT (:table-id {:?} :section-length {} :section {}/{}",
             self.table_id(),
             self.section_length(),
-            self.section_number(), self.last_section_number(),
+            self.section_number(),
+            self.last_section_number(),
         )?;
 
         write!(f, "\n  :streams")?;
@@ -170,18 +171,19 @@ impl<'buf> fmt::Debug for Stream<'buf> {
         write!(
             f,
             "(:stream (:service-id {:?} :running-status {:?}",
-            self.service_id(), self.running_status(),
+            self.service_id(),
+            self.running_status(),
         )?;
 
         write!(f, "\n      :descriptors")?;
         match self.descriptors() {
-          Some(descs)  => {
-            for d in descs.filter_map(Result::ok) {
-                write!(f, "\n        ")?;
-                d.fmt(f)?;
+            Some(descs) => {
+                for d in descs.filter_map(Result::ok) {
+                    write!(f, "\n        ")?;
+                    d.fmt(f)?;
+                }
             }
-          },
-          None => write!(f, " ~")?,
+            None => write!(f, " ~")?,
         }
 
         write!(f, "))")

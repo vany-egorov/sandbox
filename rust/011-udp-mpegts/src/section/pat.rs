@@ -1,6 +1,6 @@
-use std::fmt;
 use super::traits::*;
 use crate::result::Result;
+use std::fmt;
 
 /// ISO/IEC 13818-1
 ///
@@ -38,16 +38,13 @@ impl<'buf> PAT<'buf> {
     }
 
     pub fn first_program_map_pid(&self) -> Option<u16> {
-        self
-            .programs()
-            .next()
-            .and_then(|res| match res {
-                Ok(p) => match p.pid() {
-                    PID::ProgramMap(v) => Some(v),
-                    _ => None,
-                },
+        self.programs().next().and_then(|res| match res {
+            Ok(p) => match p.pid() {
+                PID::ProgramMap(v) => Some(v),
                 _ => None,
-            })
+            },
+            _ => None,
+        })
     }
 }
 
@@ -66,7 +63,8 @@ impl<'buf> fmt::Debug for PAT<'buf> {
         write!(
             f,
             ":PAT (:table-id {:?} :section-length {})",
-            self.table_id(), self.section_length(),
+            self.table_id(),
+            self.section_length(),
         )?;
 
         write!(f, "\n  :programs")?;
@@ -137,7 +135,9 @@ impl<'buf> fmt::Debug for Program<'buf> {
         write!(
             f,
             ":program (:number {:?} :pid {:?}/0x{:02X})",
-            self.number(), self.pid(), self.pid_raw(),
+            self.number(),
+            self.pid(),
+            self.pid_raw(),
         )
     }
 }

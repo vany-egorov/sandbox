@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::annex_a2::AnnexA2;
+use std::fmt;
 
 /// ETSI EN 300 468 V1.15.1
 ///
@@ -24,7 +24,7 @@ impl<'buf> DescDVB0x4D<'buf> {
 
     #[inline(always)]
     fn buf_pos_text_length(&self) -> usize {
-        self.buf_pos_event_name()+(self.event_name_length() as usize)
+        self.buf_pos_event_name() + (self.event_name_length() as usize)
     }
 
     #[inline(always)]

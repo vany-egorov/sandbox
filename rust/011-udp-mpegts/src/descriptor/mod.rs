@@ -12,11 +12,10 @@ mod desc_dvb_0x6a;
 use std::fmt;
 use std::str;
 
-use crate::result::Result;
 use crate::error::{Error, Kind as ErrorKind};
+use crate::result::Result;
 use crate::section::{Szer, TryNewer};
 
-use self::tag::{Tag, TagDVB};
 use self::desc_0x0a::Desc0x0A;
 use self::desc_dvb_0x48::DescDVB0x48;
 use self::desc_dvb_0x4d::DescDVB0x4D;
@@ -25,6 +24,7 @@ use self::desc_dvb_0x53::DescDVB0x53;
 use self::desc_dvb_0x54::DescDVB0x54;
 use self::desc_dvb_0x56::DescDVB0x56;
 use self::desc_dvb_0x6a::DescDVB0x6A;
+use self::tag::{Tag, TagDVB};
 
 #[derive(Clone)]
 pub struct Descriptor<'buf> {
@@ -51,10 +51,14 @@ impl<'buf> Descriptor<'buf> {
     }
 
     #[inline(always)]
-    fn tag(&self) -> Tag { Tag::from(self.buf[0]) }
+    fn tag(&self) -> Tag {
+        Tag::from(self.buf[0])
+    }
 
     #[inline(always)]
-    fn len(&self) -> u8 { self.buf[1] }
+    fn len(&self) -> u8 {
+        self.buf[1]
+    }
 
     /// seek
     #[inline(always)]
@@ -64,8 +68,7 @@ impl<'buf> Descriptor<'buf> {
 
     #[inline(always)]
     fn data_as_unicode(&'buf self) -> &'buf str {
-        str::from_utf8(&self.buf_data())
-            .unwrap_or("---")
+        str::from_utf8(&self.buf_data()).unwrap_or("---")
     }
 }
 
@@ -88,8 +91,7 @@ impl<'buf> TryNewer<'buf> for Descriptor<'buf> {
 
 impl<'buf> fmt::Debug for Descriptor<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, ":desc (:tag {:?} :length {})",
-            self.tag(), self.len())?;
+        write!(f, ":desc (:tag {:?} :length {})", self.tag(), self.len())?;
         write!(f, "\n          ")?;
 
         match self.tag() {
@@ -98,26 +100,28 @@ impl<'buf> fmt::Debug for Descriptor<'buf> {
             }
             Tag::DVB(TagDVB::Service) => {
                 DescDVB0x48::new(self.buf_data()).fmt(f)?;
-            },
+            }
             Tag::DVB(TagDVB::ShortEvent) => {
                 DescDVB0x4D::new(self.buf_data()).fmt(f)?;
-            },
+            }
             Tag::DVB(TagDVB::ExtendedEvent) => {
                 DescDVB0x4E::new(self.buf_data()).fmt(f)?;
-            },
+            }
             Tag::DVB(TagDVB::CAIdentifier) => {
                 DescDVB0x53::new(self.buf_data()).fmt(f)?;
-            },
+            }
             Tag::DVB(TagDVB::Content) => {
                 DescDVB0x54::new(self.buf_data()).fmt(f)?;
-            },
+            }
             Tag::DVB(TagDVB::Teletext) => {
                 DescDVB0x56::new(self.buf_data()).fmt(f)?;
-            },
+            }
             Tag::DVB(TagDVB::AC3) => {
                 DescDVB0x6A::new(self.buf_data()).fmt(f)?;
-            },
-            _ =>  { write!(f, ":data {}", self.data_as_unicode())?; }
+            }
+            _ => {
+                write!(f, ":data {}", self.data_as_unicode())?;
+            }
         }
 
         Ok(())
