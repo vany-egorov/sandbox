@@ -1,5 +1,6 @@
-use crate::annex_a2::AnnexA2;
 use std::fmt;
+
+use crate::annex_a2::AnnexA2;
 
 /// ETSI EN 300 468 V1.15.1
 ///
@@ -59,19 +60,19 @@ impl<'buf> fmt::Debug for DescDVB0x4D<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, ":dvb-0x4d (")?;
 
-        let mut dst_buf = [0u8; 2048];
+        let mut dst_buf = [0u8; 256];
         let mut dst_str = std::str::from_utf8_mut(&mut dst_buf).unwrap();
 
-        write!(f, "event-name:")?;
+        write!(f, ":event-name")?;
         match AnnexA2::decode(self.event_name(), &mut dst_str) {
             Ok(..) => write!(f, r#" "{}""#, dst_str),
             Err(err) => write!(f, " (error: {:?})", err),
         }?;
 
-        dst_buf = [0u8; 2048];
+        dst_buf = [0u8; 256];
         dst_str = std::str::from_utf8_mut(&mut dst_buf).unwrap();
 
-        write!(f, " text:")?;
+        write!(f, " :text")?;
         match AnnexA2::decode(self.text(), &mut dst_str) {
             Ok(..) => write!(f, r#" "{}""#, dst_str),
             Err(err) => write!(f, " (error: {})", err),
