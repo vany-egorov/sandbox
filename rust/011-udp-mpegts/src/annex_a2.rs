@@ -1,6 +1,5 @@
 extern crate encoding_rs;
 
-use std::borrow::Cow;
 use std::convert::TryFrom;
 use crate::error::{Error, Kind as ErrorKind};
 
@@ -190,24 +189,32 @@ impl AnnexA2 {
         }
     }
 
-    // TODO: rewrite using encode_rs decoder
-    //       maybe use "encoding" (rust-encoding) crate?
-    pub fn decode<'buf>(buf: &'buf [u8]) -> Result<(Cow<'buf, str>, AnnexA2), Error> {
-        let a2 = AnnexA2::try_from(buf)?;
+    // TODO: maybe use "encoding" (rust-encoding) crate?
+    pub fn decode<'buf>(src_buf: &'buf [u8], dst_str: &'buf mut str) -> Result<AnnexA2, Error> {
+        let a2 = AnnexA2::try_from(src_buf)?;
 
-        let buf = &buf[a2.sz()..];
+        let src_buf = &src_buf[a2.sz()..];
 
         let encoding = match a2.encoding() {
             Some(encoding) => encoding,
             None => return Err(Error::new(ErrorKind::AnnexA2UnsupportedEncoding)),
         };
 
-        let (cow, _, got_errors) = encoding.decode(buf);
+        let mut decoder = encoding.new_decoder();
 
-        if got_errors {
+        let (result, _, _, had_errors) = decoder.decode_to_str(src_buf, dst_str, false);
+
+        match result {
+            encoding_rs::CoderResult::InputEmpty => {
+                // We have consumed the current input buffer
+            },
+            encoding_rs::CoderResult::OutputFull => {},
+        }
+
+        if had_errors {
             Err(Error::new(ErrorKind::AnnexA2Decode))
         } else {
-            Ok((cow, a2))
+            Ok(a2)
         }
     }
 
