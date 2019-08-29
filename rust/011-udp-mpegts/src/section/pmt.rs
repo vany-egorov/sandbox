@@ -138,7 +138,7 @@ impl<'buf> Stream<'buf> {
     }
 
     #[inline(always)]
-    fn pid(&self) -> u16 {
+    pub fn pid(&self) -> u16 {
         (u16::from(self.buf[1] & 0b0001_1111) << 8) | u16::from(self.buf[2])
     }
 

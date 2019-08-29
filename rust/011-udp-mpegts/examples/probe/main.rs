@@ -89,19 +89,121 @@ use clap::{App, Arg};
 //     }
 // }
 
-pub struct TS {
-    pmt_pid: Option<u16>,
+struct Packet {
+    /// offset inside stream
+    offset: u64,
 
+    /// presentation time stamp
+    pts: u64,
+
+    /// decode time stamp
+    dts: u64,
+
+    /// reusable buffer to collect payload
+    buf: Cursor<Vec<u8>>,
+}
+
+impl Packet {
+    fn new() -> Packet {
+        Packet {
+            offset: 0,
+            pts: 0,
+            dts: 0,
+            buf: Cursor::new(Vec::with_capacity(2048)),
+        }
+    }
+}
+
+struct Track {
+    /// ID/PID
+    ///   - PID for mpegts
+    ///   - ID for RTMP/HLS, DASH, MP4
+    id: u16,
+
+    // TODO: add codec
+    // codec: Codec,
+
+    /// current global offset
+    /// aka bytes-processed / bytes-readen
+    offset: u64,
+
+    pkt: Packet,
+}
+
+impl Track {
+    fn new() -> Track {
+        Track {
+            id: 0,
+            offset: 0,
+            pkt: Packet::new(),
+        }
+    }
+}
+
+struct Stream {
+    tracks: Vec<Track>,
+}
+
+impl Stream {
+    fn new() -> Stream {
+        Stream {
+            tracks: Vec::new(),
+        }
+    }
+}
+
+pub struct TS {
+    pat_buf: Cursor<Vec<u8>>,
+    pmt_buf: Cursor<Vec<u8>>,
+    sdt_buf: Cursor<Vec<u8>>,
     eit_buf: Cursor<Vec<u8>>,
+
+    stream: Option<Stream>,
 }
 
 impl TS {
     fn new() -> TS {
         TS {
-            pmt_pid: None,
+            pat_buf: Cursor::new(Vec::with_capacity(ts::Packet::SZ)),
+            pmt_buf: Cursor::new(Vec::with_capacity(ts::Packet::SZ)),
+            sdt_buf: Cursor::new(Vec::with_capacity(ts::Packet::SZ)),
+            eit_buf: Cursor::new(Vec::with_capacity(384)),
 
-            eit_buf: Cursor::new(Vec::with_capacity(2048)),
+            stream: None,
         }
+    }
+
+    fn pat(&self) -> Option<ts::PAT> {
+        if self.pat_buf.position() == 0 {
+            None
+        } else {
+            Some(ts::PAT::new(self.pat_buf.get_ref().as_slice()))
+        }
+    }
+
+    fn pmt(&self) -> Option<ts::PMT> {
+        if self.pmt_buf.position() == 0 {
+            None
+        } else {
+            Some(ts::PMT::new(self.pmt_buf.get_ref().as_slice()))
+        }
+    }
+
+    fn pmt_pid(&self) -> Option<u16> {
+        self.pat().and_then(|p| p.first_program_map_pid() )
+    }
+
+    fn sdt(&self) -> Option<ts::SDT> {
+        if self.sdt_buf.position() == 0 {
+            None
+        } else {
+            Some(ts::SDT::new(self.sdt_buf.get_ref().as_slice()))
+        }
+    }
+
+    /// are PAT, PMT, \[SDT\], stream builded?
+    fn can_demux(&self) -> bool {
+        self.pat().is_some() && self.pmt().is_some() && self.stream.is_some()
     }
 }
 
@@ -155,40 +257,86 @@ impl InputUDP {
     fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
         let pkt = ts::Packet::new(&ts_pkt_raw)?;
 
-        if let Some(pcr) = pkt.pcr()? {
-            println!("{:?}", pcr);
-        }
+        // if let Some(pcr) = pkt.pcr()? {
+        //     // println!("{:?}", pcr);
+        // }
 
-        if let Some(pat) = pkt.pat()? {
-            println!("{:?}", pat);
+        match pkt.pid() {
+            ts::PID::NULL => {},
+            ts::PID::PAT => {
+                if let Some(buf) = pkt.pat()? {
+                    if self.ts.pat().is_none() {
+                        self.ts.pat_buf.write_all(buf)?;
 
-            if let Some(pid) = pat.first_program_map_pid() {
-                self.ts.pmt_pid = Some(pid);
-            }
-        }
-
-        if let Some(pid) = self.ts.pmt_pid {
-            if let Some(pmt) = pkt.pmt(pid)? {
-                println!("{:?}", pmt);
-            }
-        }
-
-        if let Some(sdt) = pkt.sdt()? {
-            println!("{:?}", sdt);
-        }
-
-        if let Some(buf) = pkt.eit()? {
-            if pkt.pusi() {
-                if self.ts.eit_buf.position() != 0 {
-                    let eit = ts::EIT::new(self.ts.eit_buf.get_ref().as_slice());
-                    println!("{:?}", eit);
+                        if let Some(t) = self.ts.pat() {
+                            println!("{:?}", t);
+                        }
+                    }
                 }
+            },
+            ts::PID::SDT => {
+                if let Some(buf) = pkt.sdt()? {
+                    if self.ts.sdt().is_none() {
+                        self.ts.sdt_buf.write_all(buf)?;
 
-                self.ts.eit_buf.set_position(0);
-                self.ts.eit_buf.get_mut().clear();
-            }
+                        if let Some(t) = self.ts.sdt() {
+                            println!("{:?}", t);
+                        }
+                    }
+                }
+            },
+            ts::PID::EIT => {
+                if let Some(buf) = pkt.eit()? {
+                    if pkt.pusi() {
+                        if self.ts.eit_buf.position() != 0 {
+                            let eit = ts::EIT::new(self.ts.eit_buf.get_ref().as_slice());
+                            // println!("{:?}", eit);
+                        }
 
-            self.ts.eit_buf.write_all(buf)?;
+                        self.ts.eit_buf.set_position(0);
+                        self.ts.eit_buf.get_mut().clear();
+                    }
+
+                    self.ts.eit_buf.write_all(buf)?;
+                }
+            },
+            ts::PID::Other(pid) => {
+                if Some(pid) == self.ts.pmt_pid() {
+                    if self.ts.pmt().is_none() {
+                        if let Some(buf) = pkt.pmt(pid)? {
+                            self.ts.pmt_buf.write_all(buf)?;
+                            let pmt = self.ts.pmt().unwrap();
+
+                            // <build stream from PMT>
+                            let mut strm = Stream::new();
+
+                            for ts_strm in pmt.streams().filter_map(ts::Result::ok) {
+                                let mut trk = Track::new();
+                                trk.id = u16::from(ts_strm.pid());
+                                strm.tracks.push(trk);
+                            }
+
+                            self.ts.stream = Some(strm);
+                            // </build stream from PMT>
+                        }
+
+                        if let Some(t) = self.ts.pmt() {
+                            println!("{:?}", t);
+                        }
+                    }
+                } else if self.ts.can_demux() {
+                    if let Some(ref strm) = self.ts.stream {
+                        if let Some(ref trk) = strm.tracks.iter().find(|&t| t.id == pid) {
+                            if pkt.pusi() {
+                                let buf = pkt.buf_try_seek(pkt.buf_pos_payload())?;
+                                let pes = ts::PES::new(buf);
+                                // println!("{:?}", pes);
+                            }
+                        }
+                    }
+                }
+            },
+            _ => {},
         }
 
         Ok(())

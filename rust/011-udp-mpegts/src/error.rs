@@ -5,6 +5,7 @@ use std::fmt;
 pub enum Kind {
     SyncByte(u8),
     Buf(usize, usize),
+    PESStartCode(u32),
     AnnexA2EmptyBuf,
     AnnexA2UnsupportedEncoding,
     AnnexA2Decode,
@@ -43,6 +44,7 @@ impl fmt::Debug for Error {
             Kind::Buf(actual, expected) => {
                 write!(f, " (:sz-actual {} :sz-expected {})", actual, expected)?
             }
+            Kind::PESStartCode(actual) => write!(f, " (:actual 0x{:08X})", actual)?,
 
             Kind::AnnexA2TableA3Unexpected(b) => write!(f, " (:got 0x{:02X})", b)?,
             Kind::AnnexA2TableA4Buf(actual, expected) => {
@@ -66,6 +68,7 @@ impl StdError for Error {
         match self.0 {
             Kind::SyncByte(..) => "expected sync byte as first element",
             Kind::Buf(..) => "buffer is too small, more data required",
+            Kind::PESStartCode(..) => "(pes) unexpected start code",
 
             Kind::AnnexA2UnsupportedEncoding => "(annex-a2) unsupported encoding",
             Kind::AnnexA2Decode => "(annex-a2) decode error",

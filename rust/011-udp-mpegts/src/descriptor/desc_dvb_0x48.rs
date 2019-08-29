@@ -65,8 +65,12 @@ impl<'buf> DescDVB0x48<'buf> {
 
 impl<'buf> fmt::Debug for DescDVB0x48<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, ":dvb-0x48 (:service-type 0x{:02}/{}",
-            self.service_type(), self.service_type())?;
+        write!(
+            f,
+            ":dvb-0x48 (:service-type 0x{:02}/{}",
+            self.service_type(),
+            self.service_type()
+        )?;
 
         let mut dst_buf = [0u8; 256];
         let mut dst_str = std::str::from_utf8_mut(&mut dst_buf).unwrap();

@@ -1,9 +1,9 @@
 use std::fmt;
 
 use crate::error::{Error, Kind as ErrorKind};
-use crate::result::Result;
-use crate::section::{Szer, TryNewer, Cursor};
 use crate::iso_639::ISO639;
+use crate::result::Result;
+use crate::section::{Cursor, Szer, TryNewer};
 
 /// ISO/IEC 13818-1
 ///
@@ -32,7 +32,9 @@ impl<'buf> fmt::Debug for Desc0x0A<'buf> {
         for resl in self.languages() {
             write!(f, "\n    ")?;
             match resl {
-                Ok(l) => { l.fmt(f)?; },
+                Ok(l) => {
+                    l.fmt(f)?;
+                }
                 Err(err) => {
                     write!(f, "error parse 0x0a language: {}", err)?;
                 }
@@ -59,7 +61,7 @@ impl<'buf> Language<'buf> {
     pub fn validate(&self) -> Result<()> {
         if self.buf.len() < Self::SZ {
             Err(Error::new(ErrorKind::Buf(self.buf.len(), Self::SZ)))
-        }  else {
+        } else {
             Ok(())
         }
     }
@@ -93,9 +95,12 @@ impl<'buf> TryNewer<'buf> for Language<'buf> {
 
 impl<'buf> fmt::Debug for Language<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, r#"        :language (:iso-639 "{}" :audio_type {}/0x{:02X})"#,
+        write!(
+            f,
+            r#"        :language (:iso-639 "{}" :audio_type {}/0x{:02X})"#,
             self.iso_639_language_code(),
-            self.audio_type(), self.audio_type()
+            self.audio_type(),
+            self.audio_type()
         )
     }
 }
