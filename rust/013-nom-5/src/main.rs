@@ -3,18 +3,16 @@ extern crate nom;
 
 use nom::IResult;
 
-#[allow(dead_code)]
 #[derive(Debug)]
-pub struct TSHeader {
+struct TSHeader {
     tei: u8,
     pusi: u8,
     tp: u8,
     pid: u16,
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
-pub struct TSAdaptation {
+struct TSAdaptation {
     afl: u8,
     di: u8,
     rai: u8,
@@ -26,25 +24,34 @@ pub struct TSAdaptation {
     afef: u8,
 }
 
-pub fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
+fn ts_header_take_bits(input: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8)> {
     do_parse!(
         input,
-        b1: bits!(tuple!(
+        b: bits!(tuple!(
             take_bits!(1u8),
             take_bits!(1u8),
             take_bits!(1u8),
             take_bits!(5u8)
-        )) >> b2: bits!(take_bits!(8u8))
-            >> (TSHeader {
-                tei: b1.0,
-                pusi: b1.1,
-                tp: b1.2,
-                pid: ((b1.3 as u16) << 8) | b2 as u16,
-            })
+        ))
+        >> (b)
     )
 }
 
-pub fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {
+fn parse_ts_header(input: &[u8]) -> IResult<&[u8], TSHeader> {
+    do_parse!(
+        input,
+           b1: ts_header_take_bits
+        >> b2: take!(1)
+        >> (TSHeader {
+            tei: b1.0,
+            pusi: b1.1,
+            tp: b1.2,
+            pid: (u16::from(b1.3) << 8) | u16::from(b2[0]),
+        })
+    )
+}
+
+fn parse_ts_adaptation(input: &[u8]) -> IResult<&[u8], TSAdaptation> {
     do_parse!(
         input,
         b1: bits!(take_bits!(8u8))

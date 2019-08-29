@@ -14,6 +14,7 @@ mod section;
 mod stream_type;
 mod table_id;
 mod ts;
+mod iso_639;
 
 pub use pid::PID;
 pub use section::Bufer;
