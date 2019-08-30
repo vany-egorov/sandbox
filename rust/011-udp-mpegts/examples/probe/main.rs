@@ -6,17 +6,18 @@ extern crate clap;
 extern crate url;
 
 use std::collections::VecDeque;
-use std::io::{Cursor, Write};
+use std::fs::File;
+use std::io::{copy, Cursor, Write};
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
+
+use clap::{App, Arg};
 use url::{Host, Url};
 
 use error::{Error, Kind as ErrorKind, Result};
-
-use clap::{App, Arg};
 
 struct Packet {
     offset: usize,
@@ -62,13 +63,15 @@ struct Track {
     // TODO: add codec
     // codec: Codec,
     pkt: Packet,
+    // dbg_file: File,
 }
 
 impl Track {
-    fn new() -> Track {
+    fn new(id: u16) -> Track {
         Track {
-            id: 0,
+            id: id,
             pkt: Packet::new(),
+            // dbg_file: File::create(format!("/tmp/dump-{}.h264", id)).unwrap(),
         }
     }
 }
@@ -248,8 +251,7 @@ impl InputUDP {
                         let mut strm = Stream::new();
 
                         for ts_strm in pmt.streams().filter_map(ts::Result::ok) {
-                            let mut trk = Track::new();
-                            trk.id = u16::from(ts_strm.pid());
+                            let trk = Track::new(u16::from(ts_strm.pid()));
                             strm.tracks.push(trk);
                         }
 
@@ -267,13 +269,19 @@ impl InputUDP {
 
                             if pkt.pusi() {
                                 if !trk.pkt.is_empty() {
+                                    // let szzz = copy(
+                                    //     &mut trk.pkt.buf.get_ref().as_slice(),
+                                    //     &mut trk.dbg_file,
+                                    // )?;
+                                    let szzz = trk.pkt.buf.position();
+
                                     println!(
                                         "(0x{:016X}) :pid {} :pts {:?} :dts {:?} :sz {}",
                                         trk.pkt.offset,
                                         pid,
                                         trk.pkt.pts.map(ts::DurationFmt::from),
                                         trk.pkt.dts.map(ts::DurationFmt::from),
-                                        trk.pkt.buf.position(),
+                                        szzz,
                                     );
                                 }
 
