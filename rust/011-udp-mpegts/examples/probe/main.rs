@@ -18,86 +18,14 @@ use error::{Error, Kind as ErrorKind, Result};
 
 use clap::{App, Arg};
 
-// pub struct TSPESOptionalHeader {
-//     // marker_bits              :2
-//     // scrambling_control       :2
-//     // priority                 :1
-//     // data_alignment_indicator :1
-//     // copyright                :1
-//     // original_or_copy         :1
-//     b1: u8,
-
-//     // PTS_DTS_indicator         :2
-//     // ESCR_flag                 :1
-//     // ES_rate_flag              :1
-//     // DSM_trick_mode_flag       :1
-//     // additional_copy_info_flag :1
-//     // CRC_flag                  :1
-//     // extension_flag            :1
-//     b2: u8,
-
-//     header_length: u8,
-
-//     dts: Option<u64>,
-//     pts: Option<u64>,
-// }
-
-// pub struct TSPES {
-//     stream_id: u8,
-
-//     packet_length: u16,
-
-//     header: Option<TSPESOptionalHeader>,
-// }
-
-// impl TSPES {
-//     fn new() -> TSPES {
-//         TSPES {
-//             stream_id: 0,
-//             packet_length: 0,
-//             header: None,
-//         }
-//     }
-
-//     fn parse(input: &[u8]) -> IResult<&[u8], TSPES> {
-//         let mut p = TSPES::new();
-
-//         #[cfg_attr(rustfmt, rustfmt_skip)]
-//         let(input, (sid, p_len)) = try!(do_parse!(input,
-//             _start_code: tag!(&[0x00, 0x00, 0x01])  // TODO: move to PESStartCode as const
-
-//             >> b1: bits!(take_bits!(u8, 8))
-
-//             >> b2: bits!(take_bits!(u8, 8))
-//             >> b3: bits!(take_bits!(u8, 8))
-
-//             >> (
-//                 b1,
-//                 ((b2 as u16) << 8) | b3 as u16
-//             )
-//         ));
-
-//         p.stream_id = sid;
-//         p.packet_length = p_len;
-
-//         println!(
-//             "[t] [PES] (:stream-id {} :packet-length {})",
-//             p.stream_id, p.packet_length
-//         );
-
-//         Ok((input, p))
-//     }
-// }
-
 struct Packet {
-    /// offset inside stream
-    offset: u64,
+    offset: usize,
 
     /// presentation time stamp
-    pts: u64,
+    pts: Option<Duration>,
 
     /// decode time stamp
-    dts: u64,
+    dts: Option<Duration>,
 
     /// reusable buffer to collect payload
     buf: Cursor<Vec<u8>>,
@@ -107,10 +35,21 @@ impl Packet {
     fn new() -> Packet {
         Packet {
             offset: 0,
-            pts: 0,
-            dts: 0,
+            pts: None,
+            dts: None,
             buf: Cursor::new(Vec::with_capacity(2048)),
         }
+    }
+
+    #[inline(always)]
+    fn buf_reset(&mut self) {
+        self.buf.set_position(0);
+        self.buf.get_mut().clear();
+    }
+
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.buf.position() == 0
     }
 }
 
@@ -122,10 +61,6 @@ struct Track {
 
     // TODO: add codec
     // codec: Codec,
-    /// current global offset
-    /// aka bytes-processed / bytes-readen
-    offset: u64,
-
     pkt: Packet,
 }
 
@@ -133,19 +68,25 @@ impl Track {
     fn new() -> Track {
         Track {
             id: 0,
-            offset: 0,
             pkt: Packet::new(),
         }
     }
 }
 
 struct Stream {
+    /// current global offset
+    /// aka bytes-processed / bytes-readen
+    offset: usize,
+
     tracks: Vec<Track>,
 }
 
 impl Stream {
     fn new() -> Stream {
-        Stream { tracks: Vec::new() }
+        Stream {
+            offset: 0,
+            tracks: Vec::new(),
+        }
     }
 }
 
@@ -287,7 +228,7 @@ impl InputUDP {
                     if pkt.pusi() {
                         if self.ts.eit_buf.position() != 0 {
                             let eit = ts::EIT::new(self.ts.eit_buf.get_ref().as_slice());
-                            // println!("{:?}", eit);
+                            println!("{:?}", eit);
                         }
 
                         self.ts.eit_buf.set_position(0);
@@ -320,14 +261,32 @@ impl InputUDP {
                         println!("{:?}", t);
                     }
                 } else if self.ts.can_demux() {
-                    if let Some(ref strm) = self.ts.stream {
-                        if let Some(ref trk) = strm.tracks.iter().find(|&t| t.id == pid) {
+                    if let Some(ref mut strm) = self.ts.stream {
+                        if let Some(ref mut trk) = strm.tracks.iter_mut().find(|t| t.id == pid) {
+                            let buf = pkt.buf_payload_pes()?;
+
                             if pkt.pusi() {
-                                // TODO: why "- 1" ???
-                                let buf = pkt.buf_try_seek(pkt.buf_pos_payload() - 1)?;
+                                if !trk.pkt.is_empty() {
+                                    println!(
+                                        "(0x{:016X}) :pid {} :pts {:?} :dts {:?} :sz {}",
+                                        trk.pkt.offset,
+                                        pid,
+                                        trk.pkt.pts.map(ts::DurationFmt::from),
+                                        trk.pkt.dts.map(ts::DurationFmt::from),
+                                        trk.pkt.buf.position(),
+                                    );
+                                }
+
                                 let pes = ts::PES::new(buf);
-                                println!(":pid {} {:?}", pid, pes);
+
+                                trk.pkt.buf_reset();
+
+                                trk.pkt.offset += strm.offset + ts_pkt_raw.len() - buf.len();
+                                trk.pkt.pts = pes.pts().map(Duration::from);
+                                trk.pkt.dts = pes.dts().map(Duration::from);
+                                trk.pkt.buf.write_all(pes.buf_seek_payload())?;
                             } else {
+                                trk.pkt.buf.write_all(buf)?;
                             }
                         }
                     }
@@ -428,6 +387,10 @@ impl Input for InputUDP {
 
             if let Err(e) = self.demux(&ts_pkt_raw) {
                 eprintln!("error demux ts-packet: ({:?})", e);
+            }
+
+            if let Some(ref mut strm) = self.ts.stream {
+                strm.offset += ts_pkt_raw.len();
             }
         }
 

@@ -33,6 +33,16 @@ pub enum PID {
     Other(u16),
 }
 
+impl PID {
+    #[inline(always)]
+    pub fn is_section(self) -> bool {
+        match self {
+            PID::Other(..) | PID::NULL | PID::Reserved(..) => false,
+            _ => true,
+        }
+    }
+}
+
 impl From<u16> for PID {
     fn from(d: u16) -> Self {
         match d {

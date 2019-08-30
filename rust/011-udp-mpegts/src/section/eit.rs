@@ -91,7 +91,7 @@ impl<'buf> fmt::Debug for EIT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            ":EIT (:table-id {:?} :section-length {} :section {}/{})",
+            ":EIT (:table-id {:?} :section-length {:3} :section {}/{})",
             self.table_id(),
             self.section_length(),
             self.section_number(),

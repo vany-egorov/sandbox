@@ -37,14 +37,20 @@ impl<'buf> Timestamp<'buf> {
 }
 
 impl<'buf> From<&Timestamp<'buf>> for Duration {
-    fn from(pcr: &Timestamp) -> Self {
-        Duration::from_nanos(pcr.ns())
+    fn from(t: &Timestamp) -> Self {
+        Duration::from_nanos(t.ns())
+    }
+}
+
+impl<'buf> From<Timestamp<'buf>> for Duration {
+    fn from(t: Timestamp) -> Self {
+        Duration::from(&t)
     }
 }
 
 impl<'buf> From<&Timestamp<'buf>> for DurationFmt {
-    fn from(pcr: &Timestamp) -> Self {
-        DurationFmt::from_nanos(pcr.ns())
+    fn from(t: &Timestamp) -> Self {
+        DurationFmt::from_nanos(t.ns())
     }
 }
 
@@ -330,6 +336,15 @@ impl<'buf> PES<'buf> {
             )),
             _ => None,
         })
+    }
+
+    #[inline(always)]
+    pub fn buf_seek_payload(&self) -> &'buf [u8] {
+        if self.stream_id().is1() {
+            &self.buf[(Self::HEADER_SZ + Self::HEADER_SZ_1)..]
+        } else {
+            &self.buf[Self::HEADER_SZ..]
+        }
     }
 }
 

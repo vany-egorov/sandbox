@@ -42,7 +42,7 @@ impl<'buf> Packet<'buf> {
     //       or pos_<name> + seek?
     /// position payload start
     #[inline(always)]
-    pub fn buf_pos_payload(&self) -> usize {
+    fn buf_pos_payload(&self, is_section: bool) -> usize {
         let mut pos = Self::buf_pos_adaptation();
         let header = self.header();
 
@@ -53,7 +53,7 @@ impl<'buf> Packet<'buf> {
             pos += adapt.sz();
         }
 
-        if header.pusi() {
+        if header.pusi() && is_section {
             // payload data start
             //
             // https://stackoverflow.com/a/27525217
@@ -78,12 +78,32 @@ impl<'buf> Packet<'buf> {
     }
 
     #[inline(always)]
-    pub fn buf_try_seek(&self, offset: usize) -> Result<&'buf [u8]> {
+    fn buf_try_seek(&self, offset: usize) -> Result<&'buf [u8]> {
         if self.buf.len() <= offset {
             Err(Error::new(ErrorKind::Buf(self.buf.len(), Self::SZ)))
         } else {
             Ok(self.buf_seek(offset))
         }
+    }
+
+    #[inline(always)]
+    fn buf_adaptation(&self) -> Result<&'buf [u8]> {
+        self.buf_try_seek(Self::buf_pos_adaptation())
+    }
+
+    #[inline(always)]
+    fn buf_payload(&self, is_section: bool) -> Result<&'buf [u8]> {
+        self.buf_try_seek(self.buf_pos_payload(is_section))
+    }
+
+    #[inline(always)]
+    fn buf_payload_section(&self) -> Result<&'buf [u8]> {
+        self.buf_payload(true)
+    }
+
+    #[inline(always)]
+    pub fn buf_payload_pes(&self) -> Result<&'buf [u8]> {
+        self.buf_payload(false)
     }
 
     // TODO: merge Header and Packet?
@@ -98,7 +118,7 @@ impl<'buf> Packet<'buf> {
 
         if header.got_adaptation() {
             // TODO: move to macro? or optional-result crate
-            match self.buf_try_seek(Self::buf_pos_adaptation()) {
+            match self.buf_adaptation() {
                 Ok(buf) => Some(Adaptation::try_new(buf)),
                 Err(e) => Some(Err(e)),
             }
@@ -143,7 +163,7 @@ impl<'buf> Packet<'buf> {
 
         let res = if self.pid() == PID::PAT {
             // TODO: move to macro? or optional-result crate
-            match self.buf_try_seek(self.buf_pos_payload()) {
+            match self.buf_payload_section() {
                 Ok(buf) => Some(Ok(buf)),
                 Err(e) => Some(Err(e)),
             }
@@ -165,7 +185,7 @@ impl<'buf> Packet<'buf> {
 
         let res = if u16::from(self.pid()) == pid {
             // TODO: move to macro? or optional-result crate
-            match self.buf_try_seek(self.buf_pos_payload()) {
+            match self.buf_payload_section() {
                 Ok(buf) => Some(Ok(buf)),
                 Err(e) => Some(Err(e)),
             }
@@ -187,7 +207,7 @@ impl<'buf> Packet<'buf> {
 
         let res = if self.pid() == PID::SDT {
             // TODO: move to macro? or optional-result crate
-            match self.buf_try_seek(self.buf_pos_payload()) {
+            match self.buf_payload_section() {
                 Ok(buf) => Some(Ok(buf)),
                 Err(e) => Some(Err(e)),
             }
@@ -209,7 +229,7 @@ impl<'buf> Packet<'buf> {
 
         let res = if self.pid() == PID::EIT {
             // TODO: move to macro? or optional-result crate
-            match self.buf_try_seek(self.buf_pos_payload()) {
+            match self.buf_payload_section() {
                 Ok(buf) => Some(Ok(buf)),
                 Err(e) => Some(Err(e)),
             }

@@ -19,6 +19,7 @@ mod section;
 mod stream_type;
 mod table_id;
 
+pub use duration_fmt::DurationFmt;
 pub use packet::Packet;
 pub use pes::PES;
 pub use pid::PID;
