@@ -5,8 +5,8 @@ mod error;
 extern crate clap;
 extern crate url;
 
-use std::io::{Cursor, Write};
 use std::collections::VecDeque;
+use std::io::{Cursor, Write};
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
 use std::sync::{Arc, Condvar, Mutex};
@@ -122,7 +122,6 @@ struct Track {
 
     // TODO: add codec
     // codec: Codec,
-
     /// current global offset
     /// aka bytes-processed / bytes-readen
     offset: u64,
@@ -146,9 +145,7 @@ struct Stream {
 
 impl Stream {
     fn new() -> Stream {
-        Stream {
-            tracks: Vec::new(),
-        }
+        Stream { tracks: Vec::new() }
     }
 }
 
@@ -190,7 +187,7 @@ impl TS {
     }
 
     fn pmt_pid(&self) -> Option<u16> {
-        self.pat().and_then(|p| p.first_program_map_pid() )
+        self.pat().and_then(|p| p.first_program_map_pid())
     }
 
     fn sdt(&self) -> Option<ts::SDT> {
@@ -257,12 +254,12 @@ impl InputUDP {
     fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
         let pkt = ts::Packet::new(&ts_pkt_raw)?;
 
-        // if let Some(pcr) = pkt.pcr()? {
-        //     // println!("{:?}", pcr);
-        // }
+        if let Some(pcr) = pkt.pcr()? {
+            println!("{}", pcr);
+        }
 
         match pkt.pid() {
-            ts::PID::NULL => {},
+            ts::PID::NULL => {}
             ts::PID::PAT => {
                 if let Some(buf) = pkt.pat()? {
                     if self.ts.pat().is_none() {
@@ -273,7 +270,7 @@ impl InputUDP {
                         }
                     }
                 }
-            },
+            }
             ts::PID::SDT => {
                 if let Some(buf) = pkt.sdt()? {
                     if self.ts.sdt().is_none() {
@@ -284,7 +281,7 @@ impl InputUDP {
                         }
                     }
                 }
-            },
+            }
             ts::PID::EIT => {
                 if let Some(buf) = pkt.eit()? {
                     if pkt.pusi() {
@@ -299,44 +296,44 @@ impl InputUDP {
 
                     self.ts.eit_buf.write_all(buf)?;
                 }
-            },
+            }
             ts::PID::Other(pid) => {
-                if Some(pid) == self.ts.pmt_pid() {
-                    if self.ts.pmt().is_none() {
-                        if let Some(buf) = pkt.pmt(pid)? {
-                            self.ts.pmt_buf.write_all(buf)?;
-                            let pmt = self.ts.pmt().unwrap();
+                if self.ts.pmt().is_none() && Some(pid) == self.ts.pmt_pid() {
+                    if let Some(buf) = pkt.pmt(pid)? {
+                        self.ts.pmt_buf.write_all(buf)?;
+                        let pmt = self.ts.pmt().unwrap();
 
-                            // <build stream from PMT>
-                            let mut strm = Stream::new();
+                        // <build stream from PMT>
+                        let mut strm = Stream::new();
 
-                            for ts_strm in pmt.streams().filter_map(ts::Result::ok) {
-                                let mut trk = Track::new();
-                                trk.id = u16::from(ts_strm.pid());
-                                strm.tracks.push(trk);
-                            }
-
-                            self.ts.stream = Some(strm);
-                            // </build stream from PMT>
+                        for ts_strm in pmt.streams().filter_map(ts::Result::ok) {
+                            let mut trk = Track::new();
+                            trk.id = u16::from(ts_strm.pid());
+                            strm.tracks.push(trk);
                         }
 
-                        if let Some(t) = self.ts.pmt() {
-                            println!("{:?}", t);
-                        }
+                        self.ts.stream = Some(strm);
+                        // </build stream from PMT>
+                    }
+
+                    if let Some(t) = self.ts.pmt() {
+                        println!("{:?}", t);
                     }
                 } else if self.ts.can_demux() {
                     if let Some(ref strm) = self.ts.stream {
                         if let Some(ref trk) = strm.tracks.iter().find(|&t| t.id == pid) {
                             if pkt.pusi() {
-                                let buf = pkt.buf_try_seek(pkt.buf_pos_payload())?;
+                                // TODO: why "- 1" ???
+                                let buf = pkt.buf_try_seek(pkt.buf_pos_payload() - 1)?;
                                 let pes = ts::PES::new(buf);
-                                // println!("{:?}", pes);
+                                println!(":pid {} {:?}", pid, pes);
+                            } else {
                             }
                         }
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         Ok(())
@@ -388,13 +385,14 @@ impl Input for InputUDP {
                 let mut buf = match lock.lock() {
                     Err(e) => {
                         eprintln!("lock and get buffer failed: {}", e);
-                        continue
-                    },
+                        continue;
+                    }
                     Ok(buf) => buf,
                 };
 
                 for pkt_index in 0..7 * ts::Packet::SZ / ts::Packet::SZ {
-                    let ts_pkt_raw_src = &pkts_raw[pkt_index * ts::Packet::SZ..(pkt_index + 1) * ts::Packet::SZ];
+                    let ts_pkt_raw_src =
+                        &pkts_raw[pkt_index * ts::Packet::SZ..(pkt_index + 1) * ts::Packet::SZ];
 
                     // println!("#{:?} -> [{:?} .. {:?}]; src-len: {:?}, dst-len: {:?}",
                     //     pkt_index, pkt_index*ts::Packet::SZ, (pkt_index+1)*ts::Packet::SZ,
@@ -415,14 +413,14 @@ impl Input for InputUDP {
     fn read(&mut self) -> Result<()> {
         let pair = self.buf.clone();
         let &(ref lock, ref cvar) = &*pair;
-        let mut buf = lock
-            .lock()
-            .ok()
-            .ok_or(Error::new_with_details(ErrorKind::SyncPoison, "udp read lock error"))?;
+        let mut buf = lock.lock().ok().ok_or(Error::new_with_details(
+            ErrorKind::SyncPoison,
+            "udp read lock error",
+        ))?;
 
         buf = cvar.wait(buf).ok().ok_or(Error::new_with_details(
             ErrorKind::SyncPoison,
-            "udp read cwar wait erorr"
+            "udp read cwar wait erorr",
         ))?;
 
         while !buf.is_empty() {
@@ -497,9 +495,9 @@ where
             match input.lock().unwrap().read() {
                 Err(err) => {
                     eprintln!("error read {}", err);
-                    return
-                },
-                Ok(_) => {},
+                    return;
+                }
+                Ok(_) => {}
             }
         });
 
@@ -513,7 +511,8 @@ where
 //     Metadata:
 //       service_name    : ?HD
 //       service_provider: ~~~
-//     Stream #0:0[0xcd]: Video: h264 (High) ([27][0][0][0] / 0x001B), yuv420p(tv, bt709), 1920x1080 [SAR 1:1 DAR 16:9], 25 fps, 50 tbr, 90k tbn, 50 tbc
+//     Stream #0:0[0xcd]: Video: h264 (High) ([27][0][0][0] / 0x001B),
+//       yuv420p(tv, bt709), 1920x1080 [SAR 1:1 DAR 16:9], 25 fps, 50 tbr, 90k tbn, 50 tbc
 //     Stream #0:1[0x131](rus): Audio: mp2 ([4][0][0][0] / 0x0004), 48000 Hz, stereo, s16p, 192 kb/s
 //     Stream #0:2[0x195](rus): Audio: ac3 (AC-3 / 0x332D4341), 48000 Hz, 5.1(side), fltp, 384 kb/s
 //     Stream #0:3[0x1f9](rus,rus): Subtitle: dvb_teletext ([6][0][0][0] / 0x0006)

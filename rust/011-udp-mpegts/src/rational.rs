@@ -26,5 +26,5 @@ pub fn rescale(v: u64, src: Rational, dst: Rational) -> u64 {
     let num = u128::from(src.num) * u128::from(dst.den);
     let den = u128::from(src.den) * u128::from(dst.num);
 
-    v * ((num / den) as u64)
+    ((v as f64) * ((num as f64) / (den as f64))) as u64
 }

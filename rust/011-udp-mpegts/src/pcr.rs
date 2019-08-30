@@ -81,11 +81,17 @@ impl<'buf> fmt::Debug for PCR<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            ":PCR (:raw {:08X}:{:04X} :v(27MHz) {} :duration {})",
+            ":pcr (:raw {:08X}:{:04X} :v(27MHz) {} :duration {})",
             self.base(),
             self.ext(),
             self.value(),
             DurationFmt::from(self)
         )
+    }
+}
+
+impl<'buf> fmt::Display for PCR<'buf> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, ":pcr {}", DurationFmt::from(self))
     }
 }

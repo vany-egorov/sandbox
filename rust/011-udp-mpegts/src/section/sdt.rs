@@ -68,7 +68,7 @@ impl<'buf> fmt::Debug for SDT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:SDT (:table-id {:?} :section-length {} :section {}/{}",
+            ":SDT (:table-id {:?} :section-length {} :section {}/{})",
             self.table_id(),
             self.section_length(),
             self.section_number(),
@@ -81,7 +81,7 @@ impl<'buf> fmt::Debug for SDT<'buf> {
             p.fmt(f)?;
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }
 
@@ -170,7 +170,7 @@ impl<'buf> fmt::Debug for Stream<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(:stream (:service-id {:?} :running-status {:?}",
+            ":stream (:service-id {:?} :running-status {:?})",
             self.service_id(),
             self.running_status(),
         )?;
@@ -186,6 +186,6 @@ impl<'buf> fmt::Debug for Stream<'buf> {
             None => write!(f, " ~")?,
         }
 
-        write!(f, "))")
+        Ok(())
     }
 }
