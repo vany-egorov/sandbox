@@ -6,6 +6,7 @@ pub enum Kind {
     SyncByte(u8),
     Buf(usize, usize),
     PESStartCode(u32),
+    SectionSyntaxIndicatorNotSet,
     AnnexA2EmptyBuf,
     AnnexA2UnsupportedEncoding,
     AnnexA2Decode,
@@ -69,6 +70,7 @@ impl StdError for Error {
             Kind::SyncByte(..) => "expected sync byte as first element",
             Kind::Buf(..) => "buffer is too small, more data required",
             Kind::PESStartCode(..) => "(pes) unexpected start code",
+            Kind::SectionSyntaxIndicatorNotSet => "(psi) section-syntax-indicator must be set",
 
             Kind::AnnexA2UnsupportedEncoding => "(annex-a2) unsupported encoding",
             Kind::AnnexA2Decode => "(annex-a2) decode error",

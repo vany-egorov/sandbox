@@ -1,6 +1,9 @@
-use super::traits::*;
-use crate::result::Result;
 use std::fmt;
+
+use crate::result::Result;
+use crate::error::{Error, Kind as ErrorKind};
+
+use super::traits::*;
 
 /// ISO/IEC 13818-1
 ///
@@ -17,26 +20,26 @@ impl<'buf> PAT<'buf> {
         PAT { buf }
     }
 
-    // #[inline(always)]
-    // fn try_new(buf: &'buf [u8]) -> Result<PAT<'buf>> {
-    //     let s = PAT::new(buf);
-    //     s.validate()?;
-    //     Ok(s)
-    // }
+    #[inline(always)]
+    pub fn try_new(buf: &'buf [u8]) -> Result<PAT<'buf>> {
+        let s = Self::new(buf);
+        s.validate()?;
+        Ok(s)
+    }
 
-    // #[inline(always)]
-    // pub fn validate(&self) -> Result<()> {
-    //     if self.buf.len() < Self::HEADER_FULL_SZ {
-    //         Err(Error::new(ErrorKind::Buf(
-    //             self.buf.len(),
-    //             Self::HEADER_FULL_SZ,
-    //         )))
-    //     } else if self.buf.len() < self.sz() {
-    //         Err(Error::new(ErrorKind::Buf(self.buf.len(), self.sz())))
-    //     } else {
-    //         Ok(())
-    //     }
-    // }
+    #[inline(always)]
+    pub fn validate(&self) -> Result<()> {
+        if self.buf.len() < Self::HEADER_FULL_SZ {
+            Err(Error::new(ErrorKind::Buf(
+                self.buf.len(),
+                Self::HEADER_FULL_SZ,
+            )))
+        } else if !self.section_syntax_indicator() {
+            Err(Error::new(ErrorKind::SectionSyntaxIndicatorNotSet))
+        } else {
+            Ok(())
+        }
+    }
 
     /// slice buf
     #[inline(always)]

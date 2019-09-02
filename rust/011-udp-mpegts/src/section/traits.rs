@@ -23,11 +23,13 @@ pub(crate) trait WithHeader<'buf>: Bufer<'buf> {
         TableID::from(self.b()[0])
     }
 
-    // /// it set to 1 (true) - 4th and 5th bytes
-    // /// are table-id-extension
-    // /// for PAT, PMT, CAT
-    // #[inline(always)]
-    // fn section_syntax_indicator(&self) -> bool {}
+    /// it set to 1 (true) - 4th and 5th bytes
+    /// are table-id-extension
+    /// for PAT, PMT, CAT
+    #[inline(always)]
+    fn section_syntax_indicator(&self) -> bool {
+        (self.b()[1] & 0b1000_0000) != 0
+    }
 
     #[inline(always)]
     fn section_length(&self) -> u16 {
