@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PID {
     PAT,
     CAT,
@@ -39,6 +39,14 @@ impl PID {
         match self {
             PID::Other(..) | PID::NULL | PID::Reserved(..) => false,
             _ => true,
+        }
+    }
+
+    #[inline(always)]
+    pub fn is_null(self) -> bool {
+        match self {
+            PID::NULL => true,
+            _ => false,
         }
     }
 }

@@ -183,6 +183,8 @@ struct InputUDP {
     buf: Arc<(Mutex<VecDeque<[u8; ts::Packet::SZ]>>, Condvar)>,
 
     ts: TS,
+
+    demuxer: ts::Demuxer,
 }
 
 impl InputUDP {
@@ -192,10 +194,15 @@ impl InputUDP {
             buf: Arc::new((Mutex::new(VecDeque::with_capacity(buf_cap)), Condvar::new())),
 
             ts: TS::new(),
+
+            demuxer: ts::Demuxer::new(),
         }
     }
 
     fn demux(&mut self, ts_pkt_raw: &[u8]) -> Result<()> {
+        self.demuxer.demux(ts_pkt_raw)?;
+        return Ok(());
+
         let pkt = ts::Packet::new(&ts_pkt_raw)?;
 
         if let Some(pcr) = pkt.pcr()? {
@@ -205,59 +212,59 @@ impl InputUDP {
         match pkt.pid() {
             ts::PID::NULL => {}
             ts::PID::PAT => {
-                if let Some(buf) = pkt.pat()? {
-                    if self.ts.pat().is_none() {
-                        self.ts.pat_buf.write_all(buf)?;
+                if self.ts.pat().is_none() {
+                    let buf = pkt.buf_payload_section()?;
 
-                        if let Some(t) = self.ts.pat() {
-                            println!("{:?}", t);
-                        }
+                    self.ts.pat_buf.write_all(buf)?;
+
+                    if let Some(t) = self.ts.pat() {
+                        println!("{:?}", t);
                     }
                 }
             }
             ts::PID::SDT => {
-                if let Some(buf) = pkt.sdt()? {
-                    if self.ts.sdt().is_none() {
-                        self.ts.sdt_buf.write_all(buf)?;
+                if self.ts.sdt().is_none() {
+                    let buf = pkt.buf_payload_section()?;
 
-                        if let Some(t) = self.ts.sdt() {
-                            println!("{:?}", t);
-                        }
+                    self.ts.sdt_buf.write_all(buf)?;
+
+                    if let Some(t) = self.ts.sdt() {
+                        println!("{:?}", t);
                     }
                 }
             }
             ts::PID::EIT => {
-                if let Some(buf) = pkt.eit()? {
-                    if pkt.pusi() {
-                        if self.ts.eit_buf.position() != 0 {
-                            let eit = ts::EIT::new(self.ts.eit_buf.get_ref().as_slice());
-                            println!("{:?}", eit);
-                        }
+                let buf = pkt.buf_payload_section()?;
 
-                        self.ts.eit_buf.set_position(0);
-                        self.ts.eit_buf.get_mut().clear();
+                if pkt.pusi() {
+                    if self.ts.eit_buf.position() != 0 {
+                        let eit = ts::EIT::new(self.ts.eit_buf.get_ref().as_slice());
+                        println!("{:?}", eit);
                     }
 
-                    self.ts.eit_buf.write_all(buf)?;
+                    self.ts.eit_buf.set_position(0);
+                    self.ts.eit_buf.get_mut().clear();
                 }
+
+                self.ts.eit_buf.write_all(buf)?;
             }
             ts::PID::Other(pid) => {
                 if self.ts.pmt().is_none() && Some(pid) == self.ts.pmt_pid() {
-                    if let Some(buf) = pkt.pmt(pid)? {
-                        self.ts.pmt_buf.write_all(buf)?;
-                        let pmt = self.ts.pmt().unwrap();
+                    let buf = pkt.buf_payload_section()?;
 
-                        // <build stream from PMT>
-                        let mut strm = Stream::new();
+                    self.ts.pmt_buf.write_all(buf)?;
+                    let pmt = self.ts.pmt().unwrap();
 
-                        for ts_strm in pmt.streams().filter_map(ts::Result::ok) {
-                            let trk = Track::new(u16::from(ts_strm.pid()));
-                            strm.tracks.push(trk);
-                        }
+                    // <build stream from PMT>
+                    let mut strm = Stream::new();
 
-                        self.ts.stream = Some(strm);
-                        // </build stream from PMT>
+                    for ts_strm in pmt.streams().filter_map(ts::Result::ok) {
+                        let trk = Track::new(u16::from(ts_strm.pid()));
+                        strm.tracks.push(trk);
                     }
+
+                    self.ts.stream = Some(strm);
+                    // </build stream from PMT>
 
                     if let Some(t) = self.ts.pmt() {
                         println!("{:?}", t);
@@ -476,17 +483,6 @@ where
     }
 }
 
-// Input #0, mpegts, from 'udp://239.255.1.1:5500':
-//   Duration: N/A, start: 8174.927322, bitrate: N/A
-//   Program 20105
-//     Metadata:
-//       service_name    : ?HD
-//       service_provider: ~~~
-//     Stream #0:0[0xcd]: Video: h264 (High) ([27][0][0][0] / 0x001B),
-//       yuv420p(tv, bt709), 1920x1080 [SAR 1:1 DAR 16:9], 25 fps, 50 tbr, 90k tbn, 50 tbc
-//     Stream #0:1[0x131](rus): Audio: mp2 ([4][0][0][0] / 0x0004), 48000 Hz, stereo, s16p, 192 kb/s
-//     Stream #0:2[0x195](rus): Audio: ac3 (AC-3 / 0x332D4341), 48000 Hz, 5.1(side), fltp, 384 kb/s
-//     Stream #0:3[0x1f9](rus,rus): Subtitle: dvb_teletext ([6][0][0][0] / 0x0006)
 fn main() {
     // let args: Vec<String> = env::args().collect();
     // println!("{:?}", args);

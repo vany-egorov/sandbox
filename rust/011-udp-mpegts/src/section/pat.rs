@@ -1,7 +1,8 @@
 use std::fmt;
 
-use crate::result::Result;
 use crate::error::{Error, Kind as ErrorKind};
+use crate::result::Result;
+use crate::subtable_id::{SubtableID, SubtableIDer};
 
 use super::traits::*;
 
@@ -34,8 +35,6 @@ impl<'buf> PAT<'buf> {
                 self.buf.len(),
                 Self::HEADER_FULL_SZ,
             )))
-        } else if !self.section_syntax_indicator() {
-            Err(Error::new(ErrorKind::SectionSyntaxIndicatorNotSet))
         } else {
             Ok(())
         }
@@ -70,6 +69,11 @@ impl<'buf> PAT<'buf> {
             _ => None,
         })
     }
+
+    #[inline(always)]
+    pub fn transport_stream_id(&self) -> u16 {
+        self.table_id_extension()
+    }
 }
 
 impl<'buf> Bufer<'buf> for PAT<'buf> {
@@ -79,6 +83,7 @@ impl<'buf> Bufer<'buf> for PAT<'buf> {
 }
 
 impl<'buf> WithHeader<'buf> for PAT<'buf> {}
+impl<'buf> WithTableIDExtension<'buf> for PAT<'buf> {}
 impl<'buf> WithSyntaxSection<'buf> for PAT<'buf> {}
 impl<'buf> WithCRC32<'buf> for PAT<'buf> {}
 
@@ -86,9 +91,9 @@ impl<'buf> fmt::Debug for PAT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            ":PAT (:table-id {:?} :section-length {})",
-            self.table_id(),
-            self.section_length(),
+            ":PAT (:id {:?} :transport-stream-id {})",
+            self.subtable_id(),
+            self.transport_stream_id(),
         )?;
 
         write!(f, "\n  :programs")?;
@@ -98,6 +103,17 @@ impl<'buf> fmt::Debug for PAT<'buf> {
         }
 
         Ok(())
+    }
+}
+
+impl<'buf> SubtableIDer for PAT<'buf> {
+    #[inline(always)]
+    fn subtable_id(&self) -> SubtableID {
+        SubtableID::PAT(
+            self.table_id(),
+            self.transport_stream_id(),
+            self.version_number(),
+        )
     }
 }
 

@@ -23,9 +23,12 @@ pub(crate) trait WithHeader<'buf>: Bufer<'buf> {
         TableID::from(self.b()[0])
     }
 
-    /// it set to 1 (true) - 4th and 5th bytes
+    /// if set to 1 (true) - 4th and 5th bytes
     /// are table-id-extension
-    /// for PAT, PMT, CAT
+    ///
+    /// must be set to 1 for:
+    /// PAT, CAT, PMT
+    /// NIT, EIT, BAT, SDT
     #[inline(always)]
     fn section_syntax_indicator(&self) -> bool {
         (self.b()[1] & 0b1000_0000) != 0
@@ -37,6 +40,19 @@ pub(crate) trait WithHeader<'buf>: Bufer<'buf> {
     }
 }
 
+pub trait WithTableIDExtension<'buf>: Bufer<'buf> {
+    /// buffer seeked
+    #[inline(always)]
+    fn b(&self) -> &'buf [u8] {
+        self.buf()
+    }
+
+    #[inline(always)]
+    fn table_id_extension(&self) -> u16 {
+        (u16::from(self.b()[3]) << 8) | u16::from(self.b()[4])
+    }
+}
+
 pub const SYNTAX_SECTION_SZ: usize = 5;
 
 pub(crate) trait WithSyntaxSection<'buf>: Bufer<'buf> {
@@ -44,12 +60,6 @@ pub(crate) trait WithSyntaxSection<'buf>: Bufer<'buf> {
     #[inline(always)]
     fn b(&self) -> &'buf [u8] {
         &self.buf()[HEADER_SZ..]
-    }
-
-    #[inline(always)]
-    #[allow(dead_code)]
-    fn transport_stream_id(&self) -> u16 {
-        (u16::from(self.b()[0]) << 8) | u16::from(self.b()[1])
     }
 
     #[inline(always)]

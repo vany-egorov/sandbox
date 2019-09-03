@@ -8,6 +8,7 @@ use crate::descriptor::Descriptor;
 use crate::duration_fmt::DurationFmt;
 use crate::error::{Error, Kind as ErrorKind};
 use crate::result::Result;
+use crate::subtable_id::{SubtableID, SubtableIDer};
 
 use super::traits::*;
 
@@ -46,6 +47,11 @@ impl<'buf> EIT<'buf> {
     pub fn events(&self) -> Cursor<'buf, Event> {
         Cursor::new(self.buf_events())
     }
+
+    #[inline(always)]
+    pub fn service_id(&self) -> u16 {
+        self.table_id_extension()
+    }
 }
 
 trait WithEITHeaderSpecific<'buf>: Bufer<'buf> {
@@ -83,6 +89,7 @@ impl<'buf> Bufer<'buf> for EIT<'buf> {
 }
 
 impl<'buf> WithHeader<'buf> for EIT<'buf> {}
+impl<'buf> WithTableIDExtension<'buf> for EIT<'buf> {}
 impl<'buf> WithSyntaxSection<'buf> for EIT<'buf> {}
 impl<'buf> WithEITHeaderSpecific<'buf> for EIT<'buf> {}
 impl<'buf> WithCRC32<'buf> for EIT<'buf> {}
@@ -91,8 +98,8 @@ impl<'buf> fmt::Debug for EIT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            ":EIT (:table-id {:?} :section-length {:3} :section {}/{})",
-            self.table_id(),
+            ":EIT (:id {:?} :section-length {:3} :section {}/{})",
+            self.subtable_id(),
             self.section_length(),
             self.section_number(),
             self.last_section_number(),
@@ -112,6 +119,19 @@ impl<'buf> fmt::Debug for EIT<'buf> {
         }
 
         Ok(())
+    }
+}
+
+impl<'buf> SubtableIDer for EIT<'buf> {
+    #[inline(always)]
+    fn subtable_id(&self) -> SubtableID {
+        SubtableID::EIT(
+            self.table_id(),
+            self.service_id(),
+            self.transport_stream_id(),
+            self.original_network_id(),
+            self.version_number(),
+        )
     }
 }
 

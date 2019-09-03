@@ -6,6 +6,7 @@ pub mod result;
 
 mod annex_a2;
 mod annex_c;
+mod demuxer;
 mod descriptor;
 mod duration_fmt;
 mod header;
@@ -17,8 +18,10 @@ mod pid;
 mod rational;
 mod section;
 mod stream_type;
+mod subtable_id;
 mod table_id;
 
+pub use demuxer::Demuxer;
 pub use duration_fmt::DurationFmt;
 pub use packet::Packet;
 pub use pes::PES;

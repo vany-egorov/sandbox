@@ -1,7 +1,7 @@
 /// ETSI EN 300 468 V1.15.1
 ///
-/// Network Information Table
+/// Bouquet Association Table
 #[allow(dead_code)]
-pub struct NIT<'buf> {
+pub struct BAT<'buf> {
     buf: &'buf [u8],
 }

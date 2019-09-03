@@ -1,7 +1,10 @@
-use super::traits::*;
+use std::fmt;
+
 use crate::descriptor::Descriptor;
 use crate::result::Result;
-use std::fmt;
+use crate::subtable_id::{SubtableID, SubtableIDer};
+
+use super::traits::*;
 
 /// ETSI EN 300 468 V1.15.1
 ///
@@ -17,6 +20,18 @@ impl<'buf> SDT<'buf> {
     #[inline(always)]
     pub fn new(buf: &'buf [u8]) -> SDT<'buf> {
         SDT { buf }
+    }
+
+    #[inline(always)]
+    pub fn try_new(buf: &'buf [u8]) -> Result<SDT<'buf>> {
+        let s = Self::new(buf);
+        s.validate()?;
+        Ok(s)
+    }
+
+    #[inline(always)]
+    pub fn validate(&self) -> Result<()> {
+        Ok(())
     }
 
     /// seek
@@ -37,6 +52,11 @@ impl<'buf> SDT<'buf> {
     #[inline(always)]
     pub fn streams(&self) -> Cursor<'buf, Stream> {
         Cursor::new(self.buf_streams())
+    }
+
+    #[inline(always)]
+    pub fn transport_stream_id(&self) -> u16 {
+        self.table_id_extension()
     }
 }
 
@@ -60,6 +80,7 @@ impl<'buf> Bufer<'buf> for SDT<'buf> {
 }
 
 impl<'buf> WithHeader<'buf> for SDT<'buf> {}
+impl<'buf> WithTableIDExtension<'buf> for SDT<'buf> {}
 impl<'buf> WithSyntaxSection<'buf> for SDT<'buf> {}
 impl<'buf> WithSDTHeaderSpecific<'buf> for SDT<'buf> {}
 impl<'buf> WithCRC32<'buf> for SDT<'buf> {}
@@ -68,8 +89,9 @@ impl<'buf> fmt::Debug for SDT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            ":SDT (:table-id {:?} :section-length {} :section {}/{})",
-            self.table_id(),
+            ":SDT (:id {:?} :transport-stream-id {} :section-length {} :section {}/{})",
+            self.subtable_id(),
+            self.transport_stream_id(),
             self.section_length(),
             self.section_number(),
             self.last_section_number(),
@@ -82,6 +104,18 @@ impl<'buf> fmt::Debug for SDT<'buf> {
         }
 
         Ok(())
+    }
+}
+
+impl<'buf> SubtableIDer for SDT<'buf> {
+    #[inline(always)]
+    fn subtable_id(&self) -> SubtableID {
+        SubtableID::SDT(
+            self.table_id(),
+            self.transport_stream_id(),
+            self.original_network_id(),
+            self.version_number(),
+        )
     }
 }
 

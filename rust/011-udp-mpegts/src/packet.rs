@@ -97,7 +97,7 @@ impl<'buf> Packet<'buf> {
     }
 
     #[inline(always)]
-    fn buf_payload_section(&self) -> Result<&'buf [u8]> {
+    pub fn buf_payload_section(&self) -> Result<&'buf [u8]> {
         self.buf_payload(true)
     }
 
@@ -184,28 +184,6 @@ impl<'buf> Packet<'buf> {
         }
 
         let res = if u16::from(self.pid()) == pid {
-            // TODO: move to macro? or optional-result crate
-            match self.buf_payload_section() {
-                Ok(buf) => Some(Ok(buf)),
-                Err(e) => Some(Err(e)),
-            }
-        } else {
-            None
-        };
-
-        res.transpose()
-    }
-
-    // TODO: refactoring
-    #[inline(always)]
-    pub fn sdt(&self) -> Result<Option<&'buf [u8]>> {
-        let header = self.header();
-
-        if !header.got_payload() {
-            return Ok(None);
-        }
-
-        let res = if self.pid() == PID::SDT {
             // TODO: move to macro? or optional-result crate
             match self.buf_payload_section() {
                 Ok(buf) => Some(Ok(buf)),

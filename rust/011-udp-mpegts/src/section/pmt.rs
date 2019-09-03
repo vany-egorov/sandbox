@@ -57,6 +57,11 @@ impl<'buf> PMT<'buf> {
     pub fn streams(&self) -> Cursor<'buf, Stream> {
         Cursor::new(self.buf_streams())
     }
+
+    #[inline(always)]
+    pub fn program_number(&self) -> u16 {
+        self.table_id_extension()
+    }
 }
 
 trait WithPMTHeaderSpecific<'buf>: Bufer<'buf> {
@@ -84,6 +89,7 @@ impl<'buf> Bufer<'buf> for PMT<'buf> {
 }
 
 impl<'buf> WithHeader<'buf> for PMT<'buf> {}
+impl<'buf> WithTableIDExtension<'buf> for PMT<'buf> {}
 impl<'buf> WithSyntaxSection<'buf> for PMT<'buf> {}
 impl<'buf> WithPMTHeaderSpecific<'buf> for PMT<'buf> {}
 impl<'buf> WithCRC32<'buf> for PMT<'buf> {}
@@ -92,8 +98,12 @@ impl<'buf> fmt::Debug for PMT<'buf> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            ":PMT (:table-id {:?} :section-length {} :pcr-pid {} :program-info-length {})",
+            ":PMT (:tid {:?} :tid~p-n(ext)~vn {}~{}~{} :program-number {} :section-length {} :pcr-pid {} :program-info-length {})",
             self.table_id(),
+            u8::from(self.table_id()),
+            self.program_number(),
+            self.version_number(),
+            self.program_number(),
             self.section_length(),
             self.pcr_pid(),
             self.program_info_length(),
