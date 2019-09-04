@@ -1,7 +1,8 @@
 use std::error::Error as StdError;
 use std::fmt;
+use std::io::Error as IoError;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Kind {
     SyncByte(u8),
     Buf(usize, usize),
@@ -14,9 +15,10 @@ pub enum Kind {
     AnnexA2TableA4Buf(usize, usize),
     AnnexA2TableA4Unexpected(u8),
     AnnexCBuf(usize, usize),
+
+    Io(IoError),
 }
 
-#[derive(PartialEq)]
 pub struct Error(Kind);
 
 impl Error {
@@ -55,7 +57,7 @@ impl fmt::Debug for Error {
 
             Kind::AnnexCBuf(actual, expected) => {
                 write!(f, " (:sz-actual {} :sz-expected {})", actual, expected)?
-            }
+            },
 
             _ => {}
         }
@@ -82,10 +84,21 @@ impl StdError for Error {
             Kind::AnnexA2TableA4Unexpected(..) => "(annex-a2 table-a4 parse) unexpected value",
 
             Kind::AnnexCBuf(..) => "(annex-c parse) buffer is too small, more data required",
+
+            Kind::Io(ref err) => err.description(),
         }
     }
 
     fn cause(&self) -> Option<&dyn StdError> {
-        None
+        match self.0 {
+            Kind::Io(ref err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl From<IoError> for Error {
+    fn from(err: IoError) -> Error {
+        Error::new(Kind::Io(err))
     }
 }

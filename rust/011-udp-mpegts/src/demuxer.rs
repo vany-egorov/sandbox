@@ -1,5 +1,7 @@
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::io::{Cursor, Write};
+use std::rc::Rc;
 
 use crate::packet::Packet;
 use crate::pid::PID;
@@ -8,11 +10,18 @@ use crate::section::WithSyntaxSection;
 use crate::subtable_id::{SubtableID, SubtableIDer};
 use crate::{EIT, PAT, SDT};
 
-#[derive(Default)]
 struct Buf(Cursor<Vec<u8>>);
 
 impl Buf {
-    fn new() -> Buf {
+    #[inline(always)]
+    fn reset(&mut self) {
+        self.0.set_position(0);
+        self.0.get_mut().clear();
+    }
+}
+
+impl Default for Buf {
+    fn default() -> Self {
         Buf(Cursor::new(Vec::with_capacity(2048)))
     }
 }
@@ -26,16 +35,16 @@ impl Section {
     fn new(number: u8) -> Section {
         Section {
             number,
-            buf: Buf::new(),
+            buf: Default::default(),
         }
     }
 }
 
-struct Sections(Vec<Section>);
+struct Sections(Vec<Rc<Box<Section>>>);
 
 impl Sections {
     fn new() -> Sections {
-        Sections(Vec::with_capacity(1))
+        Default::default()
     }
 
     #[inline(always)]
@@ -44,18 +53,26 @@ impl Sections {
     }
 
     #[inline(always)]
-    fn get_mut(&mut self, number: u8) -> Option<&mut Section> {
+    #[allow(dead_code)]
+    fn get_mut(&mut self, number: u8) -> Option<&mut Rc<Box<Section>>> {
         self.0.iter_mut().find(|s| s.number == number)
     }
 
     #[inline(always)]
-    fn push(&mut self, s: Section) {
+    fn push(&mut self, s: Rc<Box<Section>>) {
         self.0.push(s);
         self.0.sort_unstable_by(|a, b| a.number.cmp(&b.number));
     }
 }
 
+impl Default for Sections {
+    fn default() -> Self {
+        Sections(Vec::with_capacity(1))
+    }
+}
+
 struct Table {
+    #[allow(dead_code)]
     id: SubtableID,
     sections: Sections,
 }
@@ -72,7 +89,7 @@ impl Table {
 struct Tables {
     map: HashMap<SubtableID, Table>,
     /// current demuxing section
-    current: Option<Section>,
+    current: Option<Rc<Box<Section>>>,
 }
 
 impl Tables {
@@ -84,49 +101,51 @@ impl Tables {
     }
 }
 
+#[derive(Default)]
 struct Stream {
+    #[allow(dead_code)]
     buf: Buf,
 }
 
-impl Stream {
-    fn new() -> Stream {
-        Stream { buf: Buf::new() }
-    }
-}
+impl Stream {}
 
+#[derive(Default)]
 struct Streams {
+    #[allow(dead_code)]
     map: HashMap<PID, Stream>,
 }
 
-impl Streams {
-    fn new() -> Streams {
-        Streams {
-            map: HashMap::new(),
-        }
-    }
-}
+impl Streams {}
 
 /// TODO: use tree, redix tree here
 /// TODO: add benches
 pub struct Demuxer {
     pat: Tables,
+    #[allow(dead_code)]
     pmt: Tables,
     eit: Tables,
     sdt: Tables,
 
+    #[allow(dead_code)]
     streams: Streams,
 }
 
-impl Demuxer {
-    pub fn new() -> Demuxer {
+impl Default for Demuxer {
+    fn default() -> Self {
         Demuxer {
             pat: Tables::new(),
             pmt: Tables::new(),
             eit: Tables::new(),
             sdt: Tables::new(),
 
-            streams: Streams::new(),
+            streams: Default::default(),
         }
+    }
+}
+
+impl Demuxer {
+    pub fn new() -> Demuxer {
+        Default::default()
     }
 
     /// mutably borrow a reference to the underlying tables
@@ -175,16 +194,18 @@ impl Demuxer {
 
                         let table = tables.map.entry(id).or_insert_with(|| Table::new(id));
 
-                        if table.sections.has(section_number) {
-                            // clear buffer
-                        } else {
-                            let mut section = Section::new(section_number);
-                            section.buf.0.write_all(buf);
+                        match table.sections.get_mut(section_number) {
+                            Some(ref mut section) => { section.buf.reset(); },
+                            None => {
+                                let section = Rc::new(Box::new(Section::new(section_number)));
+                                section.buf.0.write_all(buf)?;
 
-                            table.sections.push(section);
+                                table.sections.push(section);
+                                tables.current = Some(section);
+                            },
                         }
                     } else if let Some(ref mut section) = tables.current {
-
+                        section.borrow_mut().buf.0.write_all(buf)?;
                     }
 
                     Ok(())
