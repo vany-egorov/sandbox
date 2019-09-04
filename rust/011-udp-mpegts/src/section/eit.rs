@@ -28,6 +28,18 @@ impl<'buf> EIT<'buf> {
         EIT { buf }
     }
 
+    #[inline(always)]
+    pub fn try_new(buf: &'buf [u8]) -> Result<EIT<'buf>> {
+        let s = Self::new(buf);
+        s.validate()?;
+        Ok(s)
+    }
+
+    #[inline(always)]
+    pub fn validate(&self) -> Result<()> {
+        Ok(())
+    }
+
     /// seek
     #[inline(always)]
     fn buf_events(&self) -> &'buf [u8] {

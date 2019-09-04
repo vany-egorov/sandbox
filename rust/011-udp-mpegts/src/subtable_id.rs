@@ -1,6 +1,6 @@
-use table_id::TableID;
+use crate::table_id::TableID;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SubtableID {
     /// (table-id, transport-stream-id(ext) [, version-number])
     PAT(TableID, u16, u8),

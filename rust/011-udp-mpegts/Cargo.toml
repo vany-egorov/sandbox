@@ -2,6 +2,7 @@
 name = "ts"
 version = "0.0.1"
 authors = ["Ivan Egorov <vany.egorov@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 chrono = "~0.4"

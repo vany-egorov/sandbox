@@ -1,6 +1,6 @@
 /// ETSI EN 300 468 V1.15.1 (2016-03)
 /// ISO/IEC 13818-1
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TableID {
     ProgramAssociationSection,
     ConditionalAccessSection,

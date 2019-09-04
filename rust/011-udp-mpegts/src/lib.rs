@@ -1,6 +1,3 @@
-extern crate chrono;
-extern crate encoding_rs;
-
 pub mod error;
 pub mod result;
 

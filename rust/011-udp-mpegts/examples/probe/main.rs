@@ -2,9 +2,6 @@ extern crate ts;
 
 mod error;
 
-extern crate clap;
-extern crate url;
-
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::{copy, Cursor, Write};
