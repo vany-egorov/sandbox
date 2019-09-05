@@ -1,4 +1,4 @@
-use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Cursor, Write};
 use std::rc::Rc;
@@ -38,9 +38,16 @@ impl Section {
             buf: Default::default(),
         }
     }
+
+    #[inline(always)]
+    fn into_ref(self) -> SectionRef {
+        Rc::new(RefCell::new(Box::new(self)))
+    }
 }
 
-struct Sections(Vec<Rc<Box<Section>>>);
+type SectionRef = Rc<RefCell<Box<Section>>>;
+
+struct Sections(Vec<SectionRef>);
 
 impl Sections {
     fn new() -> Sections {
@@ -48,20 +55,16 @@ impl Sections {
     }
 
     #[inline(always)]
-    fn has(&self, number: u8) -> bool {
-        self.0.iter().any(|s| s.number == number)
-    }
-
-    #[inline(always)]
     #[allow(dead_code)]
-    fn get_mut(&mut self, number: u8) -> Option<&mut Rc<Box<Section>>> {
-        self.0.iter_mut().find(|s| s.number == number)
+    fn get_mut(&mut self, number: u8) -> Option<&mut SectionRef> {
+        self.0.iter_mut().find(|s| s.borrow().number == number)
     }
 
     #[inline(always)]
-    fn push(&mut self, s: Rc<Box<Section>>) {
+    fn push(&mut self, s: SectionRef) {
         self.0.push(s);
-        self.0.sort_unstable_by(|a, b| a.number.cmp(&b.number));
+        self.0
+            .sort_unstable_by(|a, b| a.borrow().number.cmp(&b.borrow().number));
     }
 }
 
@@ -89,7 +92,7 @@ impl Table {
 struct Tables {
     map: HashMap<SubtableID, Table>,
     /// current demuxing section
-    current: Option<Rc<Box<Section>>>,
+    current: Option<SectionRef>,
 }
 
 impl Tables {
@@ -194,24 +197,46 @@ impl Demuxer {
 
                         let table = tables.map.entry(id).or_insert_with(|| Table::new(id));
 
-                        match table.sections.get_mut(section_number) {
-                            Some(ref mut section) => { section.buf.reset(); },
-                            None => {
-                                let section = Rc::new(Box::new(Section::new(section_number)));
-                                section.buf.0.write_all(buf)?;
+                        let section_ref = match table.sections.get_mut(section_number) {
+                            Some(section_ref) => {
+                                {
+                                    let mut section = (*section_ref).borrow_mut();
 
-                                table.sections.push(section);
-                                tables.current = Some(section);
+                                    {
+                                        let raw = section.buf.0.get_ref().as_slice();
+
+                                        match pid {
+                                            PID::PAT => println!("{:?}", PAT::new(raw)),
+                                            PID::SDT => println!("{:?}", SDT::new(raw)),
+                                            PID::EIT => println!("{:?}", EIT::new(raw)),
+                                            _ => {},
+                                        };
+                                    }
+
+                                    section.buf.reset();
+                                }
+
+                                section_ref.clone()
                             },
-                        }
-                    } else if let Some(ref mut section) = tables.current {
-                        section.borrow_mut().buf.0.write_all(buf)?;
+                            None => {
+                                let section_ref = Section::new(section_number).into_ref();
+
+                                table.sections.push(section_ref.clone());
+
+                                section_ref
+                            },
+                        };
+
+                        tables.current = Some(section_ref);
+                    }
+
+                    if let Some(section_ref) = &tables.current {
+                        let mut section = (*section_ref).borrow_mut();
+                        section.buf.0.write_all(buf)?;
                     }
 
                     Ok(())
                 })?;
-
-
 
                 // let table = self.pat.entry(id).or_insert_with(|| {
                 //     let mut table = Table::new();

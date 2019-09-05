@@ -3,8 +3,7 @@ extern crate ts;
 mod error;
 
 use std::collections::VecDeque;
-use std::fs::File;
-use std::io::{copy, Cursor, Write};
+use std::io::{Cursor, Write};
 use std::net::{Ipv4Addr, UdpSocket};
 use std::process;
 use std::sync::{Arc, Condvar, Mutex};
