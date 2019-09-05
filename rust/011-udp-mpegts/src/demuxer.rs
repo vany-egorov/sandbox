@@ -146,6 +146,8 @@ impl Default for Demuxer {
     }
 }
 
+unsafe impl Send for Demuxer {}
+
 impl Demuxer {
     pub fn new() -> Demuxer {
         Default::default()
