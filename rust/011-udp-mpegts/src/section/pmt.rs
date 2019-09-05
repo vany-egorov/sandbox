@@ -1,8 +1,11 @@
-use super::traits::*;
+use std::fmt;
+
 use crate::descriptor::Descriptor;
 use crate::result::Result;
 use crate::stream_type::StreamType;
-use std::fmt;
+use crate::subtable_id::{SubtableID, SubtableIDer};
+
+use super::traits::*;
 
 /// ISO/IEC 13818-1
 ///
@@ -18,6 +21,18 @@ impl<'buf> PMT<'buf> {
     #[inline(always)]
     pub fn new(buf: &'buf [u8]) -> PMT<'buf> {
         PMT { buf }
+    }
+
+    #[inline(always)]
+    pub fn try_new(buf: &'buf [u8]) -> Result<PMT<'buf>> {
+        let s = Self::new(buf);
+        s.validate()?;
+        Ok(s)
+    }
+
+    #[inline(always)]
+    pub fn validate(&self) -> Result<()> {
+        Ok(())
     }
 
     /// seek
@@ -127,6 +142,17 @@ impl<'buf> fmt::Debug for PMT<'buf> {
         }
 
         Ok(())
+    }
+}
+
+impl<'buf> SubtableIDer for PMT<'buf> {
+    #[inline(always)]
+    fn subtable_id(&self) -> SubtableID {
+        SubtableID::PMT(
+            self.table_id(),
+            self.program_number(),
+            self.version_number(),
+        )
     }
 }
 

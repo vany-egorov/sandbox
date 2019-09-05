@@ -8,7 +8,7 @@ use crate::pid::PID;
 use crate::result::Result;
 use crate::section::WithSyntaxSection;
 use crate::subtable_id::{SubtableID, SubtableIDer};
-use crate::{EIT, PAT, SDT};
+use crate::{EIT, PAT, PMT, SDT};
 
 struct Buf(Cursor<Vec<u8>>);
 
@@ -95,8 +95,10 @@ struct Tables {
     current: Option<SectionRef>,
 }
 
-impl Tables {
-    fn new() -> Tables {
+impl Tables {}
+
+impl Default for Tables {
+    fn default() -> Self {
         Tables {
             map: HashMap::new(),
             current: None,
@@ -120,6 +122,29 @@ struct Streams {
 
 impl Streams {}
 
+#[derive(Debug)]
+struct PMTPids(Vec<PID>);
+
+impl PMTPids {
+    #[inline(always)]
+    fn has(&self, pid: PID) -> bool {
+        self.0.iter().any(|p| (*p) == pid)
+    }
+
+    #[inline(always)]
+    fn push_uniq(&mut self, pid: PID) {
+        if !self.has(pid) {
+            self.0.push(pid)
+        }
+    }
+}
+
+impl Default for PMTPids {
+    fn default() -> Self {
+        PMTPids(Vec::with_capacity(3))
+    }
+}
+
 /// TODO: use tree, redix tree here
 /// TODO: add benches
 pub struct Demuxer {
@@ -129,6 +154,8 @@ pub struct Demuxer {
     eit: Tables,
     sdt: Tables,
 
+    pmt_pids: PMTPids,
+
     #[allow(dead_code)]
     streams: Streams,
 }
@@ -136,10 +163,12 @@ pub struct Demuxer {
 impl Default for Demuxer {
     fn default() -> Self {
         Demuxer {
-            pat: Tables::new(),
-            pmt: Tables::new(),
-            eit: Tables::new(),
-            sdt: Tables::new(),
+            pat: Default::default(),
+            pmt: Default::default(),
+            eit: Default::default(),
+            sdt: Default::default(),
+
+            pmt_pids: Default::default(),
 
             streams: Default::default(),
         }
@@ -167,6 +196,11 @@ impl Demuxer {
         })
     }
 
+    // TODO: implement
+    fn demux_section() -> Result<()> {
+        Ok(())
+    }
+
     pub fn demux(&mut self, raw: &[u8]) -> Result<()> {
         let pkt = Packet::new(&raw)?;
         let pid = pkt.pid();
@@ -176,7 +210,7 @@ impl Demuxer {
         }
 
         match pid {
-            PID::PAT | PID::SDT | PID::EIT /*| PID::NIT | PID::CAT | PID::BAT */  => {
+            PID::PAT | PID::SDT | PID::EIT /*| PID::NIT | PID::CAT | PID::BAT */ => {
                 let buf = pkt.buf_payload_section()?;
 
                 self.with_tables_mut(pid, |tables| {
@@ -240,17 +274,63 @@ impl Demuxer {
                     Ok(())
                 })?;
 
-                // let table = self.pat.entry(id).or_insert_with(|| {
-                //     let mut table = Table::new();
-                //     table.buf.0.write_all(buf).unwrap();
-
-                //     println!(">>>>>>> {:?}", pat);
-
-                //     table
-                // });
+                // extract pids from PAT
+                if pid == PID::PAT && self.pmt_pids.0.is_empty() {
+                    let pat = PAT::new(buf);
+                    // TODO: move as iterator
+                    for pmt_pid in pat.programs().filter_map(Result::ok).filter(|p| p.pid().is_program_map()).map(|p| PID::from(p.pid())) {
+                        self.pmt_pids.push_uniq(pmt_pid);
+                    }
+                }
             }
             PID::Other(..) => {
-                // println!(">>>>>>> {:?}", pid);
+                // PAT not ready yet
+                if self.pmt_pids.0.is_empty() {
+                    return Ok(());
+                }
+
+                let buf = pkt.buf_payload_section()?;
+
+                if !self.pmt_pids.0.is_empty() && self.pmt_pids.has(pid) {
+                    let tables = &mut self.pmt;
+                    let s = PMT::try_new(buf)?;
+                    let (id, section_number) = (s.subtable_id(), s.section_number());
+
+                    let table = tables.map.entry(id).or_insert_with(|| Table::new(id));
+
+                    let section_ref = match table.sections.get_mut(section_number) {
+                        Some(section_ref) => {
+                            {
+                                let mut section = (*section_ref).borrow_mut();
+
+                                {
+                                    let raw = section.buf.0.get_ref().as_slice();
+                                    println!("{:?}", PMT::new(raw));
+                                }
+
+                                section.buf.reset();
+                            }
+
+                            section_ref.clone()
+                        },
+                        None => {
+                            let section_ref = Section::new(section_number).into_ref();
+
+                            table.sections.push(section_ref.clone());
+
+                            section_ref
+                        },
+                    };
+
+                    {
+                        let mut section = (*section_ref).borrow_mut();
+                        section.buf.0.write_all(buf)?;
+                    }
+
+                    tables.current = Some(section_ref);
+                } else {
+                    // TODO: PES
+                }
             }
             _ => return Ok(()),
         }

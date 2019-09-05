@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::error::{Error, Kind as ErrorKind};
+use crate::pid::PID as TsPID;
 use crate::result::Result;
 use crate::subtable_id::{SubtableID, SubtableIDer};
 
@@ -122,6 +123,25 @@ pub enum PID {
     Network(u16),
 
     ProgramMap(u16),
+}
+
+impl PID {
+    #[inline(always)]
+    pub fn is_program_map(self) -> bool {
+        match self {
+            PID::ProgramMap(..) => true,
+            _ => false,
+        }
+    }
+}
+
+impl From<PID> for TsPID {
+    fn from(id: PID) -> TsPID {
+        match id {
+            PID::Network(v) => TsPID::Other(v),
+            PID::ProgramMap(v) => TsPID::Other(v),
+        }
+    }
 }
 
 pub struct Program<'buf> {

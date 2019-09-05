@@ -57,7 +57,7 @@ impl fmt::Debug for Error {
 
             Kind::AnnexCBuf(actual, expected) => {
                 write!(f, " (:sz-actual {} :sz-expected {})", actual, expected)?
-            },
+            }
 
             _ => {}
         }
@@ -96,6 +96,29 @@ impl StdError for Error {
         }
     }
 }
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Error) -> bool {
+        match (&self.0, &other.0) {
+            (Kind::SyncByte(a1), Kind::SyncByte(a2)) => a1 == a2,
+            (Kind::Buf(a1, b1), Kind::Buf(a2, b2)) => a1 == a2 && b1 == b2,
+            (Kind::PESStartCode(a1), Kind::PESStartCode(a2)) => a1 == a2,
+            (Kind::SectionSyntaxIndicatorNotSet, Kind::SectionSyntaxIndicatorNotSet) => true,
+            (Kind::AnnexA2EmptyBuf, Kind::AnnexA2EmptyBuf) => true,
+            (Kind::AnnexA2UnsupportedEncoding, Kind::AnnexA2UnsupportedEncoding) => true,
+            (Kind::AnnexA2Decode, Kind::AnnexA2Decode) => true,
+            (Kind::AnnexA2TableA3Unexpected(a1), Kind::AnnexA2TableA3Unexpected(a2)) => a1 == a2,
+            (Kind::AnnexA2TableA4Buf(a1, b1), Kind::AnnexA2TableA4Buf(a2, b2)) => {
+                a1 == a2 && b1 == b2
+            }
+            (Kind::AnnexA2TableA4Unexpected(a1), Kind::AnnexA2TableA4Unexpected(a2)) => a1 == a2,
+            (Kind::AnnexCBuf(a1, a2), Kind::AnnexCBuf(b1, b2)) => a1 == a2 && b1 == b2,
+            (Kind::Io(..), Kind::Io(..)) => true,
+            _ => false,
+        }
+    }
+}
+impl Eq for Error {}
 
 impl From<IoError> for Error {
     fn from(err: IoError) -> Error {
