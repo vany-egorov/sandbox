@@ -50,10 +50,6 @@ type SectionRef = Rc<RefCell<Box<Section>>>;
 struct Sections(Vec<SectionRef>);
 
 impl Sections {
-    fn new() -> Sections {
-        Default::default()
-    }
-
     #[inline(always)]
     #[allow(dead_code)]
     fn get_mut(&mut self, number: u8) -> Option<&mut SectionRef> {
@@ -84,7 +80,7 @@ impl Table {
     fn new(id: SubtableID) -> Table {
         Table {
             id,
-            sections: Sections::new(),
+            sections: Default::default(),
         }
     }
 }
@@ -106,13 +102,21 @@ impl Default for Tables {
     }
 }
 
-#[derive(Default)]
 struct Stream {
+    pid: PID,
+
     #[allow(dead_code)]
     buf: Buf,
 }
 
-impl Stream {}
+impl Stream {
+    fn new(pid: PID) -> Stream {
+        Stream {
+            pid: pid,
+            buf: Default::default(),
+        }
+    }
+}
 
 #[derive(Default)]
 struct Streams {
@@ -329,7 +333,9 @@ impl Demuxer {
 
                     tables.current = Some(section_ref);
                 } else {
-                    // TODO: PES
+                    let stream = self.streams.map.entry(pid).or_insert_with(|| Stream::new(pid));
+
+                    println!("{:?}", stream.pid)
                 }
             }
             _ => return Ok(()),
