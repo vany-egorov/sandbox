@@ -1,0 +1,43 @@
+version: "3.6"
+
+services:
+  build:
+    build:
+      dockerfile: ./docker/node/Dockerfile
+      context: ..
+      target: build
+    networks:
+      - raft-memberlist
+    hostname: raft-memberlist-build
+    container_name: raft-memberlist-build
+
+  node01:
+    build:
+      dockerfile: ./docker/node/Dockerfile
+      context: ..
+    networks:
+      - raft-memberlist
+    hostname: raft-memberlist-node01
+    container_name: raft-memberlist-node01
+
+  node02:
+    build:
+      dockerfile: ./docker/node/Dockerfile
+      context: ..
+    networks:
+      - raft-memberlist
+    hostname: raft-memberlist-node02
+    container_name: raft-memberlist-node02
+
+  node03:
+    build:
+      dockerfile: ./docker/node/Dockerfile
+      context: ..
+    networks:
+      - raft-memberlist
+    hostname: raft-memberlist-node03
+    container_name: raft-memberlist-node03
+
+networks:
+  raft-memberlist:
+    name: raft-memberlist

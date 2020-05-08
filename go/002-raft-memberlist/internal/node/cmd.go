@@ -89,7 +89,6 @@ func (a *App) CmdSetRunFnAndFlags(cmd *cobra.Command) {
 	cmd.AddCommand(
 		cmdVersion,
 		cmdPrintConfig,
-		cmdDb,
 	)
 
 	// ... add other commands here if any

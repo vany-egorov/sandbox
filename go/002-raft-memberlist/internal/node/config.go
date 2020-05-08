@@ -5,6 +5,21 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/go-x-pkg/bufpool"
+	"github.com/go-x-pkg/dumpctx"
+	"github.com/go-x-pkg/fnscli"
+	"github.com/go-x-pkg/log"
+	"github.com/go-x-pkg/xseelog"
+	"github.com/spf13/pflag"
+)
+
+const (
+	defaultPathConfig string = "/etc/node/config.yml"
+
+	defaultDirLog string = "/var/log/node"
+
+	defaultTimeoutWorkersDone time.Duration = 5 * time.Second
 )
 
 type flags struct {
@@ -95,10 +110,6 @@ func (c *config) fromFlags(flags *flags, actn action) error {
 }
 
 func (c *config) validate(actn action) error {
-	if err := c.Servers.Validate(); err != nil {
-		return fmt.Errorf("servers config is not valid: %w", err)
-	}
-
 	return nil
 }
 

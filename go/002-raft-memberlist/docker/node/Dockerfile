@@ -8,10 +8,41 @@ RUN \
     git-core \
     protobuf-compiler
 
-# install golang
 WORKDIR /opt
 
 COPY ./hack/ ./hack/
 
-# -----------------------------------------------------------------------------
+ENV GOROOT="/opt/go"
+ENV GOPATH="/opt/gopath"
+ENV PATH="${GOROOT}/bin:${GOPATH}/bin:${PATH}"
+
+RUN /bin/bash \
+  ./hack/go-local-install.sh --path /opt
+
+# copy source
+WORKDIR /usr/local/raft-memberlist
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+
+COPY ./cmd/ ./cmd
+COPY ./internal/ ./internal/
+COPY ./pkg/ ./pkg/
+COPY ./appversion/ ./appversion/
+COPY ./hack/ ./hack/
+COPY ./VERSION ./VERSION
+
+# install deps
+RUN go mod download
+
+# ----------------
 FROM base as build
+
+RUN /bin/bash ./hack/build.sh
+
+RUN cp -v /usr/local/raft-memberlist/bin/node /usr/local/bin/node
+
+# ---------------
+FROM build as run
+
+ENTRYPOINT ["node"]

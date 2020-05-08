@@ -18,7 +18,7 @@ type App struct {
 }
 
 func (a *App) run() (outErr error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 
 	go func() {
 		defer cancel()
@@ -39,11 +39,6 @@ func (a *App) run() (outErr error) {
 				switch sig {
 				case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 					logFn(log.Info, "(SIGINT SIGTERM SIGQUIT) will shutdown")
-
-					if a.daemonCtx != nil {
-						a.daemonCtx.Release()
-						a.daemonCtx = nil
-					}
 
 					return
 
@@ -108,7 +103,6 @@ func (a *App) initialize(actn action, resetConfig bool, resetLoggers bool) error
 
 func (a *App) main(actn action, args []string, flags *pflag.FlagSet) (err error) {
 	a.flags.set = flags
-	a.ctx.init()
 
 	if err := a.initialize(actn, true, true); err != nil {
 		return fmt.Errorf("intialization failed: %w", err)
