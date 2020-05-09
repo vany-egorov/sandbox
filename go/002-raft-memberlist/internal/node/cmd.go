@@ -27,13 +27,17 @@ func (a *App) applyMainFlags(cmd *cobra.Command) {
 		"config", "c",
 		defaultPathConfig, "path to configuration file")
 
-	cmd.Flags().BoolVar(&a.flags.printConfig,
-		"print-config", false,
-		"print config and exit")
+	cmd.Flags().StringSliceVarP(&a.flags.peers,
+		"peers", "p",
+		nil, "peers - cluster members")
 
 	cmd.Flags().DurationVar(&a.flags.timeout.workersDone,
 		"timeout-workers-done", defaultTimeoutWorkersDone,
 		"wait duration for workers to shutdown gracefully. otherwise force shutdown")
+
+	cmd.Flags().BoolVar(&a.flags.printConfig,
+		"print-config", false,
+		"print config and exit")
 
 	cmd.Flags().BoolVar(&a.flags.logDisableConsole,
 		"log-disable-console", false,

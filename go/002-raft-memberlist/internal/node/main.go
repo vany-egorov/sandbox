@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/go-x-pkg/log"
@@ -18,9 +19,14 @@ type App struct {
 }
 
 func (a *App) run() (outErr error) {
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		defer cancel()
 
 		signalChan := make(chan os.Signal, 1)
@@ -63,6 +69,8 @@ func (a *App) run() (outErr error) {
 						logFn(log.Info, "(SIGHUP) reload OK")
 					}
 				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
@@ -74,6 +82,15 @@ func (a *App) run() (outErr error) {
 		logFn(log.Debug,
 			"using configuration:\n%s", buf.String())
 	})
+
+	clstr := &cluster{}
+	clstr.init(logFn, a.ctx.cfg().Peers)
+	if err := clstr.Start(ctx); err != nil {
+		cancel()
+		outErr = err
+	}
+
+	wg.Wait()
 
 	return outErr
 }

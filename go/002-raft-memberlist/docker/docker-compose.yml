@@ -1,5 +1,19 @@
 version: "3.6"
 
+x-:
+  node: &x-node
+    build:
+      dockerfile: ./docker/node/Dockerfile
+      context: ..
+    expose:
+      - "7946" # memberlist
+    networks:
+      - raft-memberlist
+    command: [
+      "-p", "raft-memberlist-node01",
+      # "--vvv"
+    ]
+
 services:
   build:
     build:
@@ -12,29 +26,21 @@ services:
     container_name: raft-memberlist-build
 
   node01:
-    build:
-      dockerfile: ./docker/node/Dockerfile
-      context: ..
-    networks:
-      - raft-memberlist
+    <<: *x-node
     hostname: raft-memberlist-node01
     container_name: raft-memberlist-node01
+    command: [
+      "-p", "raft-memberlist-node02",
+      # "--vvv"
+    ]
 
   node02:
-    build:
-      dockerfile: ./docker/node/Dockerfile
-      context: ..
-    networks:
-      - raft-memberlist
+    <<: *x-node
     hostname: raft-memberlist-node02
     container_name: raft-memberlist-node02
 
   node03:
-    build:
-      dockerfile: ./docker/node/Dockerfile
-      context: ..
-    networks:
-      - raft-memberlist
+    <<: *x-node
     hostname: raft-memberlist-node03
     container_name: raft-memberlist-node03
 

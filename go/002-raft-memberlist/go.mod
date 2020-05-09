@@ -12,4 +12,6 @@ require (
   github.com/go-x-pkg/dumpctx v0.0.1
 
   github.com/hashicorp/memberlist v0.2.2
+  github.com/cenkalti/backoff/v4 v4.0.2
+  go.etcd.io/etcd v3.3.20+incompatible
 )

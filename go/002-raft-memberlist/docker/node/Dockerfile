@@ -25,15 +25,15 @@ WORKDIR /usr/local/raft-memberlist
 COPY ./go.mod ./
 COPY ./go.sum ./
 
+# install deps
+RUN go mod download
+
 COPY ./cmd/ ./cmd
 COPY ./internal/ ./internal/
 COPY ./pkg/ ./pkg/
 COPY ./appversion/ ./appversion/
 COPY ./hack/ ./hack/
 COPY ./VERSION ./VERSION
-
-# install deps
-RUN go mod download
 
 # ----------------
 FROM base as build

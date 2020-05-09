@@ -1,1 +1,5 @@
-README.md
+# Memberlist + Raft example
+
+```bash
+make run
+```

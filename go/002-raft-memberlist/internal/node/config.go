@@ -27,6 +27,8 @@ type flags struct {
 
 	printConfig bool
 
+	peers []string
+
 	timeout struct {
 		workersDone time.Duration
 	}
@@ -41,6 +43,8 @@ type flags struct {
 }
 
 type config struct {
+	Peers Peers `yaml:"peers"`
+
 	Timeout struct {
 		WorkersDone time.Duration `yaml:"workers-done"`
 	} `yaml:"timeout"`
@@ -85,6 +89,12 @@ func (c *config) fromFlags(flags *flags, actn action) error {
 		c.Timeout.WorkersDone = flags.timeout.workersDone
 	}
 
+	if fnscli.IsPFlagSet(flags.set, "peers") {
+		for _, addr := range flags.peers {
+			c.Peers = append(c.Peers, &Peer{addr})
+		}
+	}
+
 	if flags.logDisableConsole {
 		c.Log.DisableConsole = true
 	}
@@ -110,6 +120,10 @@ func (c *config) fromFlags(flags *flags, actn action) error {
 }
 
 func (c *config) validate(actn action) error {
+	if len(c.Peers) == 0 {
+		return fmt.Errorf("no peers defined")
+	}
+
 	return nil
 }
 
@@ -142,6 +156,18 @@ func (c *config) DumpToFn(cb func(*bytes.Buffer)) {
 func (c *config) Dump(w io.Writer) {
 	ctx := dumpctx.Ctx{}
 	ctx.Init()
+
+	fmt.Fprintf(w, "%speers", ctx.Indent())
+	if ln := len(c.Peers); ln == 0 {
+		fmt.Fprintf(w, " : ~\n")
+	} else {
+		fmt.Fprintf(w, " (%d):\n", ln)
+		ctx.Wrap(func() {
+			for _, p := range c.Peers {
+				fmt.Fprintf(w, "%s- addr: %s\n", ctx.Indent(), p.Addr)
+			}
+		})
+	}
 
 	fmt.Fprintf(w, "%stimeout:\n", ctx.Indent())
 	ctx.Wrap(func() {
