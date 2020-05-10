@@ -42,8 +42,12 @@ type flags struct {
 	set *pflag.FlagSet
 }
 
+type configPeer struct {
+	Addr string `yaml:"addr"`
+}
+
 type config struct {
-	Peers Peers `yaml:"peers"`
+	Peers []configPeer `yaml:"peers"`
 
 	Timeout struct {
 		WorkersDone time.Duration `yaml:"workers-done"`
@@ -91,7 +95,7 @@ func (c *config) fromFlags(flags *flags, actn action) error {
 
 	if fnscli.IsPFlagSet(flags.set, "peers") {
 		for _, addr := range flags.peers {
-			c.Peers = append(c.Peers, &Peer{addr})
+			c.Peers = append(c.Peers, configPeer{Addr: addr})
 		}
 	}
 

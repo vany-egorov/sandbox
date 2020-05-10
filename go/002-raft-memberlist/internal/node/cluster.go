@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/go-x-pkg/bufpool"
 	"github.com/go-x-pkg/log"
 	"github.com/hashicorp/memberlist"
 )
@@ -22,24 +23,27 @@ func (clo *clusterLogOutput) Write(p []byte) (n int, err error) {
 }
 
 type cluster struct {
-	peers Peers
+	peers *Peers
 	fnLog log.FnT
 
 	listCfg    *memberlist.Config
 	listEvents chan memberlist.NodeEvent
 }
 
-func fnLogMembers(fnLog log.FnT, list *memberlist.Memberlist) {
-	for _, n := range list.Members() {
-		fnLog(log.Info, "* %s", n)
-	}
-}
-
 func (c *cluster) notifyJoin(n *memberlist.Node) {
+	if p := c.peers.getByNameOrIpAddr(n.Name, n.Addr); p != nil {
+		p.memberlistNode = n
+	} else {
+		c.peers.push(&Peer{n.Name, n})
+	}
 	c.fnLog(log.Info, "[+] %s", n)
 }
 
 func (c *cluster) notifyLeave(n *memberlist.Node) {
+	if p := c.peers.getByNameOrIpAddr(n.Name, n.Addr); p != nil {
+		// TODO: delete node?
+		p.memberlistNode = nil
+	}
 	c.fnLog(log.Warn, "[-] %s", n)
 }
 
@@ -49,6 +53,12 @@ func (c *cluster) notifyUpdate(n *memberlist.Node) {
 
 func (c *cluster) Start(ctx context.Context) error {
 	go func() {
+		ticker := time.NewTicker(20 * time.Second)
+		defer ticker.Stop()
+
+		buf := bufpool.NewBuf()
+		defer buf.Release()
+
 		for {
 			select {
 			case nodeEvent := <-c.listEvents:
@@ -62,6 +72,21 @@ func (c *cluster) Start(ctx context.Context) error {
 				}
 			case <-ctx.Done():
 				return
+
+			case <-ticker.C: // log down memberlist state
+				buf.Reset()
+
+				// TODO: move to func and more pretty log
+				c.peers.ForEach(func(p *Peer) bool {
+					fmt.Fprint(buf, p.addr)
+					if n := p.memberlistNode; n != nil {
+						fmt.Fprintf(buf, "(%s)", n.Addr)
+					}
+					buf.WriteString("; ")
+					return true
+				})
+
+				c.fnLog(log.Info, "%s", buf.String())
 			}
 		}
 	}()
@@ -80,7 +105,6 @@ func (c *cluster) Start(ctx context.Context) error {
 			continue
 		}
 
-		fnLogMembers(c.fnLog, list)
 		ticker.Stop()
 		break
 	}
@@ -88,7 +112,7 @@ func (c *cluster) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *cluster) init(fnLog log.FnT, peers Peers) error {
+func (c *cluster) init(fnLog log.FnT, peers *Peers) error {
 	if fnLog == nil {
 		fnLog = log.LogfStd
 	}

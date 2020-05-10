@@ -84,7 +84,7 @@ func (a *App) run() (outErr error) {
 	})
 
 	clstr := &cluster{}
-	clstr.init(logFn, a.ctx.cfg().Peers)
+	clstr.init(logFn, NewPeersFromConfig(a.ctx.cfg().Peers))
 	if err := clstr.Start(ctx); err != nil {
 		cancel()
 		outErr = err
