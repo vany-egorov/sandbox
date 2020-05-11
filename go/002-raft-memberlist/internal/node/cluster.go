@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -34,7 +35,9 @@ func (c *cluster) notifyJoin(n *memberlist.Node) {
 	if p := c.peers.getByNameOrIpAddr(n.Name, n.Addr); p != nil {
 		p.memberlistNode = n
 	} else {
-		c.peers.push(&Peer{n.Name, n})
+		p = NewPeer(n.Name)
+		p.memberlistNode = n
+		c.peers.push(p)
 	}
 	c.fnLog(log.Info, "[+] %s", n)
 }
@@ -52,6 +55,10 @@ func (c *cluster) notifyUpdate(n *memberlist.Node) {
 }
 
 func (c *cluster) Start(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.TODO()
+	}
+
 	go func() {
 		ticker := time.NewTicker(20 * time.Second)
 		defer ticker.Stop()
@@ -59,12 +66,23 @@ func (c *cluster) Start(ctx context.Context) error {
 		buf := bufpool.NewBuf()
 		defer buf.Release()
 
+		startRaftOnce := sync.Once{}
+
 		for {
 			select {
 			case nodeEvent := <-c.listEvents:
 				switch nodeEvent.Event {
 				case memberlist.NodeJoin:
 					c.notifyJoin(nodeEvent.Node)
+
+					if c.peers.Len() == 3 { // TODO: move 3 to config
+						startRaftOnce.Do(func() {
+							clstrRft := clusterRaft{}
+							clstrRft.init(c.fnLog, c.peers)
+							go clstrRft.start(ctx)
+						})
+					}
+
 				case memberlist.NodeLeave:
 					c.notifyLeave(nodeEvent.Node)
 				case memberlist.NodeUpdate:
@@ -78,10 +96,16 @@ func (c *cluster) Start(ctx context.Context) error {
 
 				// TODO: move to func and more pretty log
 				c.peers.ForEach(func(p *Peer) bool {
-					fmt.Fprint(buf, p.addr)
+					fmt.Fprint(buf, p.name)
+					buf.WriteByte('(')
+					fmt.Fprintf(buf, "0x%02X", p.id)
 					if n := p.memberlistNode; n != nil {
-						fmt.Fprintf(buf, "(%s)", n.Addr)
+						fmt.Fprintf(buf, ", %s", n.Addr)
 					}
+					if p.self {
+						fmt.Fprint(buf, ", self")
+					}
+					buf.WriteByte(')')
 					buf.WriteString("; ")
 					return true
 				})
@@ -100,7 +124,7 @@ func (c *cluster) Start(ctx context.Context) error {
 	ticker := backoff.NewTicker(bckff)
 
 	for range ticker.C {
-		if _, err := list.Join(c.peers.pluckAddr()); err != nil {
+		if _, err := list.Join(c.peers.pluckNameWithoutSelf()); err != nil {
 			c.fnLog(log.Error, "failed to create cluster: %s. will retry.", err)
 			continue
 		}

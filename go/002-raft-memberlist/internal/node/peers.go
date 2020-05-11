@@ -43,30 +43,50 @@ func (ps *Peers) push(p *Peer) {
 	ps.ps = append(ps.ps, p)
 }
 
-func (ps Peers) pluckAddr() (addrs []string) {
+func (ps *Peers) pluckNameWithoutSelf() (addrs []string) {
 	ps.RLock()
 	defer ps.RUnlock()
 
 	for _, p := range ps.ps {
-		addrs = append(addrs, p.addr)
+		if p.self {
+			continue
+		}
+		addrs = append(addrs, p.name)
 	}
 	return
 }
 
-func (ps Peers) getByNameOrIpAddr(name string, addr net.IP) *Peer {
+func (ps *Peers) getByNameOrIpAddr(name string, addr net.IP) *Peer {
 	ps.RLock()
 	defer ps.RUnlock()
 
 	for _, p := range ps.ps {
-		if p.addr == name || p.addr == addr.String() {
+		if p.name == name || p.name == addr.String() {
 			return p
 		}
 	}
 	return nil
 }
 
-func NewPeersFromConfig(peers []configPeer) *Peers {
+func (ps *Peers) selfID() uint64 {
+	ps.RLock()
+	defer ps.RUnlock()
+
+	for _, p := range ps.ps {
+		if p.self {
+			return p.id
+		}
+	}
+
+	return 0
+}
+
+func NewPeersFromConfig(selfName string, peers []configPeer) *Peers {
 	ps := new(Peers)
+
+	selfp := NewPeer(selfName)
+	selfp.self = true
+	ps.push(selfp)
 
 	for _, p := range peers {
 		ps.push(NewPeer(p.Addr))

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/go-x-pkg/bufpool"
@@ -47,6 +48,7 @@ type configPeer struct {
 }
 
 type config struct {
+	Name  string       `yaml:"name"`
 	Peers []configPeer `yaml:"peers"`
 
 	Timeout struct {
@@ -67,6 +69,14 @@ func (c *config) fromFile(flags *flags) error {
 }
 
 func (c *config) defaultize() error {
+	if c.Name == "" {
+		if n, err := os.Hostname(); err != nil {
+			return fmt.Errorf("error get hostname: %w", err)
+		} else {
+			c.Name = n
+		}
+	}
+
 	{ // timeout
 		if c.Timeout.WorkersDone == 0 {
 			c.Timeout.WorkersDone = defaultTimeoutWorkersDone
