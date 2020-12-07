@@ -26,8 +26,6 @@ libwebsockets
 *.swo
 .vscode
 
-go.sum
-
 wasm/c/*.html
 wasm/c/*.js
 wasm/c/*.wasm

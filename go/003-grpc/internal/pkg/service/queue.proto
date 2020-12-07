@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "github.com/vany-egorov/grpcexample/internal/pkg/service";
+
+package service;
+
+service Worker {
+  rpc Perform (JobRequest) returns (JobReply) {}
+}
+
+message JobRequest {
+  string name = 1;
+}
+
+message JobReply {
+  string name = 1;
+}

@@ -1,2 +1,2 @@
 #!/bin/bash
-go_version="1.14.2"
+go_version="1.15.6"

@@ -1,6 +1,7 @@
 #!/bin/bash
 source "${BASH_SOURCE%/*}/_path.sh"
 source "${BASH_SOURCE%/*}/go-version.sh"
+source "${BASH_SOURCE%/*}/go-get.sh"
 
 
 path=${path_env}
@@ -60,17 +61,12 @@ main() {
     cd "${path}"
 
     curl -OL "https://dl.google.com/go/go${go_version}.linux-amd64.tar.gz" && \
-    mv ./go*tar.gz ./go.tar.gz && \
-    tar -xf ./go.tar.gz && \
-    rm -rf ./go.tar.gz
+      mv ./go*tar.gz ./go.tar.gz && \
+      tar -xf ./go.tar.gz && \
+      rm -rf ./go.tar.gz
   fi
 
-  # install libraries
-  go get -u -v "github.com/golang/protobuf/proto"
-  go get -u -v "github.com/golang/protobuf/protoc-gen-go"
-  go get -u -v "github.com/bronze1man/yaml2json"
-  go get -u -v "github.com/jteeuwen/go-bindata"
-  go get -u -v "github.com/jteeuwen/go-bindata/go-bindata"
+  go_get
 }
 
 set -e

@@ -1,0 +1,56 @@
+version: "3.6"
+
+x-:
+  build: &x-build
+    dockerfile: ./docker/build/Dockerfile
+    context: .
+
+services:
+  go-lint:
+    build:
+      <<: *x-build
+      target: lint
+
+  go-test:
+    build:
+      <<: *x-build
+      target: test
+
+  build-broker:
+    build:
+      <<: *x-build
+      target: build-broker
+    container_name: grpcexample-build-broker
+
+  build-worker:
+    build:
+      <<: *x-build
+      target: build-worker
+    container_name: grpcexample-build-worker
+
+  broker:
+    build:
+      <<: *x-build
+      target: broker
+    networks:
+      - grpcexample
+    command: [""]
+
+  worker:
+    build:
+      <<: *x-build
+      target: worker
+    scale: 20
+    networks:
+      - grpcexample
+    command: [""]
+
+  consul:
+    image: consul:latest
+    restart: always
+    networks:
+      - grpcexample
+
+networks:
+  grpcexample:
+    name: grpcexample

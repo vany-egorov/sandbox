@@ -23,7 +23,6 @@ RUN /bin/bash \
 WORKDIR /usr/local/raft-memberlist
 
 COPY ./go.mod ./
-COPY ./go.sum ./
 
 # install deps
 RUN go mod download
