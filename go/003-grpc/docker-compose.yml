@@ -32,6 +32,7 @@ services:
     build:
       <<: *x-build
       target: broker
+    scale: 2
     networks:
       - grpcexample
     command: [""]
@@ -40,7 +41,7 @@ services:
     build:
       <<: *x-build
       target: worker
-    scale: 20
+    scale: 3
     networks:
       - grpcexample
     command: [""]

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,6 +14,9 @@ import (
 	"github.com/go-x-pkg/log"
 	"github.com/go-x-pkg/servers"
 	"github.com/spf13/pflag"
+	"google.golang.org/grpc"
+
+	pb "github.com/vany-egorov/grpcexample/internal/pkg/service"
 )
 
 type App struct {
@@ -112,6 +116,19 @@ func (a *App) run(ctx context.Context) (outErr error) {
 			close(serverErrChan)
 			outErr = err
 		}
+	})
+
+	fnGoWithWg(func() {
+		listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", a.ctx.cfg().ServerGRPC.Port))
+		if err != nil {
+			close(serverErrChan)
+			outErr = err
+		}
+
+		var opts []grpc.ServerOption
+		grpcServer := grpc.NewServer(opts...)
+		pb.RegisterWorkerServer(grpcServer, &grpcWorkerServer{name: a.ctx.cfg().Name})
+		grpcServer.Serve(listener)
 	})
 
 	if err := retryRegisterServiceWithConsul(

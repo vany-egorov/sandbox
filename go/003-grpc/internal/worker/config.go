@@ -49,7 +49,10 @@ type flags struct {
 type config struct {
 	Name string `yaml:"name"`
 
-	Servers servers.Configs `yaml:"servers"`
+	Servers    servers.Configs `yaml:"servers"`
+	ServerGRPC struct {
+		Port int `yaml:"port"`
+	} `yaml:"grpc-server"`
 
 	Consul struct {
 		Host string `yaml:"host"`
@@ -101,6 +104,12 @@ func (c *config) defaultize() error {
 
 		if len(c.Servers) == 0 {
 			c.Servers.PushINETIfNotExists(defaultServerINETHost, defaultServerINETPort)
+		}
+	}
+
+	{
+		if c.ServerGRPC.Port == 0 {
+			c.ServerGRPC.Port = 8001
 		}
 	}
 
