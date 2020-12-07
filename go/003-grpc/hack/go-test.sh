@@ -1,6 +1,7 @@
 #!/bin/bash
 source "${BASH_SOURCE%/*}/_path.sh"
 source "${path_script}/_compile-proto.sh"
+source "${path_script}/_compile-grpc.sh"
 source "${path_script}/_mock-generate.sh"
 
 with_bench=false
@@ -112,6 +113,7 @@ main() {
   parse_arguments "$@"
 
   compile_proto
+  compile_grpc
   mock_generate
 
   if [ "$with_bench" = true ]; then

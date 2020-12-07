@@ -2,10 +2,12 @@
 source "${BASH_SOURCE%/*}/_path.sh"
 source "${path_script}/_target.sh"
 source "${path_script}/_compile-proto.sh"
+source "${path_script}/_compile-grpc.sh"
 
 
 main() {
   compile_proto
+  compile_grpc
 
   target=$(target_parse $1)
 

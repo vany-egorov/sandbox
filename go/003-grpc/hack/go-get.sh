@@ -5,6 +5,7 @@ go_get_libs() {
   # install libraries and utils
   go get -u -v "github.com/golang/protobuf/proto"
   go get -u -v "github.com/golang/protobuf/protoc-gen-go"
+  go install   "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
   go get -u -v "github.com/mfridman/tparse"
   go get -u -v "github.com/t-yuki/gocover-cobertura"
   go get       "github.com/golang/mock/mockgen@v1.4.4"
